@@ -17,9 +17,18 @@ export function BlockChip({ type, isNew }) {
   )
 }
 
+function Stars({ n }) {
+  return (
+    <span className="mini-stars" aria-label={`별 ${n}개`}>
+      {[1, 2, 3].map((i) => <span key={i} className={i <= n ? 'on' : ''}>★</span>)}
+    </span>
+  )
+}
+
 export default function MissionPanel({
   no, chapter, step, maxStep, onStep, checks, hintCount, onHint,
   onDemo, demoRunning, onStartSelf, result, onNext, onDashboard,
+  onSubmit, grading, ready, record,
 }) {
   const passedCount = checks.filter((c) => c.done).length
 
@@ -92,11 +101,21 @@ export default function MissionPanel({
               </ol>
             )}
             <div className="mission-row">
+              <button type="button" className={`btn btn-submit ${ready ? 'is-ready' : ''}`} onClick={onSubmit} disabled={grading}>
+                {grading ? '채점 중…' : '📝 정답 제출하고 채점받기'}
+              </button>
               <button type="button" className="btn btn-ghost" onClick={onHint} disabled={hintCount >= chapter.hints.length}>
                 💡 힌트 보기 ({hintCount}/{chapter.hints.length})
               </button>
             </div>
-            <p className="mission-note">▶ 실행하면 조건을 자동으로 확인해요. 키보드 미션은 실행 중에 키를 눌러보세요!</p>
+            {record.attempts > 0 && (
+              <p className="mission-record">
+                최고 점수 <b>{record.best ?? 0}점</b> · 제출 {record.attempts}번
+              </p>
+            )}
+            <p className="mission-note">
+              ▶ 실행으로 연습하면 위 조건이 바로바로 체크돼요. 다 됐으면 📝 정답 제출! 채점 로봇이 코드를 직접 실행해서 100점 만점으로 채점해요.
+            </p>
           </>
         )}
 
@@ -104,6 +123,9 @@ export default function MissionPanel({
           <div className="mission-done">
             <div className="mission-done-emoji" aria-hidden="true">🏆</div>
             <h4>챕터 {no} 완료!</h4>
+            {result?.score != null && (
+              <p className="mission-done-score"><Stars n={result.stars} /> <b>{result.score}점</b></p>
+            )}
             {result?.rewardItem && (
               <p>
                 보상 아이템 <b>{result.rewardEmoji} {result.rewardItem}</b>

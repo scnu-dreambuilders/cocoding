@@ -37,7 +37,7 @@
 /* Separator between back button and project title */
 .header-sep {
   color: var(--border-strong);
-  font-size: 16px;
+  font-size: 1.0667rem;
   user-select: none;
   flex-shrink: 0;
 }
@@ -52,7 +52,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--text-h);
-  font-size: 13.5px;
+  font-size: 0.9rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -76,7 +76,7 @@
   border-radius: 6px;
   background: var(--bg);
   color: var(--text-h);
-  font-size: 13.5px;
+  font-size: 0.9rem;
   font-weight: 600;
   font-family: inherit;
   outline: none;
@@ -85,11 +85,11 @@
   min-width: 120px;
 }
 
-.editor-back { font-size: 12.5px; padding: 5px 9px; }
+.editor-back { font-size: 0.8333rem; padding: 5px 9px; }
 
 /* Save status message */
 .save-msg {
-  font-size: 12px;
+  font-size: 0.8rem;
   font-weight: 500;
   padding: 3px 8px;
   border-radius: 6px;
@@ -118,7 +118,7 @@
 }
 
 .brand-name {
-  font-size: 15px;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-h);
   letter-spacing: -0.3px;
@@ -126,7 +126,7 @@
 }
 
 .brand-sub {
-  font-size: 10.5px;
+  font-size: 0.8rem;
   color: var(--text-muted);
   line-height: 1.2;
   letter-spacing: 0;
@@ -141,7 +141,7 @@
 }
 
 .shortcut-hint {
-  font-size: 11px;
+  font-size: 0.8rem;
   color: var(--text-muted);
   margin-right: 4px;
   opacity: 0.7;
@@ -153,7 +153,7 @@
 
 .shortcut-hint kbd {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 0.8rem;
   padding: 1px 4px;
   border: 1px solid var(--border-strong);
   border-radius: 4px;
@@ -172,7 +172,7 @@
   padding: 6px 11px;
   border-radius: 7px;
   border: 1px solid var(--border);
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -329,7 +329,7 @@
   border-bottom: 2px solid transparent;
   background: none;
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -381,7 +381,7 @@
   padding: 16px 18px;
   background: var(--code-bg);
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   line-height: 1.75;
   color: var(--code-text);
   white-space: pre-wrap;
@@ -420,7 +420,7 @@
   align-items: flex-start;
   gap: 8px;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 0.8667rem;
   line-height: 1.6;
   color: var(--output-text);
   word-break: break-all;
@@ -443,7 +443,7 @@
   flex-shrink: 0;
   margin-top: 1px;
   user-select: none;
-  font-size: 11px;
+  font-size: 0.8rem;
 }
 
 .output-view.is-error .output-line {
@@ -456,7 +456,7 @@
 
 .output-no-result {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   color: var(--text-muted);
   opacity: 0.55;
   font-style: italic;
@@ -464,7 +464,7 @@
 
 .output-hint {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   color: var(--text-muted);
   opacity: 0.5;
   text-align: center;
@@ -495,7 +495,7 @@
 
   .btn {
     padding: 5px 9px;
-    font-size: 12px;
+    font-size: 0.8rem;
   }
 
   .btn-run {

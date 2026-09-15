@@ -8,10 +8,13 @@ import MissionPanel from '../components/MissionPanel'
 import CodePanel from '../components/CodePanel'
 import DrawingModal from '../components/DrawingModal'
 import SoundModal from '../components/SoundModal'
+import GradeModal from '../components/GradeModal'
+import TextSizeControl from '../components/TextSizeControl'
 import { IconBack, IconPlay, IconSave, IconSpinner, IconCode } from '../components/icons'
 import { BLOCK_INFO, CATEGORIES, setBlockContext } from '../blockly/blocks'
 import { buildToolbox, categoryIdOf, LEVEL_BLOCKS, ALL_BLOCKS } from '../blockly/toolbox'
 import { Runtime, validateWorkspace } from '../engine/runtime'
+import { gradeChapter } from '../engine/grader'
 import { CHAPTERS, MY_GAME, chapterBlocks, learnedBlocks, usedTypes } from '../data/chapters'
 import { LEVELS } from '../data/library'
 import { makeProject, makeSprite, normalizeProject, serializeProject } from '../lib/project'
@@ -24,6 +27,8 @@ const IDLE_MS = 30000
 const PRAISE = ['좋아, 잘 연결했어! 👍', '블록이 딱 맞았어!', '멋진데? 계속 해보자!', '오, 점점 완성되고 있어! ✨']
 const blockName = (t) => BLOCK_INFO[t]?.name ?? t
 const catName = (t) => CATEGORIES[BLOCK_INFO[t]?.cat]?.name ?? ''
+// 블록 위치·id를 뺀 코드 모양 — 직접 실행한 코드와 제출한 코드가 같은지 비교
+const codeSig = (ws) => JSON.stringify(Blockly.serialization.workspaces.save(ws), (k, v) => (k === 'x' || k === 'y' || k === 'id' ? undefined : v))
 
 function Celebration() {
   const pieces = ['🎉', '⭐', '🎊', '✨', '🏆', '💜']
@@ -109,11 +114,14 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   const [checks, setChecks] = useState(() => (chapter ? chapter.makeJudge({ getAllBlocks: () => [] }).checks() : []))
   const [hintCount, setHintCount] = useState(0)
   const [result, setResult] = useState(null)
+  const [grade, setGrade] = useState(null) // 정답 제출 채점 창
+  const [ready, setReady] = useState(false) // 직접 실행에서 조건을 다 채움 → 제출 버튼 반짝
+  const [record, setRecord] = useState({ best: launch.chapter?.best_score ?? null, attempts: Number(launch.chapter?.attempts ?? 0) })
 
   const blocklyRef = useRef(null)
   const runtimeRef = useRef(null)
   const judgeRef = useRef(null)
-  const passedRef = useRef(false)
+  const liveRef = useRef({ sig: null, done: new Set() }) // 직접 실행에서 채운 조건 (같은 코드일 때 채점에 인정)
   const canvasRef = useRef(null)
   const projectRef = useRef(project)
   const sceneRef = useRef(sceneId)
@@ -123,12 +131,14 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   const enteredSelf = useRef(false)
   const checksRaf = useRef(0)
   const stepRef = useRef(step)
+  const gradingRef = useRef(false)
   const [loadedTypes, setLoadedTypes] = useState([])
 
   useEffect(() => {
     projectRef.current = project
     sceneRef.current = sceneId
     stepRef.current = step
+    gradingRef.current = grade?.phase === 'grading'
   })
 
   const setProject = useCallback((updater) => {
@@ -305,34 +315,83 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     return c.toDataURL('image/jpeg', 0.75)
   }, [])
 
-  /* ── 챕터 통과 ─────────────────────────────── */
-  const handlePass = useCallback(async () => {
-    if (passedRef.current) return
-    passedRef.current = true
-    setChecks(judgeRef.current.checks())
-    say('🎉 완벽해! 미션 성공!', 'success', 'celebrate', { duration: 0 })
-    setCelebrate(true)
-    playSound('sfx:win')
-    setTimeout(() => runtimeRef.current?.stop('passed'), 1200)
-    setTimeout(() => setCelebrate(false), 3500)
+  /* ── 정답 제출 → 자동 채점 ─────────────────── */
+  // 채점 결과를 서버에 기록 (통과면 완료 처리 + 보상 + 포트폴리오 저장)
+  const saveGrade = useCallback(async (res, { state, thumbnail }) => {
+    setGrade((g) => g && { ...g, saving: true, saveError: '' })
     try {
-      const res = await api.completeChapter(launch.chapter.id, {
-        title: `챕터 ${chapterNo} · ${chapter.title.split(' – ')[0]}`,
-        blocks_data: serializeProject(projectRef.current, blocklyRef.current.save()),
-        thumbnail: makeThumbnail(),
+      const saved = await api.submitChapter(launch.chapter.id, {
+        score: res.score,
+        passed: res.passed,
+        ...(res.passed && {
+          title: `챕터 ${chapterNo} · ${chapter.title.split(' – ')[0]}`,
+          blocks_data: serializeProject(projectRef.current, state),
+          thumbnail,
+        }),
       })
-      setResult(res)
+      setRecord({ best: saved.bestScore, attempts: saved.attempts })
+      setGrade((g) => g && { ...g, saving: false, saved })
+      if (!res.passed) return
+      setResult({ ...saved, score: res.score, stars: res.stars })
       setMaxStep(4)
       setStep(4)
-      say(res.nextChapterId ? `챕터 ${chapterNo} 완료! 다음 챕터가 열렸어 🔓\n보상: ${res.rewardEmoji ?? ''} ${res.rewardItem}`
-        : `모든 챕터를 끝냈어! 🎓 이제 '나만의 게임 만들기'가 열렸어!`, 'success', 'celebrate', { duration: 0 })
+      say(saved.nextChapterId ? `${res.score}점으로 챕터 ${chapterNo} 완료! 다음 챕터가 열렸어 🔓\n보상: ${saved.rewardEmoji ?? ''} ${saved.rewardItem}`
+        : `${res.score}점! 모든 챕터를 끝냈어! 🎓 이제 '나만의 게임 만들기'가 열렸어!`, 'success', 'celebrate', { duration: 0 })
       onUserUpdate?.()
       if (user) api.items().then((list) => setItems(list.filter((i) => Number(i.equipped)))).catch(() => {})
     } catch (err) {
-      passedRef.current = false
-      say(`미션은 성공했는데 저장하지 못했어: ${err.message}\n다시 실행해서 시도해줘!`, 'error', 'thinking', { duration: 0 })
+      setGrade((g) => g && { ...g, saving: false, saveError: err.message })
     }
-  }, [launch.chapter, chapterNo, chapter, say, makeThumbnail, onUserUpdate, user])
+  }, [launch.chapter, chapterNo, chapter, say, onUserUpdate, user])
+
+  const handleSubmit = useCallback(async () => {
+    const ed = blocklyRef.current
+    if (!ed || grade?.phase === 'grading') return
+    runtimeRef.current?.stop('submit')
+    ed.clearErrors()
+    const ws = ed.getWorkspace()
+    const live = liveRef.current.sig === codeSig(ws) ? [...liveRef.current.done] : []
+    setGrade({ phase: 'grading', progress: 0 })
+    say('채점 로봇이 네 코드를 실행해보고 있어… 🤖', 'intro', 'thinking', { duration: 0 })
+    const started = performance.now()
+    let res
+    try {
+      res = await gradeChapter({
+        chapter, workspace: ws, project: projectRef.current, liveDone: live,
+        onProgress: (p) => setGrade((g) => (g?.phase === 'grading' ? { ...g, progress: p } : g)),
+      })
+    } catch (err) {
+      setGrade(null)
+      say(`채점하다가 문제가 생겼어: ${err.message}`, 'error', 'thinking')
+      return
+    }
+    // 순식간에 끝나도 로봇이 채점하는 모습이 잠깐 보이도록
+    const wait = 900 - (performance.now() - started)
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+
+    const snapshot = { state: ed.save(), thumbnail: makeThumbnail() } // '다시 저장' 때도 제출한 그대로
+    setGrade({ phase: 'result', result: res, saving: true, snapshot })
+    setChecks(res.items.filter((it) => it.group === 'mission').map((it) => ({ label: it.label, done: it.done })))
+    if (res.error?.blockId) ed.markErrors([res.error.blockId], { shake: true })
+    if (res.passed) {
+      say(`🎉 ${res.score}점! 미션 성공!`, 'success', 'celebrate', { duration: 0 })
+      setCelebrate(true)
+      playSound('sfx:win')
+      setTimeout(() => setCelebrate(false), 3500)
+    } else {
+      const first = res.items.find((it) => !it.done)
+      say(`${res.score}점! 조금만 더 해보자 💪\n💡 ${first?.tip ?? ''}`, 'hint', 'thinking', { duration: 15000 })
+      if (first?.missing?.length) flashBlock(first.missing[0])
+    }
+    saveGrade(res, snapshot)
+  }, [grade, chapter, say, flashBlock, saveGrade, makeThumbnail])
+
+  const closeGrade = useCallback(() => setGrade(null), [])
+  const goNext = () => {
+    const next = result?.nextChapterId ?? grade?.saved?.nextChapterId
+    if (next) onOpenChapter?.(next)
+    else onOpenMyGame?.()
+  }
 
   /* ── 실행 ──────────────────────────────────── */
   const stopRun = useCallback(() => {
@@ -341,7 +400,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
 
   const handleRun = useCallback(() => {
     const ed = blocklyRef.current
-    if (!ed) return
+    if (!ed || gradingRef.current) return
     if (runtimeRef.current?.running) {
       stopRun()
       return
@@ -377,9 +436,14 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       }
     }
 
-    passedRef.current = false
     judgeRef.current = isChapter && stepRef.current === 3 ? chapter.makeJudge(ws) : null
-    if (judgeRef.current) setChecks(judgeRef.current.checks())
+    let allDone = false
+    if (judgeRef.current) {
+      setChecks(judgeRef.current.checks())
+      const sig = codeSig(ws)
+      if (liveRef.current.sig !== sig) liveRef.current = { sig, done: new Set() } // 코드가 바뀌면 직접 실행 기록도 새로
+      setReady(false)
+    }
 
     const rt = new Runtime({
       workspace: ws,
@@ -387,14 +451,19 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       playSound: (id) => playSound(id, projectRef.current.sounds),
       onTrace: (e) => {
         const j = judgeRef.current
-        if (!j || passedRef.current) return
+        if (!j) return
         j.onEvent(e)
         if (!checksRaf.current) {
           checksRaf.current = requestAnimationFrame(() => {
             checksRaf.current = 0
             const list = j.checks()
             setChecks(list)
-            if (list.every((c) => c.done)) handlePass()
+            list.forEach((c, i) => c.done && liveRef.current.done.add(i))
+            if (!allDone && list.every((c) => c.done)) {
+              allDone = true
+              setReady(true)
+              say('조건을 모두 채운 것 같아! 📝 정답 제출을 눌러서 채점받아봐!', 'success', 'happy', { duration: 0 })
+            }
           })
         }
       },
@@ -408,7 +477,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         setRunning(false)
         ed.glow([])
         const j = judgeRef.current
-        if (reason === 'done' && j && !passedRef.current && !hinted) {
+        if (reason === 'done' && j && !allDone && !hinted) {
           const left = j.checks().filter((c) => !c.done)
           if (left.length) say(`거의 다 왔어! 아직 남은 조건 → ${left[0].label} 💪`, 'encourage', 'thinking', { duration: 9000 })
         }
@@ -418,7 +487,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     setRunning(true)
     document.activeElement?.blur?.() // 스페이스/엔터가 버튼을 다시 누르지 않도록
     rt.start()
-  }, [isChapter, chapter, say, flashBlock, handlePass, stopRun])
+  }, [isChapter, chapter, say, flashBlock, stopRun])
 
   /* 실행 중인 블록 묶음 반짝이기 */
   useEffect(() => {
@@ -598,7 +667,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     )
   }
 
-  const busy = running || demoRunning
+  const grading = grade?.phase === 'grading'
+  const busy = running || demoRunning || grading
 
   return (
     <div className="app editor-app">
@@ -630,6 +700,13 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           {saveMsg === 'saved' && <span className="save-msg save-ok" role="status">저장됨 ✓</span>}
           {saveMsg === 'error' && <span className="save-msg save-err" role="alert">저장 실패</span>}
           <span className="shortcut-hint" aria-hidden="true"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 실행</span>
+          <TextSizeControl />
+          {isChapter && step === 3 && (
+            <button type="button" className={`btn btn-submit ${ready ? 'is-ready' : ''}`} onClick={handleSubmit} disabled={busy}
+              title="자동 채점 로봇이 코드를 실행해서 채점해요">
+              📝 정답 제출
+            </button>
+          )}
           {user && !isChapter && (
             <>
               <button type="button" className={`btn btn-ghost ${meta.isPublic ? 'btn-shared' : ''}`} onClick={toggleShare}
@@ -643,7 +720,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
             </>
           )}
           <button type="button" className={`btn btn-run ${running ? 'is-running' : ''}`} onClick={handleRun}
-            disabled={demoRunning} title="실행 / 정지 (Ctrl+Enter)">
+            disabled={demoRunning || grading} title="실행 / 정지 (Ctrl+Enter)">
             {running ? <span className="stop-square" aria-hidden="true" /> : <IconPlay />}
             {running ? '정지' : '실행'}
           </button>
@@ -697,7 +774,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         <aside className={`ed-side ${isChapter ? 'is-chapter' : ''}`}>
           <div className="stage-card">
             <div className="stage-toolbar">
-              <button type="button" className={`btn btn-sm ${running ? 'btn-stop' : 'btn-run'}`} onClick={handleRun} disabled={demoRunning}>
+              <button type="button" className={`btn btn-sm ${running ? 'btn-stop' : 'btn-run'}`} onClick={handleRun} disabled={demoRunning || grading}>
                 {running ? '■ 정지' : '▶ 실행'}
               </button>
               <button type="button" className={`btn btn-ghost btn-sm ${showGrid ? 'on' : ''}`} onClick={() => setShowGrid((g) => !g)}
@@ -765,8 +842,12 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
                 demoRunning={demoRunning}
                 onStartSelf={startSelf}
                 result={result}
-                onNext={() => (result?.nextChapterId ? onOpenChapter?.(result.nextChapterId) : onOpenMyGame?.())}
+                onNext={goNext}
                 onDashboard={onBack}
+                onSubmit={handleSubmit}
+                grading={grading}
+                ready={ready}
+                record={record}
               />
             ) : (
               <CodePanel code={code} />
@@ -792,6 +873,14 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           sounds={project.sounds}
           onChange={(sounds) => setProject((p) => ({ ...p, sounds }))}
           onClose={() => setModal(null)}
+        />
+      )}
+      {grade && (
+        <GradeModal
+          grade={grade}
+          onClose={closeGrade}
+          onNext={goNext}
+          onRetrySave={() => saveGrade(grade.result, grade.snapshot)}
         />
       )}
     </div>

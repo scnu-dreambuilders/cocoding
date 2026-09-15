@@ -69,11 +69,12 @@ export const api = {
   /* ── Chapters ──────────────────────────────── */
   chapters: () => request('/chapters/index.php'),
 
-  // 미션 통과 → 완료 처리 + 보상 아이템 + 다음 챕터 잠금 해제 + 포트폴리오 자동 저장
-  completeChapter: (chapterId, { title, blocks_data, thumbnail }) =>
+  // 정답 제출 채점 결과 기록 (도전 횟수·최고 점수)
+  // passed면 완료 처리 + 보상 아이템 + 다음 챕터 잠금 해제 + 포트폴리오 자동 저장
+  submitChapter: (chapterId, { score, passed, title, blocks_data, thumbnail }) =>
     request('/chapters/progress.php', {
       method: 'POST',
-      body: JSON.stringify({ chapter_id: chapterId, title, blocks_data, thumbnail }),
+      body: JSON.stringify({ chapter_id: chapterId, score, passed, title, blocks_data, thumbnail }),
     }),
 
   /* ── Projects ──────────────────────────────── */

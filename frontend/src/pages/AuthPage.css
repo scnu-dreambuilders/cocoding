@@ -93,7 +93,7 @@
 /* .brand-icon is shared — defined in App.css */
 
 .auth-brand-name {
-  font-size: 17px;
+  font-size: 1.1333rem;
   font-weight: 700;
   color: var(--text-h);
   letter-spacing: -0.3px;
@@ -101,7 +101,7 @@
 
 /* ── Headings ── */
 .auth-heading {
-  font-size: 21px;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-h);
   letter-spacing: -0.4px;
@@ -110,7 +110,7 @@
 }
 
 .auth-sub {
-  font-size: 13.5px;
+  font-size: 0.9rem;
   color: var(--text-muted);
   margin: 0 0 20px;
   line-height: 1.4;
@@ -136,7 +136,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 0.8667rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -169,7 +169,7 @@
 }
 
 .field label {
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   font-weight: 500;
   color: var(--text);
 }
@@ -180,7 +180,7 @@
   border-radius: 8px;
   background: var(--bg);
   color: var(--text-h);
-  font-size: 14px;
+  font-size: 0.9333rem;
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -202,7 +202,7 @@
 .auth-msg {
   padding: 9px 12px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 0.8667rem;
   line-height: 1.4;
   display: flex;
   align-items: flex-start;
@@ -230,7 +230,7 @@
   border-radius: 9px;
   background: linear-gradient(145deg, #6d28d9, #9333ea);
   color: #fff;
-  font-size: 14.5px;
+  font-size: 0.9667rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -262,7 +262,7 @@
   gap: 10px;
   margin: 16px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 0.8rem;
 }
 
 .auth-divider::before,
@@ -286,7 +286,7 @@
   border-radius: 9px;
   background: transparent;
   color: var(--text);
-  font-size: 13.5px;
+  font-size: 0.9rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;

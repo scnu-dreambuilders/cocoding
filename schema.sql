@@ -33,6 +33,8 @@ CREATE TABLE user_chapter_progress (
     chapter_id INT NOT NULL,
     status ENUM('locked', 'in_progress', 'completed') DEFAULT 'locked',
     completed_at TIMESTAMP NULL,
+    best_score TINYINT UNSIGNED NULL, -- 정답 제출 자동 채점 최고 점수 (0~100)
+    attempts INT NOT NULL DEFAULT 0,  -- 정답 제출 횟수
     UNIQUE(user_id, chapter_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE

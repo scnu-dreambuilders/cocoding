@@ -5,6 +5,8 @@ import { CocoAvatar } from '../components/Coco'
 import { CHAPTERS, CHAPTER_COUNT } from '../data/chapters'
 import { INTEREST_EMOJI, LEVEL_LABEL, ITEM_TYPE_LABEL } from '../data/library'
 import { BLOCK_INFO } from '../blockly/blocks'
+import { starsOf } from '../engine/grader'
+import TextSizeControl from '../components/TextSizeControl'
 import emptyProjectsImg from '../assets/empty-projects.png'
 import './DashboardPage.css'
 
@@ -184,6 +186,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
           <span className="dash-brand-name">코코딩</span>
         </div>
         <div className="dash-header-right">
+          <TextSizeControl />
           <button type="button" className="btn-dash-new" onClick={openBlank}>＋ 새 프로젝트</button>
           <div className="user-chip">
             <CocoAvatar size={28} items={equipped} />
@@ -270,6 +273,16 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
                         <div className="ch-title">{content?.title ?? ch.title}</div>
                         <div className="ch-desc">{content?.mission ?? ch.mission}</div>
                         {ch.reward_item && <div className="ch-reward">🎁 보상: {ch.reward_emoji ?? ''} {ch.reward_item}</div>}
+                        {ch.best_score != null && (
+                          <div className="ch-score">
+                            {ch.status === 'completed' && (
+                              <span className="ch-stars" aria-label={`별 ${starsOf(ch.best_score)}개`}>
+                                {[1, 2, 3].map((n) => <span key={n} className={n <= starsOf(ch.best_score) ? 'on' : ''}>★</span>)}
+                              </span>
+                            )}
+                            최고 <b>{ch.best_score}점</b> · 제출 {ch.attempts}번
+                          </div>
+                        )}
                       </div>
                       <div className={`ch-badge ch-badge-${s.cls}`}>
                         <span className="ch-badge-icon">{s.icon}</span>

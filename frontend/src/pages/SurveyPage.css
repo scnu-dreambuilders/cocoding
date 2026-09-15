@@ -27,10 +27,10 @@
   border-radius: 16px 16px 16px 4px;
   padding: 10px 14px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.9333rem;
 }
-.survey-title { font-size: 22px; margin: 8px 0 12px; }
-.survey-title small { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+.survey-title { font-size: 1.4667rem; margin: 8px 0 12px; }
+.survey-title small { font-size: 0.8667rem; color: var(--text-muted); font-weight: 500; }
 .interest-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
 .interest-card {
   position: relative;
@@ -44,7 +44,7 @@
   background: var(--bg);
   color: var(--text-h);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
@@ -52,7 +52,7 @@
 .interest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08); }
 .interest-card:active { transform: scale(0.96); }
 .interest-card.on { border-color: #4f9dff; background: rgba(79, 157, 255, 0.1); }
-.interest-emoji { font-size: 34px; line-height: 1.1; }
+.interest-emoji { font-size: 2.2667rem; line-height: 1.1; }
 .interest-check {
   position: absolute;
   top: 6px;
@@ -62,12 +62,12 @@
   border-radius: 50%;
   background: #4f9dff;
   color: #fff;
-  font-size: 12px;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.survey-sub { font-size: 17px; margin: 22px 0 10px; }
+.survey-sub { font-size: 1.1333rem; margin: 22px 0 10px; }
 .level-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .level-card {
   display: flex;
@@ -82,11 +82,11 @@
   font: inherit;
   cursor: pointer;
 }
-.level-card small { color: var(--text-muted); font-size: 11.5px; }
+.level-card small { color: var(--text-muted); font-size: 0.8rem; }
 .level-card.on { border-color: #7c3aed; background: rgba(124, 58, 237, 0.08); }
-.level-emoji { font-size: 28px; }
-.survey-note { font-size: 12.5px; color: var(--text-muted); margin: 10px 0 0; }
-.survey-error { color: #ef4444; font-size: 13px; }
+.level-emoji { font-size: 1.8667rem; }
+.survey-note { font-size: 0.8333rem; color: var(--text-muted); margin: 10px 0 0; }
+.survey-error { color: #ef4444; font-size: 0.8667rem; }
 .survey-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 .survey-skip {
   border: none;

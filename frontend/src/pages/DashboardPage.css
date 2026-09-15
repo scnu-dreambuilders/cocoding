@@ -36,7 +36,7 @@
 /* .brand-icon from App.css shared styles */
 
 .dash-brand-name {
-  font-size: 16px;
+  font-size: 1.0667rem;
   font-weight: 700;
   color: var(--text-h);
   letter-spacing: -0.3px;
@@ -58,7 +58,7 @@
   border-radius: 8px;
   background: linear-gradient(145deg, #6d28d9, #9333ea);
   color: #fff;
-  font-size: 13px;
+  font-size: 0.8667rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -92,7 +92,7 @@
   border-radius: 50%;
   background: linear-gradient(145deg, #6d28d9, #9333ea);
   color: #fff;
-  font-size: 12px;
+  font-size: 0.8rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -101,7 +101,7 @@
 }
 
 .user-name {
-  font-size: 13px;
+  font-size: 0.8667rem;
   font-weight: 500;
   color: var(--text-h);
   max-width: 100px;
@@ -111,7 +111,7 @@
 }
 
 .user-level-tag {
-  font-size: 10.5px;
+  font-size: 0.8rem;
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 10px;
@@ -173,14 +173,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-h);
   margin: 0;
 }
 
 .section-badge {
-  font-size: 12px;
+  font-size: 0.8rem;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 10px;
@@ -189,7 +189,7 @@
 }
 
 .section-action {
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   font-weight: 500;
   color: var(--accent);
   background: none;
@@ -203,7 +203,7 @@
 .section-action:hover { opacity: 0.75; }
 
 .section-sub-label {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
@@ -223,7 +223,7 @@
 }
 
 .welcome-title {
-  font-size: 20px;
+  font-size: 1.3333rem;
   font-weight: 700;
   margin: 0 0 5px;
   color: #fff;
@@ -236,7 +236,7 @@
 }
 
 .welcome-sub {
-  font-size: 13.5px;
+  font-size: 0.9rem;
   opacity: 0.8;
   margin: 0;
 }
@@ -256,14 +256,14 @@
 }
 
 .stat-num {
-  font-size: 26px;
+  font-size: 1.7333rem;
   font-weight: 800;
   color: #fff;
   line-height: 1;
 }
 
 .stat-label {
-  font-size: 11px;
+  font-size: 0.8rem;
   opacity: 0.75;
   white-space: nowrap;
 }
@@ -320,7 +320,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 0.9333rem;
   font-weight: 700;
   flex-shrink: 0;
   background: var(--bg);
@@ -343,19 +343,32 @@
 }
 
 .ch-title {
-  font-size: 14px;
+  font-size: 0.9333rem;
   font-weight: 600;
   color: var(--text-h);
   margin-bottom: 2px;
 }
 
 .ch-desc {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 정답 제출 최고 점수 */
+.ch-score {
+  margin-top: 3px;
+  font-size: 0.8rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ch-score b { color: var(--text-h); }
+.ch-stars { letter-spacing: 1px; color: var(--border-strong); }
+.ch-stars .on { color: #f59e0b; }
 
 /* Status badge */
 .ch-badge {
@@ -364,7 +377,7 @@
   gap: 4px;
   padding: 4px 10px;
   border-radius: 10px;
-  font-size: 11.5px;
+  font-size: 0.8rem;
   font-weight: 600;
   flex-shrink: 0;
   white-space: nowrap;
@@ -374,7 +387,7 @@
 .ch-badge-active { background: var(--accent-light); color: var(--accent); }
 .ch-badge-locked { background: var(--bg); color: var(--text-muted); }
 
-.ch-badge-icon { font-size: 10px; }
+.ch-badge-icon { font-size: 0.8rem; }
 
 /* ════════════════════════════════════════════════
    Projects grid
@@ -424,7 +437,7 @@
 }
 
 .project-title {
-  font-size: 13.5px;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-h);
   overflow: hidden;
@@ -440,7 +453,7 @@
 
 .project-public,
 .project-private {
-  font-size: 11px;
+  font-size: 0.8rem;
   font-weight: 500;
   padding: 1px 6px;
   border-radius: 4px;
@@ -450,7 +463,7 @@
 .project-private { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
 
 .project-date {
-  font-size: 11.5px;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
@@ -468,8 +481,8 @@
 }
 
 .empty-icon   { width: 96px; height: 96px; }
-.empty-text   { font-size: 13.5px; color: var(--text-muted); margin: 0; }
-.empty-msg    { font-size: 13px; color: var(--text-muted); padding: 12px; }
+.empty-text   { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
+.empty-msg    { font-size: 0.8667rem; color: var(--text-muted); padding: 12px; }
 
 /* ════════════════════════════════════════════════
    Recommendations grid
@@ -514,7 +527,7 @@
 .reco-lv3::before { background: #ef4444; }
 
 .reco-category {
-  font-size: 11px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -522,7 +535,7 @@
 }
 
 .reco-title {
-  font-size: 13px;
+  font-size: 0.8667rem;
   font-weight: 600;
   color: var(--text-h);
   line-height: 1.35;
@@ -537,7 +550,7 @@
 }
 
 .reco-hint {
-  font-size: 11.5px;
+  font-size: 0.8rem;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -545,7 +558,7 @@
 }
 
 .reco-level {
-  font-size: 11px;
+  font-size: 0.8rem;
   font-weight: 700;
   flex-shrink: 0;
   padding: 2px 6px;
@@ -614,7 +627,7 @@
   border-radius: 14px 14px 14px 4px;
   background: rgba(255, 255, 255, 0.95);
   color: #3b0764;
-  font-size: 13.5px;
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.5;
   max-width: 460px;
@@ -627,7 +640,7 @@
   background: #facc15;
   color: #422006;
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8667rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
@@ -644,10 +657,10 @@
   border-radius: 999px;
   background: #1e293b;
   color: #fff;
-  font-size: 13px;
+  font-size: 0.8667rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
-.dash-hint { margin: 0 0 10px; font-size: 12.5px; color: var(--text); }
+.dash-hint { margin: 0 0 10px; font-size: 0.8333rem; color: var(--text); }
 .link-btn { border: none; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
 .section-header { margin-bottom: 12px; }
 .section-title span { margin-right: 6px; }
@@ -658,7 +671,7 @@
 /* 챕터 카드는 버튼 */
 .chapter-card { position: relative; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .chapter-card.ch-locked { cursor: not-allowed; opacity: 0.7; }
-.ch-reward { margin-top: 3px; font-size: 11.5px; color: #b45309; }
+.ch-reward { margin-top: 3px; font-size: 0.8rem; color: #b45309; }
 .ch-locked-tip {
   position: absolute;
   right: 16px;
@@ -667,12 +680,12 @@
   border-radius: 8px;
   background: #1e293b;
   color: #fff;
-  font-size: 12px;
+  font-size: 0.8rem;
   animation: fade-in 0.15s ease;
 }
 .mygame-card { border-style: dashed; }
 .mygame-card.ch-active { border-color: #a855f7; background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(236, 72, 153, 0.08)); }
-.mygame-card .ch-num { font-size: 20px; background: none; }
+.mygame-card .ch-num { font-size: 1.3333rem; background: none; }
 
 .filter-tabs { display: flex; gap: 4px; }
 .filter-tabs button {
@@ -680,7 +693,7 @@
   background: var(--header-bg);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 0.8rem;
   padding: 3px 10px;
   border-radius: 999px;
   cursor: pointer;
@@ -711,13 +724,13 @@
   overflow: hidden;
 }
 .project-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.thumb-fallback { font-size: 40px; }
+.thumb-fallback { font-size: 2.6667rem; }
 .project-card .project-info { padding: 10px 12px 12px; }
 .project-meta { flex-wrap: wrap; }
-.project-track { font-size: 11px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+.project-track { font-size: 0.8rem; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
 .project-track.track-chapter { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
 .project-track.track-free { background: rgba(236, 72, 153, 0.12); color: #db2777; }
-.project-remakes, .project-author { font-size: 11.5px; color: var(--text); }
+.project-remakes, .project-author { font-size: 0.8rem; color: var(--text); }
 .project-del {
   position: absolute;
   top: 6px;
@@ -740,7 +753,7 @@
   background: linear-gradient(145deg, #6d28d9, #9333ea);
   color: #fff;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 0.8333rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -754,7 +767,7 @@
   background: var(--header-bg);
   color: var(--text-h);
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8667rem;
   cursor: pointer;
 }
 
@@ -780,9 +793,9 @@
   cursor: pointer;
 }
 .item-card.on { border-color: #22c55e; background: rgba(34, 197, 94, 0.08); }
-.item-emoji { font-size: 30px; }
-.item-name { font-size: 12px; font-weight: 600; text-align: center; }
-.item-type { font-size: 10.5px; color: var(--text-muted); }
+.item-emoji { font-size: 2rem; }
+.item-name { font-size: 0.8rem; font-weight: 600; text-align: center; }
+.item-type { font-size: 0.8rem; color: var(--text-muted); }
 
 @media (max-width: 640px) {
   .welcome-banner { flex-direction: column; align-items: flex-start; }
@@ -797,7 +810,7 @@
   background: none;
   color: var(--text-muted);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 0.8rem;
   cursor: pointer;
   align-self: flex-end;
 }
@@ -807,7 +820,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-h);
 }
 .report-box button {
@@ -817,10 +830,10 @@
   background: var(--bg);
   color: var(--text-h);
   font: inherit;
-  font-size: 12px;
+  font-size: 0.8rem;
   text-align: left;
   cursor: pointer;
 }
 .report-box button:hover { border-color: #ef4444; }
 .report-box .report-cancel { text-align: center; color: var(--text-muted); }
-.project-hidden { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.12); color: #dc2626; font-weight: 600; }
+.project-hidden { font-size: 0.8rem; padding: 1px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.12); color: #dc2626; font-weight: 600; }

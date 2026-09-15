@@ -4,7 +4,7 @@
 // migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-09-16';
+    const VERSION = '2026-09-17';
 
     private static function markerPath() {
         return __DIR__ . '/../data/.schema_version';
@@ -77,6 +77,14 @@ class SchemaUpgrader {
             attempted_at INT UNSIGNED NOT NULL,
             INDEX idx_key_time (key_hash, attempted_at)
         ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        /* ── 2026-09-17 정답 제출 채점 ── */
+        if (self::column($db, 'user_chapter_progress', 'best_score') === null) {
+            $db->exec("ALTER TABLE user_chapter_progress ADD COLUMN best_score TINYINT UNSIGNED NULL AFTER completed_at");
+        }
+        if (self::column($db, 'user_chapter_progress', 'attempts') === null) {
+            $db->exec("ALTER TABLE user_chapter_progress ADD COLUMN attempts INT NOT NULL DEFAULT 0 AFTER best_score");
+        }
 
         // 예전 버전이 챕터를 다시 완료할 때마다 중복 지급한 아이템 정리 + 종류 바로잡기
         $db->exec("DELETE a FROM user_items a JOIN user_items b

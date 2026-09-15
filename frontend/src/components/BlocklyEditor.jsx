@@ -2,6 +2,7 @@ import { useEffect, useImperativeHandle, useRef } from 'react'
 import * as Blockly from 'blockly'
 import { HAT_TYPES, workspaceToCode } from '../blockly/blocks'
 import { searchFlyout, setSearchQuery, variableFlyout } from '../blockly/toolbox'
+import { getTextSize, useTextSize } from '../lib/textSize'
 
 /* ── 테마 (라이트/다크) ─────────────────────────── */
 function buildTheme() {
@@ -69,7 +70,7 @@ export default function BlocklyEditor({
       theme: buildTheme(),
       renderer: 'zelos',
       grid: { spacing: 24, length: 3, colour: dark ? '#1c2128' : '#e2e8f0', snap: true },
-      zoom: { controls: true, wheel: true, startScale: 0.85, maxScale: 2, minScale: 0.4, scaleSpeed: 1.1 },
+      zoom: { controls: true, wheel: true, startScale: getTextSize().blockScale, maxScale: 2, minScale: 0.4, scaleSpeed: 1.1 },
       trashcan: true,
       move: { scrollbars: true, drag: true, wheel: true },
     })
@@ -161,6 +162,20 @@ export default function BlocklyEditor({
     const ws = wsRef.current
     if (ws && toolbox) ws.updateToolbox(toolbox)
   }, [toolbox])
+
+  /* 글씨 크기 설정이 바뀌면 블록도 같이 확대/축소 (팔레트 폭도 새 글씨에 맞춤) */
+  const { blockScale } = useTextSize()
+  useEffect(() => {
+    const ws = wsRef.current
+    if (!ws || ws.getScale() === blockScale) return undefined
+    ws.setScale(blockScale)
+    const raf = requestAnimationFrame(() => {
+      if (wsRef.current !== ws) return
+      Blockly.svgResize(ws)
+      ws.getToolbox()?.refreshSelection()
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [blockScale])
 
   /* ── 외부 제어 API ─────────────────────────── */
   useImperativeHandle(ref, () => ({
