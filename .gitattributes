@@ -1,0 +1,4 @@
+* text=auto
+# Windows 배치 파일은 항상 CRLF (cmd가 LF에서 오작동하는 경우 방지)
+*.bat text eol=crlf
+*.png binary

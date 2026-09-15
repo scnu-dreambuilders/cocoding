@@ -1,0 +1,87 @@
+:root {
+  /* ── Typography ─────────────────────────────── */
+  --sans: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo',
+    'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'JetBrains Mono',
+    Consolas, 'Courier New', monospace;
+
+  /* ── Light mode tokens ──────────────────────── */
+  --text: #64748b;
+  --text-h: #0f172a;
+  --text-muted: #94a3b8;
+
+  --bg: #f1f5f9;
+  --header-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --tabs-bg: #f8fafc;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --btn-hover: #f1f5f9;
+  --tab-hover: rgba(0, 0, 0, 0.04);
+
+  /* ── Code / terminal (always dark) ─────────── */
+  --code-bg: #0f172a;
+  --code-text: #94a3b8;
+  --code-text-h: #e2e8f0;
+  --output-bg: #0f172a;
+  --output-text: #4ade80;
+  --output-prompt: rgba(74, 222, 128, 0.5);
+
+  /* ── Accent ─────────────────────────────────── */
+  --accent: #7c3aed;
+  --accent-light: rgba(124, 58, 237, 0.1);
+
+  /* ── Base ───────────────────────────────────── */
+  font: 15px/1.5 var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #8b9ab0;
+    --text-h: #e6edf3;
+    --text-muted: #6e7b8e;
+
+    --bg: #010409;
+    --header-bg: #0d1117;
+    --panel-bg: #0d1117;
+    --tabs-bg: #010409;
+    --border: #21262d;
+    --border-strong: #30363d;
+
+    --btn-hover: rgba(255, 255, 255, 0.06);
+    --tab-hover: rgba(255, 255, 255, 0.04);
+
+    --code-bg: #010409;
+    --code-text: #7d8590;
+    --code-text-h: #adbac7;
+    --output-bg: #010409;
+    --output-text: #3fb950;
+    --output-prompt: rgba(63, 185, 80, 0.45);
+
+    --accent: #a371f7;
+    --accent-light: rgba(163, 113, 247, 0.12);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+}
