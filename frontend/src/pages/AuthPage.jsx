@@ -24,6 +24,17 @@ export default function AuthPage({ onLogin, onGuest }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    // 서버와 같은 규칙을 미리 확인 (backend/api/auth/register.php)
+    if (mode === 'register') {
+      if (!/^[가-힣A-Za-z0-9_]{2,12}$/.test(form.username.trim())) {
+        setError('닉네임은 한글·영문·숫자로 2~12자까지 쓸 수 있어요')
+        return
+      }
+      if (form.password.length < 8 || !/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+        setError('비밀번호는 영문과 숫자를 섞어서 8자 이상으로 만들어주세요')
+        return
+      }
+    }
     setLoading(true)
 
     try {
@@ -97,7 +108,7 @@ export default function AuthPage({ onLogin, onGuest }) {
               <input
                 id="auth-username"
                 type="text"
-                placeholder="코코딩에서 쓸 이름"
+                placeholder="친구들에게 보일 이름 (2~12자)"
                 value={form.username}
                 onChange={update('username')}
                 autoComplete="username"
@@ -124,12 +135,12 @@ export default function AuthPage({ onLogin, onGuest }) {
             <input
               id="auth-password"
               type="password"
-              placeholder={mode === 'register' ? '6자 이상 입력하세요' : '비밀번호'}
+              placeholder={mode === 'register' ? '영문+숫자 8자 이상' : '비밀번호'}
               value={form.password}
               onChange={update('password')}
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               required
-              minLength={mode === 'register' ? 6 : undefined}
+              minLength={mode === 'register' ? 8 : undefined}
             />
           </div>
 

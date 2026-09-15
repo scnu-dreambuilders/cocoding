@@ -1,31 +1,37 @@
 <?php
 // backend/api/projects/index.php
 // GET               내 작품 목록 (포트폴리오)
-// GET ?public=1     친구 작품 목록 (page 파라미터로 페이지 이동)
+// GET ?public=1     친구 작품 목록 — 로그인한 사용자만 (아이들 작품·목소리 보호)
 // POST              자유 창작 작품 저장 (첫 저장 시 꾸미기 아이템 보상)
 // POST {remake_of}  공개 작품 리메이크 (복사 후 내 작품으로)
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
+require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
 
+$payload = Auth::requireUser();
+$userId = $payload['id'];
 $projectModel = new ProjectModel();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!empty($_GET['public'])) {
-        $page = max(1, (int)($_GET['page'] ?? 1));
+        $page = min(100, max(1, (int)($_GET['page'] ?? 1)));
         Response::success($projectModel->findPublic($page));
     }
-    $payload = Auth::requireUser();
-    Response::success($projectModel->findByUser($payload['id']));
+    Response::success($projectModel->findByUser($userId));
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);
 }
 
-$payload = Auth::requireUser();
-$userId = $payload['id'];
+// 저장 공간 보호: 1시간에 30개 / 한 사람 최대 50개
+RateLimiter::limit("project:create:$userId", 30, 3600, "작품을 너무 많이 만들었어요. 잠시 후 다시 시도해주세요.");
+if ($projectModel->countByUser($userId) >= ProjectModel::MAX_PROJECTS_PER_USER) {
+    Response::error("작품은 " . ProjectModel::MAX_PROJECTS_PER_USER . "개까지 저장할 수 있어요. 안 쓰는 작품을 지워주세요.", 409);
+}
+
 $data = json_decode(file_get_contents("php://input"), true) ?? [];
 
 /* ── 리메이크 ─────────────────────────────── */
@@ -35,7 +41,7 @@ if (isset($data['remake_of'])) {
         Response::error("원본 작품을 찾을 수 없습니다.", 404);
     }
     $isOwn = (int)$original['user_id'] === (int)$userId;
-    if (!$original['is_public'] && !$isOwn) {
+    if (!$isOwn && !ProjectModel::isVisibleToOthers($original)) {
         Response::error("공개된 작품만 리메이크할 수 있습니다.", 403);
     }
     $title = mb_substr($original['title'], 0, ProjectModel::MAX_TITLE_LENGTH - 8) . ' (리메이크)';

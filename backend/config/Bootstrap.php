@@ -1,7 +1,16 @@
 <?php
 // backend/config/Bootstrap.php
-// Common entrypoint: CORS headers, JSON error responses for any uncaught error/exception.
+// Common entrypoint: 보안 헤더, CORS, JSON error responses for any uncaught error/exception.
 require_once __DIR__ . '/Response.php';
+
+// API는 JSON만 돌려주므로 가장 엄격하게: 다른 사이트에 끼워 넣기·MIME 추측·리퍼러 노출 금지
+header_remove('X-Powered-By');
+header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header('Cache-Control: no-store');
+
 require_once __DIR__ . '/Cors.php';
 
 set_exception_handler(function ($e) {

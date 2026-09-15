@@ -25,6 +25,11 @@ async function request(path, options = {}) {
     clearTimeout(timeoutId)
   }
 
+  // 토큰이 만료되거나 로그아웃된 경우 → 앱에 알려서 로그인 화면으로 (App.jsx)
+  if (res.status === 401 && token) {
+    window.dispatchEvent(new Event('cocoding:unauthorized'))
+  }
+
   let json
   try {
     json = await res.json()
@@ -51,6 +56,9 @@ export const api = {
     }),
 
   me: () => request('/auth/me.php'),
+
+  // 서버에서 토큰 무효화 (다른 기기에서 로그인한 것도 함께 로그아웃)
+  logout: () => request('/auth/logout.php', { method: 'POST' }),
 
   updateSurvey: (level, tags) =>
     request('/auth/me.php', {
@@ -95,6 +103,12 @@ export const api = {
 
   deleteProject: (id) =>
     request(`/projects/view.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  reportProject: (id, reason) =>
+    request('/projects/report.php', {
+      method: 'POST',
+      body: JSON.stringify({ id, reason }),
+    }),
 
   /* ── Items (코코 꾸미기) ───────────────────── */
   items: () => request('/items/index.php'),

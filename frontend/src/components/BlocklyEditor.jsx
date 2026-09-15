@@ -24,6 +24,10 @@ function buildTheme() {
   })
 }
 
+// Blockly 아이콘·효과음·커서는 기본값이 외부 서버(blockly-demo.appspot.com) →
+// 우리 사이트(public/blockly-media)에서 받도록 해서 CSP를 지키고 외부 접속을 없앤다
+const BLOCKLY_MEDIA = `${import.meta.env.BASE_URL}blockly-media/`
+
 /* 좌표 범위 초과 검사 (기획서 ⑥) — [블록 종류, 입력, 최대값, 안내 문구] */
 const RANGE_RULES = [
   ['goto_xy', 'X', 240, 'x는 -240부터 240까지만 무대 안이야!'],
@@ -61,6 +65,7 @@ export default function BlocklyEditor({
     const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
     const ws = Blockly.inject(container, {
       toolbox,
+      media: BLOCKLY_MEDIA,
       theme: buildTheme(),
       renderer: 'zelos',
       grid: { spacing: 24, length: 3, colour: dark ? '#1c2128' : '#e2e8f0', snap: true },
@@ -245,7 +250,7 @@ export function BlockPreview({ state }) {
   const ref = useRef(null)
   useEffect(() => {
     const ws = Blockly.inject(ref.current, {
-      readOnly: true, theme: buildTheme(), renderer: 'zelos',
+      readOnly: true, theme: buildTheme(), renderer: 'zelos', media: BLOCKLY_MEDIA,
       // zoomToFit은 움직일 수 있는 워크스페이스에서만 동작 → 스크롤바는 켜고 CSS로 숨김
       zoom: { startScale: 0.7 }, move: { scrollbars: true, drag: true, wheel: false },
     })

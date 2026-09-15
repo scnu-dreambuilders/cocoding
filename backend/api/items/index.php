@@ -4,12 +4,14 @@
 // PATCH {id, equipped}  코코에게 입히기/벗기기 (같은 종류는 하나만)
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
+require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
 
 $payload = Auth::requireUser();
 $itemModel = new ItemModel();
 
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+    RateLimiter::limit("items:equip:{$payload['id']}", 120, 3600);
     $data = json_decode(file_get_contents("php://input"), true) ?? [];
     $itemId = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
     if (!$itemId) {

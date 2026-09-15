@@ -1,10 +1,10 @@
 <?php
 // backend/config/SchemaUpgrader.php
-// 기존 DB를 새 기능(썸네일·코코 꾸미기·새 챕터 블록)에 맞게 자동으로 업그레이드.
-// migrations/2026-09-15_upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
+// 기존 DB를 새 기능에 맞게 자동으로 업그레이드.
+// migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-09-15';
+    const VERSION = '2026-09-16';
 
     private static function markerPath() {
         return __DIR__ . '/../data/.schema_version';
@@ -50,6 +50,33 @@ class SchemaUpgrader {
         if (!self::hasIndex($db, 'remakes', 'idx_original')) {
             $db->exec("ALTER TABLE remakes ADD INDEX idx_original (original_project_id)");
         }
+
+        /* ── 2026-09-16 보안 개선 ── */
+        // 로그아웃 시 토큰 무효화: 토큰에 담긴 버전과 다르면 거부
+        if (self::column($db, 'users', 'token_version') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0");
+        }
+        // 신고가 쌓여 자동으로 숨겨진 작품
+        if (self::column($db, 'projects', 'report_hidden') === null) {
+            $db->exec("ALTER TABLE projects ADD COLUMN report_hidden TINYINT(1) NOT NULL DEFAULT 0");
+        }
+        $db->exec("CREATE TABLE IF NOT EXISTS project_reports (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            project_id INT NOT NULL,
+            user_id INT NOT NULL,
+            reason VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_report (project_id, user_id),
+            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        // 요청 제한 기록 (파일 대신 DB — 서버 폴더 권한과 무관하게 항상 동작)
+        $db->exec("CREATE TABLE IF NOT EXISTS rate_limits (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            key_hash CHAR(64) NOT NULL,
+            attempted_at INT UNSIGNED NOT NULL,
+            INDEX idx_key_time (key_hash, attempted_at)
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 예전 버전이 챕터를 다시 완료할 때마다 중복 지급한 아이템 정리 + 종류 바로잡기
         $db->exec("DELETE a FROM user_items a JOIN user_items b

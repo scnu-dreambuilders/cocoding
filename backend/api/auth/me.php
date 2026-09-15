@@ -2,6 +2,7 @@
 // backend/api/auth/me.php
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
+require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/UserModel.php';
 
 $payload = Auth::requireUser();
@@ -15,6 +16,7 @@ if (!$user) {
 
 // 설문 정보 업데이트 (PATCH 요청인 경우)
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+    RateLimiter::limit("me:update:{$user['id']}", 30, 3600);
     $data = json_decode(file_get_contents("php://input"), true);
 
     $level = array_key_exists('level', $data ?? []) ? $data['level'] : $user['level'];
@@ -29,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
     $validCategories = array_keys(json_decode(file_get_contents(__DIR__ . '/../../data/topics.json'), true));
     foreach ($tags as $tag) {
         if (!is_string($tag) || !in_array($tag, $validCategories, true)) {
-            Response::error("알 수 없는 관심사 태그입니다: " . (is_string($tag) ? $tag : json_encode($tag)));
+            Response::error("알 수 없는 관심사 태그입니다.");
         }
     }
 

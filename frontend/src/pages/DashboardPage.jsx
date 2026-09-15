@@ -14,6 +14,9 @@ const STATUS = {
   locked:      { label: '잠김',    cls: 'locked', icon: '🔒' },
 }
 
+// backend/models/ProjectModel.php의 REPORT_REASONS와 같아야 함
+const REPORT_REASONS = ['나쁜 말이나 그림', '개인정보(얼굴·이름·목소리)가 있어요', '내 작품을 베꼈어요', '기타']
+
 function fmtDate(str) {
   if (!str) return ''
   return new Date(str.replace(' ', 'T')).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
@@ -66,6 +69,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
   const [err, setErr] = useState({ ch: '', pr: '' })
   const [filter, setFilter] = useState('all')
   const [lockedTip, setLockedTip] = useState(null)
+  const [reporting, setReporting] = useState(null)
   const [toast, setToast] = useState('')
 
   const showToast = (msg) => {
@@ -140,6 +144,18 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
       onOpenEditor({ mode: 'free', projectId: res.id, completedChapters: completedNos })
     } catch (e) {
       showToast(`리메이크하지 못했어요: ${e.message}`)
+    }
+  }
+
+  // 신고: 서로 다른 3명이 신고하면 서버가 자동으로 비공개 처리
+  const report = async (p, reason) => {
+    setReporting(null)
+    try {
+      const res = await api.reportProject(p.id, reason)
+      setCommunity((c) => ({ ...c, list: c.list.filter((x) => x.id !== p.id) }))
+      showToast(res.message ?? '신고가 접수됐어요')
+    } catch (e) {
+      showToast(e.message)
     }
   }
 
@@ -307,7 +323,9 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
                       <div className="project-title">{p.title}</div>
                       <div className="project-meta">
                         <span className={`project-track track-${p.track}`}>{p.track === 'chapter' ? '챕터' : '자유 창작'}</span>
-                        {Number(p.is_public) ? <span className="project-public">공개</span> : <span className="project-private">비공개</span>}
+                        {Number(p.report_hidden)
+                          ? <span className="project-hidden" title="신고가 여러 번 들어와서 비공개로 바뀌었어요">🚩 숨겨짐</span>
+                          : Number(p.is_public) ? <span className="project-public">공개</span> : <span className="project-private">비공개</span>}
                         {Number(p.remake_count) > 0 && <span className="project-remakes">🔁 {p.remake_count}</span>}
                         <span className="project-date">{fmtDate(p.updated_at)}</span>
                       </div>
@@ -339,6 +357,19 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
                   {Number(p.user_id) === Number(user?.id)
                     ? <button type="button" className="remake-btn mine" onClick={() => openProject(p)}>내 작품</button>
                     : <button type="button" className="remake-btn" onClick={() => remake(p)}>🔁 리메이크</button>}
+                  {Number(p.user_id) !== Number(user?.id) && (
+                    reporting === p.id ? (
+                      <div className="report-box" role="group" aria-label="신고 이유">
+                        <span>어떤 문제가 있나요?</span>
+                        {REPORT_REASONS.map((r) => (
+                          <button key={r} type="button" onClick={() => report(p, r)}>{r}</button>
+                        ))}
+                        <button type="button" className="report-cancel" onClick={() => setReporting(null)}>취소</button>
+                      </div>
+                    ) : (
+                      <button type="button" className="report-btn" onClick={() => setReporting(p.id)} title="신고하기">🚩 신고</button>
+                    )
+                  )}
                 </div>
               ))}
             </div>

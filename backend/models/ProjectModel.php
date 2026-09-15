@@ -9,9 +9,12 @@ class ProjectModel {
     const MAX_THUMBNAIL_BYTES = 300_000;
     const VALID_TRACKS = ['chapter', 'free'];
     const PUBLIC_PAGE_SIZE = 12;
+    const MAX_PROJECTS_PER_USER = 50;  // 데모 서버 저장 공간 보호
+    const REPORTS_TO_HIDE = 3;         // 서로 다른 3명이 신고하면 자동 비공개
+    const REPORT_REASONS = ['나쁜 말이나 그림', '개인정보(얼굴·이름·목소리)가 있어요', '내 작품을 베꼈어요', '기타'];
 
     // 목록에서는 무거운 blocks_data를 빼고 보낸다
-    const LIST_COLUMNS = "p.id, p.user_id, p.chapter_id, p.title, p.track, p.is_public, p.thumbnail_url, p.created_at, p.updated_at,
+    const LIST_COLUMNS = "p.id, p.user_id, p.chapter_id, p.title, p.track, p.is_public, p.report_hidden, p.thumbnail_url, p.created_at, p.updated_at,
         (SELECT COUNT(*) FROM remakes r WHERE r.original_project_id = p.id) AS remake_count";
 
     private $db;
@@ -51,6 +54,7 @@ class ProjectModel {
         if ($project) {
             $project['blocks_data'] = json_decode($project['blocks_data'], true);
             $project['is_public'] = (int)$project['is_public'];
+            $project['report_hidden'] = (int)($project['report_hidden'] ?? 0);
         }
         return $project;
     }
@@ -108,13 +112,39 @@ class ProjectModel {
         $offset = max(0, ($page - 1) * self::PUBLIC_PAGE_SIZE);
         $stmt = $this->db->prepare("SELECT " . self::LIST_COLUMNS . ", u.username
             FROM projects p JOIN users u ON p.user_id = u.id
-            WHERE p.is_public = 1 ORDER BY p.updated_at DESC LIMIT ? OFFSET ?");
+            WHERE p.is_public = 1 AND p.report_hidden = 0 ORDER BY p.updated_at DESC LIMIT ? OFFSET ?");
         $stmt->bindValue(1, $limit, PDO::PARAM_INT);
         $stmt->bindValue(2, $offset, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll();
         $hasMore = count($rows) > self::PUBLIC_PAGE_SIZE;
         return ['projects' => array_slice($rows, 0, self::PUBLIC_PAGE_SIZE), 'hasMore' => $hasMore];
+    }
+
+    public function countByUser($user_id) {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM projects WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    // 다른 사람이 볼 수 있는 작품인가 (공개 + 신고로 숨겨지지 않음)
+    public static function isVisibleToOthers($project) {
+        return (int)$project['is_public'] === 1 && (int)($project['report_hidden'] ?? 0) === 0;
+    }
+
+    // 신고 기록. 이미 신고했으면 false. 신고가 쌓이면 자동 비공개 → ['hidden' => bool]
+    public function report($project_id, $user_id, $reason) {
+        $stmt = $this->db->prepare("INSERT IGNORE INTO project_reports (project_id, user_id, reason) VALUES (?, ?, ?)");
+        $stmt->execute([$project_id, $user_id, $reason]);
+        if ($stmt->rowCount() === 0) return false;
+
+        $count = $this->db->prepare("SELECT COUNT(*) FROM project_reports WHERE project_id = ?");
+        $count->execute([$project_id]);
+        $hidden = (int)$count->fetchColumn() >= self::REPORTS_TO_HIDE;
+        if ($hidden) {
+            $this->db->prepare("UPDATE projects SET is_public = 0, report_hidden = 1 WHERE id = ?")->execute([$project_id]);
+        }
+        return ['hidden' => $hidden];
     }
 
     public function recordRemake($original_id, $new_id) {

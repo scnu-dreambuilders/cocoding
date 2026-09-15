@@ -524,10 +524,22 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   }, [user, isChapter, meta.id, meta.title, makeThumbnail, say, onUserUpdate])
 
   const toggleShare = async () => {
+    const next = !meta.isPublic
+    if (next) {
+      // 공개하면 녹음한 목소리·직접 그린 그림·올린 사진도 친구들이 볼 수 있음 → 한 번 더 확인
+      const p = projectRef.current
+      const personal = [
+        p.sounds.length > 0 && '🎤 녹음한 목소리',
+        p.sprites.some((s) => s.image) && '🖼️ 그리거나 올린 그림·사진',
+      ].filter(Boolean)
+      const msg = personal.length
+        ? `공개하면 ${personal.join(', ')}도 친구들이 보고 들을 수 있어요.\n얼굴·이름·목소리처럼 나를 알 수 있는 내용이 없는지 확인했나요?`
+        : '친구 작품 탭에 공개할까요? 친구들이 보고 리메이크할 수 있어요.'
+      if (!window.confirm(msg)) return
+    }
     const id = meta.id ?? (await handleSave({ quiet: true }))
     if (!id) return
     try {
-      const next = !meta.isPublic
       await api.updateProject(id, { is_public: next })
       setMeta((m) => ({ ...m, isPublic: next }))
       say(next ? "친구 작품 탭에 공개됐어! 친구들이 '리메이크'해서 따라 만들 수 있어 🌟" : '공개를 취소했어. 이제 나만 볼 수 있어.', 'success', 'happy')

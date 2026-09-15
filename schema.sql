@@ -9,6 +9,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     level TINYINT DEFAULT 1,
     tags JSON NULL,
+    token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -49,6 +50,7 @@ CREATE TABLE projects (
     track ENUM('chapter', 'free') DEFAULT 'chapter',
     is_public BOOLEAN DEFAULT FALSE,
     thumbnail_url MEDIUMTEXT NULL,
+    report_hidden TINYINT(1) NOT NULL DEFAULT 0, -- 신고 누적으로 자동 비공개
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_public (is_public, updated_at),
@@ -76,6 +78,26 @@ CREATE TABLE remakes (
     INDEX idx_original (original_project_id),
     FOREIGN KEY (original_project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY (remaked_project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- 공개 작품 신고 (한 사람당 작품 하나에 한 번, 3명이 신고하면 자동 비공개)
+CREATE TABLE project_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    user_id INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_report (project_id, user_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 요청 제한 기록 (로그인 실패, 작품 저장 등)
+CREATE TABLE rate_limits (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    key_hash CHAR(64) NOT NULL,
+    attempted_at INT UNSIGNED NOT NULL,
+    INDEX idx_key_time (key_hash, attempted_at)
 );
 
 -- 초기 챕터 데이터 (방향성 문서 v3의 챕터 1~5)

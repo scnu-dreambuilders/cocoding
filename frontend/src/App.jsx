@@ -35,13 +35,26 @@ export default function App() {
     setUser(u)
   }, [])
 
-  const logout = useCallback(() => {
+  // 로컬 세션만 지우기 (토큰이 이미 무효일 때)
+  const clearSession = useCallback(() => {
     localStorage.removeItem('cocooding_token')
     localStorage.removeItem('cocooding_user')
     setUser(null)
     setLaunch(null)
     setPage('auth')
   }, [])
+
+  // 로그아웃 버튼: 서버에서도 토큰을 무효화
+  const logout = useCallback(() => {
+    api.logout().catch(() => {})
+    clearSession()
+  }, [clearSession])
+
+  /* 어떤 요청이든 401(토큰 만료·다른 곳에서 로그아웃)이 오면 로그인 화면으로 */
+  useEffect(() => {
+    window.addEventListener('cocoding:unauthorized', clearSession)
+    return () => window.removeEventListener('cocoding:unauthorized', clearSession)
+  }, [clearSession])
 
   /* ── Re-validate cached session against the server ───────────── */
   useEffect(() => {
@@ -51,8 +64,8 @@ export default function App() {
         saveUser(fresh)
         if (needsSurvey(fresh)) setPage((p) => (p === 'dashboard' ? 'survey' : p))
       })
-      .catch(logout)
-  }, [saveUser, logout])
+      .catch(clearSession)
+  }, [saveUser, clearSession])
 
   const refreshUser = useCallback(() => {
     api.me().then(saveUser).catch(() => {})
