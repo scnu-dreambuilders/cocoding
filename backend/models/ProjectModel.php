@@ -14,7 +14,7 @@ class ProjectModel {
     const REPORT_REASONS = ['나쁜 말이나 그림', '개인정보(얼굴·이름·목소리)가 있어요', '내 작품을 베꼈어요', '기타'];
 
     // 목록에서는 무거운 blocks_data를 빼고 보낸다
-    const LIST_COLUMNS = "p.id, p.user_id, p.chapter_id, p.title, p.track, p.is_public, p.report_hidden, p.thumbnail_url, p.created_at, p.updated_at,
+    const LIST_COLUMNS = "p.id, p.user_id, p.chapter_id, p.title, p.track, p.is_public, p.allow_remake, p.report_hidden, p.thumbnail_url, p.created_at, p.updated_at,
         (SELECT COUNT(*) FROM remakes r WHERE r.original_project_id = p.id) AS remake_count";
 
     private $db;
@@ -54,6 +54,7 @@ class ProjectModel {
         if ($project) {
             $project['blocks_data'] = json_decode($project['blocks_data'], true);
             $project['is_public'] = (int)$project['is_public'];
+            $project['allow_remake'] = (int)($project['allow_remake'] ?? 1);
             $project['report_hidden'] = (int)($project['report_hidden'] ?? 0);
         }
         return $project;
@@ -84,14 +85,14 @@ class ProjectModel {
         return (int)$this->db->lastInsertId();
     }
 
-    // $fields: title / blocks_data / is_public / thumbnail_url 중 바뀐 것만
+    // $fields: title / blocks_data / is_public / allow_remake / thumbnail_url 중 바뀐 것만
     public function update($id, array $fields) {
         $sets = [];
         $params = [];
         foreach ($fields as $column => $value) {
-            if (!in_array($column, ['title', 'blocks_data', 'is_public', 'thumbnail_url'], true)) continue;
+            if (!in_array($column, ['title', 'blocks_data', 'is_public', 'allow_remake', 'thumbnail_url'], true)) continue;
             if ($column === 'blocks_data') $value = json_encode($value);
-            if ($column === 'is_public') $value = $value ? 1 : 0;
+            if ($column === 'is_public' || $column === 'allow_remake') $value = $value ? 1 : 0;
             $sets[] = "$column = ?";
             $params[] = $value;
         }

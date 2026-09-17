@@ -21,6 +21,10 @@ $isOwner = $project && (int)$payload['id'] === (int)$project['user_id'];
 if (!$project || (!$isOwner && !ProjectModel::isVisibleToOthers($project))) {
     Response::error("프로젝트를 찾을 수 없습니다.", 404);
 }
+// 친구 작품 열기는 보호자 동의가 끝난 뒤에만
+if (!$isOwner) {
+    Auth::requireSharing($payload);
+}
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'PUT') {
@@ -34,8 +38,12 @@ if ($method === 'PUT') {
     if (array_key_exists('title', $data)) $fields['title'] = is_string($data['title']) ? trim($data['title']) : '';
     if (array_key_exists('blocks_data', $data)) $fields['blocks_data'] = $data['blocks_data'];
     if (array_key_exists('is_public', $data)) $fields['is_public'] = (bool)$data['is_public'];
+    if (array_key_exists('allow_remake', $data)) $fields['allow_remake'] = (bool)$data['allow_remake'];
     if (array_key_exists('thumbnail', $data)) $fields['thumbnail_url'] = $data['thumbnail'];
 
+    if (!empty($fields['is_public'])) {
+        Auth::requireSharing($payload);
+    }
     if (!empty($fields['is_public']) && $project['report_hidden']) {
         Response::error("신고가 여러 번 들어와서 공개할 수 없는 작품이에요. 선생님께 문의해주세요.", 403);
     }

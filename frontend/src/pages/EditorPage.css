@@ -571,3 +571,40 @@
   .stage-hint, .palette-info { display: none; }
   .track-badge { display: none; }
 }
+
+/* ── 공유하기 창 ──────────────────────────── */
+.share-modal { width: 440px; }
+.share-lead { margin: 0; font-size: 0.9rem; color: var(--text); }
+.share-warn {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  font-size: 0.8667rem;
+}
+.share-warn p { margin: 0 0 8px; }
+.share-check { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.share-check input, .share-option input { accent-color: var(--accent); margin-top: 3px; }
+.share-remake { margin: 0; padding: 0; border: none; display: flex; flex-direction: column; gap: 6px; }
+.share-remake legend { padding: 0; margin-bottom: 6px; font-size: 0.9rem; font-weight: 600; }
+.share-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.share-option.on { border-color: var(--accent); background: var(--accent-light); }
+.share-option span { display: flex; flex-direction: column; }
+.share-option small { color: var(--text); font-size: 0.8rem; }
+.view-only-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  font-size: 0.8333rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

@@ -837,3 +837,4 @@
 .report-box button:hover { border-color: #ef4444; }
 .report-box .report-cancel { text-align: center; color: var(--text-muted); }
 .project-hidden { font-size: 0.8rem; padding: 1px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.12); color: #dc2626; font-weight: 600; }
+.remake-btn.view-only { background: rgba(59, 130, 246, 0.12); color: #2563eb; }

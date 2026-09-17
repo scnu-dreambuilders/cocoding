@@ -7,6 +7,12 @@ CREATE TABLE users (
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student',
+    birth_year SMALLINT NULL,
+    -- 만 14세 미만 학생: pending(보호자 동의 전) → granted. consent_code는 보호자에게 보여줄 코드
+    consent_status ENUM('not_required', 'pending', 'granted') NOT NULL DEFAULT 'not_required',
+    consent_code CHAR(8) NULL UNIQUE,
+    consent_at TIMESTAMP NULL,
     level TINYINT DEFAULT 1,
     tags JSON NULL,
     token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
@@ -51,6 +57,7 @@ CREATE TABLE projects (
     blocks_data JSON NOT NULL,
     track ENUM('chapter', 'free') DEFAULT 'chapter',
     is_public BOOLEAN DEFAULT FALSE,
+    allow_remake TINYINT(1) NOT NULL DEFAULT 1, -- 공개했을 때 친구가 리메이크해도 되는지
     thumbnail_url MEDIUMTEXT NULL,
     report_hidden TINYINT(1) NOT NULL DEFAULT 0, -- 신고 누적으로 자동 비공개
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -92,6 +99,37 @@ CREATE TABLE project_reports (
     UNIQUE KEY uniq_report (project_id, user_id),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 보호자-자녀 연결 (보호자가 동의 코드로 연결하면 자녀의 consent_status = granted)
+CREATE TABLE guardian_links (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    guardian_id INT NOT NULL,
+    student_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_link (guardian_id, student_id),
+    FOREIGN KEY (guardian_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 선생님 반 (학생은 참여 코드로 들어옴)
+CREATE TABLE classes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    teacher_id INT NOT NULL,
+    name VARCHAR(40) NOT NULL,
+    join_code CHAR(6) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE class_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    student_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_member (class_id, student_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 요청 제한 기록 (로그인 실패, 작품 저장 등)

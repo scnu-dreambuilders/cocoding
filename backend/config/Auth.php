@@ -83,14 +83,20 @@ class Auth {
     }
 
     // 현재 요청의 사용자(토큰 payload) 또는 null. 로그아웃된 토큰·삭제된 계정은 거부
+    // 계정 유형(role)과 보호자 동의 상태(consent)는 토큰이 아니라 DB의 최신 값을 담는다
     public static function user() {
         if (self::$cachedUser !== false) return self::$cachedUser;
         $payload = self::validateJWT(self::getBearerToken());
         if ($payload) {
-            $stmt = Database::getInstance()->prepare("SELECT token_version FROM users WHERE id = ?");
+            $stmt = Database::getInstance()->prepare("SELECT token_version, role, consent_status FROM users WHERE id = ?");
             $stmt->execute([$payload['id']]);
-            $version = $stmt->fetchColumn();
-            if ($version === false || (int)$version !== (int)($payload['tv'] ?? 0)) $payload = null;
+            $row = $stmt->fetch();
+            if (!$row || (int)$row['token_version'] !== (int)($payload['tv'] ?? 0)) {
+                $payload = null;
+            } else {
+                $payload['role'] = $row['role'];
+                $payload['consent'] = $row['consent_status'];
+            }
         }
         return self::$cachedUser = $payload ?: null;
     }
@@ -102,5 +108,26 @@ class Auth {
             Response::error("로그인이 필요합니다.", 401);
         }
         return $payload;
+    }
+
+    // 특정 계정 유형만 쓸 수 있는 API (선생님 반 관리, 보호자 자녀 연결 등)
+    public static function requireRole(array $roles) {
+        $payload = self::requireUser();
+        if (!in_array($payload['role'], $roles, true)) {
+            Response::error("이 기능을 쓸 수 없는 계정이에요.", 403);
+        }
+        return $payload;
+    }
+
+    // 다른 친구와 작품을 주고받는 기능(공개·친구 작품 보기·리메이크·신고)은
+    // 만 14세 미만이면 보호자 동의가 끝난 뒤에만 쓸 수 있다
+    public static function canShare($payload) {
+        return ($payload['consent'] ?? 'not_required') !== 'pending';
+    }
+
+    public static function requireSharing($payload) {
+        if (!self::canShare($payload)) {
+            Response::error("보호자 동의가 끝나면 친구들과 작품을 나눌 수 있어요.", 403);
+        }
     }
 }

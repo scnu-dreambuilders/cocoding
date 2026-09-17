@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);
 }
 $payload = Auth::requireUser();
+Auth::requireSharing($payload);
 RateLimiter::limit("project:report:{$payload['id']}", 20, 3600, "신고를 너무 많이 했어요. 잠시 후 다시 시도해주세요.");
 
 $data = json_decode(file_get_contents("php://input"), true) ?? [];

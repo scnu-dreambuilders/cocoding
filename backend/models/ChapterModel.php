@@ -42,8 +42,13 @@ class ChapterModel {
 
     // 챕터 목록에 사용자 상태 붙이기: 기록이 없으면 1챕터 또는 앞 챕터 완료 시 도전 가능
     public function withStatus(array $chapters, $user_id) {
+        return self::statusFromRows($chapters, $this->getUserProgress($user_id));
+    }
+
+    // 진행 기록 행으로 상태 계산 (선생님·보호자 화면에서 여러 학생을 한 번에 조회할 때도 사용)
+    public static function statusFromRows(array $chapters, array $rows) {
         $map = [];
-        foreach ($this->getUserProgress($user_id) as $p) {
+        foreach ($rows as $p) {
             $map[$p['chapter_id']] = $p;
         }
         $prevCompleted = true;

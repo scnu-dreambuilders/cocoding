@@ -9,6 +9,7 @@ import CodePanel from '../components/CodePanel'
 import DrawingModal from '../components/DrawingModal'
 import SoundModal from '../components/SoundModal'
 import GradeModal from '../components/GradeModal'
+import ShareModal from '../components/ShareModal'
 import TextSizeControl from '../components/TextSizeControl'
 import { IconBack, IconPlay, IconSave, IconSpinner, IconCode } from '../components/icons'
 import { BLOCK_INFO, CATEGORIES, setBlockContext } from '../blockly/blocks'
@@ -88,6 +89,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     id: launch.projectId ?? null,
     title: isChapter ? `챕터 ${chapterNo} 연습` : launch.template === 'mygame' ? MY_GAME.title : (launch.topic?.title ?? '새 프로젝트'),
     isPublic: false,
+    allowRemake: true,
+    owner: true, // 친구의 공개 작품을 구경할 때는 false → 저장·공유 없이 보기만
   })
   const [editTitle, setEditTitle] = useState(false)
 
@@ -183,7 +186,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         setSceneId(data.scenes[0]?.id)
         setInitialWs(data.workspace)
         setLoadedTypes(collectTypes(data.workspace))
-        setMeta({ id: p.id, title: p.title, isPublic: !!Number(p.is_public) })
+        const owner = p.is_owner !== false
+        setMeta({ id: p.id, title: p.title, isPublic: !!Number(p.is_public), allowRemake: Number(p.allow_remake ?? 1) === 1, owner, author: p.username })
         setLoading(false)
       })
       .catch((err) => {
@@ -231,7 +235,9 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           : `'${launch.topic.title}' 만들어볼까? 무대 아래에서 캐릭터를 골라봐!`, 'intro', 'happy')
         if (hb) flashBlock(hb)
       } else if (launch.projectId) {
-        say(`다시 왔구나! '${meta.title}' 이어서 만들어보자 💪`, 'intro', 'happy')
+        say(meta.owner
+          ? `다시 왔구나! '${meta.title}' 이어서 만들어보자 💪`
+          : `${meta.author} 친구의 작품을 구경하는 중이야 👀 ▶ 실행을 눌러봐! 블록을 바꿔봐도 친구 작품은 그대로야.`, 'intro', 'happy')
       } else {
         say(`${user ? '' : '로그인 없이 체험 중이야! (저장은 로그인 후에 할 수 있어)\n'}시작 블록을 놓아뒀어. ▶ 실행을 눌러보고, '이동' 칸의 블록을 아래에 붙여봐!`,
           'intro', 'happy')
@@ -562,6 +568,12 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       return null
     }
     if (isChapter) return null
+    if (!meta.owner) {
+      say(meta.allowRemake
+        ? '친구 작품은 저장할 수 없어. 대시보드에서 🔁 리메이크하면 내 작품으로 복사해서 고칠 수 있어!'
+        : '친구 작품은 구경만 할 수 있어. 작가가 리메이크를 허용하지 않은 작품이야.', 'hint', 'thinking')
+      return null
+    }
     setSaving(true)
     setSaveMsg('')
     try {
@@ -590,35 +602,45 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       setSaving(false)
       setTimeout(() => setSaveMsg(''), 3000)
     }
-  }, [user, isChapter, meta.id, meta.title, makeThumbnail, say, onUserUpdate])
+  }, [user, isChapter, meta.id, meta.title, meta.owner, meta.allowRemake, makeThumbnail, say, onUserUpdate])
 
+  // 공개 → 비공개는 바로, 비공개 → 공개는 확인 창(개인정보 확인 + 리메이크 허용 여부)을 거쳐서
   const toggleShare = async () => {
-    const next = !meta.isPublic
-    if (next) {
-      // 공개하면 녹음한 목소리·직접 그린 그림·올린 사진도 친구들이 볼 수 있음 → 한 번 더 확인
-      const p = projectRef.current
-      const personal = [
-        p.sounds.length > 0 && '🎤 녹음한 목소리',
-        p.sprites.some((s) => s.image) && '🖼️ 그리거나 올린 그림·사진',
-      ].filter(Boolean)
-      const msg = personal.length
-        ? `공개하면 ${personal.join(', ')}도 친구들이 보고 들을 수 있어요.\n얼굴·이름·목소리처럼 나를 알 수 있는 내용이 없는지 확인했나요?`
-        : '친구 작품 탭에 공개할까요? 친구들이 보고 리메이크할 수 있어요.'
-      if (!window.confirm(msg)) return
+    if (!meta.isPublic) {
+      if (user?.consent_status === 'pending') {
+        say('보호자 동의가 끝나면 친구들에게 공유할 수 있어! 대시보드에 있는 동의 코드를 부모님께 보여드려 👪', 'hint', 'thinking', { duration: 10000 })
+        return
+      }
+      setModal('share')
+      return
     }
-    const id = meta.id ?? (await handleSave({ quiet: true }))
-    if (!id) return
     try {
-      await api.updateProject(id, { is_public: next })
-      setMeta((m) => ({ ...m, isPublic: next }))
-      say(next ? "친구 작품 탭에 공개됐어! 친구들이 '리메이크'해서 따라 만들 수 있어 🌟" : '공개를 취소했어. 이제 나만 볼 수 있어.', 'success', 'happy')
+      await api.updateProject(meta.id, { is_public: false })
+      setMeta((m) => ({ ...m, isPublic: false }))
+      say('공개를 취소했어. 이제 나만 볼 수 있어.', 'success', 'happy')
     } catch (err) {
       say(`공개 설정을 바꾸지 못했어: ${err.message}`, 'error', 'thinking')
     }
   }
 
+  const shareProject = async ({ allowRemake }) => {
+    const id = meta.id ?? (await handleSave({ quiet: true }))
+    if (!id) return
+    try {
+      await api.updateProject(id, { is_public: true, allow_remake: allowRemake })
+      setMeta((m) => ({ ...m, isPublic: true, allowRemake }))
+      setModal(null)
+      say(allowRemake
+        ? "친구 작품 탭에 공개됐어! 친구들이 '리메이크'해서 따라 만들 수 있어 🌟"
+        : '친구 작품 탭에 공개됐어! 친구들은 구경만 할 수 있어 🌟', 'success', 'happy')
+    } catch (err) {
+      setModal(null)
+      say(`공유하지 못했어: ${err.message}`, 'error', 'thinking')
+    }
+  }
+
   const handleBack = () => {
-    if (dirty && user && !isChapter && !window.confirm('저장하지 않은 변경이 있어요. 그래도 나갈까요?')) return
+    if (dirty && user && !isChapter && meta.owner && !window.confirm('저장하지 않은 변경이 있어요. 그래도 나갈까요?')) return
     stopRun()
     onBack()
   }
@@ -686,7 +708,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
               onBlur={() => { setEditTitle(false); setMeta((m) => ({ ...m, title: m.title.trim() || '새 프로젝트' })) }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') e.currentTarget.blur() }} />
           ) : (
-            <button type="button" className="editor-title-btn" onClick={() => !isChapter && setEditTitle(true)}
+            <button type="button" className="editor-title-btn" onClick={() => !isChapter && meta.owner && setEditTitle(true)}
               title={isChapter ? chapter.title : '제목 수정'}>
               {isChapter ? `챕터 ${chapterNo} · ${chapter.title}` : meta.title}
             </button>
@@ -707,7 +729,10 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
               📝 정답 제출
             </button>
           )}
-          {user && !isChapter && (
+          {user && !isChapter && !meta.owner && (
+            <span className="view-only-badge" title="친구의 공개 작품이라 저장·공유는 할 수 없어요">👀 구경 중</span>
+          )}
+          {user && !isChapter && meta.owner && (
             <>
               <button type="button" className={`btn btn-ghost ${meta.isPublic ? 'btn-shared' : ''}`} onClick={toggleShare}
                 title="친구 작품 탭에 공개하기">
@@ -874,6 +899,9 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           onChange={(sounds) => setProject((p) => ({ ...p, sounds }))}
           onClose={() => setModal(null)}
         />
+      )}
+      {modal === 'share' && (
+        <ShareModal project={project} onShare={shareProject} onClose={() => setModal(null)} />
       )}
       {grade && (
         <GradeModal

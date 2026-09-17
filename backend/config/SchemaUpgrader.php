@@ -4,7 +4,38 @@
 // migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-09-17';
+    const VERSION = '2026-09-18';
+
+    // 보호자-자녀 연결, 선생님 반, 반 학생
+    const ROLE_TABLES = [
+        "CREATE TABLE IF NOT EXISTS guardian_links (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            guardian_id INT NOT NULL,
+            student_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_link (guardian_id, student_id),
+            FOREIGN KEY (guardian_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        "CREATE TABLE IF NOT EXISTS classes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            teacher_id INT NOT NULL,
+            name VARCHAR(40) NOT NULL,
+            join_code CHAR(6) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_join_code (join_code),
+            FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        "CREATE TABLE IF NOT EXISTS class_members (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            class_id INT NOT NULL,
+            student_id INT NOT NULL,
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_member (class_id, student_id),
+            FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+            FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+    ];
 
     private static function markerPath() {
         return __DIR__ . '/../data/.schema_version';
@@ -84,6 +115,29 @@ class SchemaUpgrader {
         }
         if (self::column($db, 'user_chapter_progress', 'attempts') === null) {
             $db->exec("ALTER TABLE user_chapter_progress ADD COLUMN attempts INT NOT NULL DEFAULT 0 AFTER best_score");
+        }
+
+        /* ── 2026-09-18 계정 유형 · 보호자 동의 · 반 · 리메이크 허용 ── */
+        if (self::column($db, 'users', 'role') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student' AFTER password_hash");
+        }
+        if (self::column($db, 'users', 'birth_year') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN birth_year SMALLINT NULL AFTER role");
+        }
+        if (self::column($db, 'users', 'consent_status') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN consent_status ENUM('not_required', 'pending', 'granted') NOT NULL DEFAULT 'not_required' AFTER birth_year");
+        }
+        if (self::column($db, 'users', 'consent_code') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN consent_code CHAR(8) NULL AFTER consent_status, ADD UNIQUE KEY uniq_consent_code (consent_code)");
+        }
+        if (self::column($db, 'users', 'consent_at') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN consent_at TIMESTAMP NULL AFTER consent_code");
+        }
+        if (self::column($db, 'projects', 'allow_remake') === null) {
+            $db->exec("ALTER TABLE projects ADD COLUMN allow_remake TINYINT(1) NOT NULL DEFAULT 1 AFTER is_public");
+        }
+        foreach (self::ROLE_TABLES as $sql) {
+            $db->exec($sql);
         }
 
         // 예전 버전이 챕터를 다시 완료할 때마다 중복 지급한 아이템 정리 + 종류 바로잡기

@@ -49,10 +49,12 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (username, email, password) =>
+  // role: 'student' | 'teacher' | 'guardian'
+  // 학생은 birth_year (만 14세 미만이면 보호자 동의 코드 발급), 선생님·보호자는 adult: true
+  register: ({ username, email, password, role, birth_year, adult }) =>
     request('/auth/register.php', {
       method: 'POST',
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ username, email, password, role, birth_year, adult }),
     }),
 
   me: () => request('/auth/me.php'),
@@ -65,6 +67,48 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ level, tags }),
     }),
+
+  /* ── 내 정보 ──────────────────────────────── */
+  changeUsername: (username) =>
+    request('/auth/account.php', { method: 'PATCH', body: JSON.stringify({ username }) }),
+
+  // 성공하면 다른 기기 로그인은 끊기고 새 토큰을 받음
+  changePassword: (current_password, new_password) =>
+    request('/auth/account.php', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
+
+  deleteAccount: (password) =>
+    request('/auth/account.php', { method: 'DELETE', body: JSON.stringify({ password }) }),
+
+  /* ── 반 (선생님: 만들기·진도 보기 / 학생: 참여 코드로 들어가기) ── */
+  classes: () => request('/classes/index.php'),
+
+  createClass: (name) =>
+    request('/classes/index.php', { method: 'POST', body: JSON.stringify({ name }) }),
+
+  joinClass: (join_code) =>
+    request('/classes/index.php', { method: 'POST', body: JSON.stringify({ join_code }) }),
+
+  classDetail: (id) => request(`/classes/view.php?id=${encodeURIComponent(id)}`),
+
+  updateClass: (id, data) =>
+    request(`/classes/view.php?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // 선생님: 반 삭제 / 학생: 반에서 나가기
+  deleteClass: (id) =>
+    request(`/classes/view.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  removeStudent: (classId, studentId) =>
+    request(`/classes/view.php?id=${encodeURIComponent(classId)}&student_id=${encodeURIComponent(studentId)}`, { method: 'DELETE' }),
+
+  /* ── 보호자 ────────────────────────────────── */
+  children: () => request('/guardian/children.php'),
+
+  // agree 없이 보내면 어떤 아이인지 확인만, agree: true면 동의 + 연결
+  consentChild: (code, agree = false) =>
+    request('/guardian/children.php', { method: 'POST', body: JSON.stringify({ code, agree }) }),
+
+  unlinkChild: (studentId) =>
+    request(`/guardian/children.php?student_id=${encodeURIComponent(studentId)}`, { method: 'DELETE' }),
 
   /* ── Chapters ──────────────────────────────── */
   chapters: () => request('/chapters/index.php'),

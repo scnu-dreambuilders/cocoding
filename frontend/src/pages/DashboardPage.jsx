@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { BrandIcon } from '../components/icons'
 import { CocoAvatar } from '../components/Coco'
@@ -7,6 +7,9 @@ import { INTEREST_EMOJI, LEVEL_LABEL, ITEM_TYPE_LABEL } from '../data/library'
 import { BLOCK_INFO } from '../blockly/blocks'
 import { starsOf } from '../engine/grader'
 import TextSizeControl from '../components/TextSizeControl'
+import AccountModal from '../components/AccountModal'
+import { ConsentBanner, GuardianPanel, StudentClasses, TeacherPanel } from '../components/RolePanels'
+import { ROLE_LABEL } from '../lib/validators'
 import emptyProjectsImg from '../assets/empty-projects.png'
 import './DashboardPage.css'
 
@@ -61,22 +64,48 @@ function Thumb({ src, fallback = '🧩' }) {
 /* ════════════════════════════════════════════════
    DashboardPage
    ════════════════════════════════════════════════ */
-export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame }) {
+export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted }) {
+  const role = user?.role ?? 'student'
+  const isStudent = role === 'student'
+  // 만 14세 미만 + 보호자 동의 전: 친구 작품 보기·공유·리메이크 잠김 (챕터·작품 만들기는 가능)
+  const consentPending = user?.consent_status === 'pending'
   const [chapters, setChapters] = useState([])
   const [projects, setProjects] = useState([])
   const [recos, setRecos] = useState([])
   const [items, setItems] = useState([])
-  const [community, setCommunity] = useState({ list: [], page: 0, hasMore: true, loading: true })
+  const [community, setCommunity] = useState(() => ({ list: [], page: 0, hasMore: !consentPending, loading: !consentPending }))
   const [load, setLoad] = useState({ ch: true, pr: true })
   const [err, setErr] = useState({ ch: '', pr: '' })
   const [filter, setFilter] = useState('all')
   const [lockedTip, setLockedTip] = useState(null)
   const [reporting, setReporting] = useState(null)
   const [toast, setToast] = useState('')
+  const [accountOpen, setAccountOpen] = useState(false)
+  const toastTimer = useRef(0)
 
-  const showToast = (msg) => {
+  // 패널 컴포넌트의 effect 의존성에 들어가므로 항상 같은 함수
+  const showToast = useCallback((msg) => {
+    clearTimeout(toastTimer.current)
     setToast(msg)
-    setTimeout(() => setToast(''), 3000)
+    toastTimer.current = setTimeout(() => setToast(''), 3500)
+  }, [])
+  useEffect(() => () => clearTimeout(toastTimer.current), [])
+
+  // 보호자가 다른 기기에서 동의했는지 확인
+  const refreshConsent = async () => {
+    try {
+      const fresh = await api.me()
+      onUserChange(fresh)
+      if (fresh.consent_status === 'pending') {
+        showToast('아직 동의 전이에요. 부모님이 보호자 화면에서 코드를 입력하면 바로 열려요!')
+      } else {
+        showToast('보호자 동의가 끝났어요! 이제 친구들과 작품을 나눌 수 있어요 🎉')
+        setCommunity((c) => ({ ...c, loading: true, hasMore: true }))
+        fetchCommunity(1, setCommunity)
+      }
+    } catch (e) {
+      showToast(e.message)
+    }
   }
 
   const loadMoreCommunity = () => {
@@ -91,8 +120,8 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
       .finally(() => setLoad((l) => ({ ...l, pr: false })))
     api.recommendations().then((r) => setRecos(Array.isArray(r) ? r : [])).catch(() => setRecos([]))
     api.items().then(setItems).catch(() => setItems([]))
-    fetchCommunity(1, setCommunity)
-  }, [])
+    if (!consentPending) fetchCommunity(1, setCommunity)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- 첫 화면에서 한 번만 불러옴
 
   const completedNos = useMemo(
     () => chapters.filter((c) => c.status === 'completed').map((c) => Number(c.order_num)),
@@ -105,6 +134,8 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
 
   /* 페이스메이커: 오늘 할 일을 코코가 먼저 제안 */
   const pacemaker = useMemo(() => {
+    if (role === 'teacher') return '선생님, 반을 만들고 참여 코드를 알려주시면 학생들의 챕터 진도를 한눈에 볼 수 있어요. 아래에서 학생들이 배우는 챕터를 직접 체험해보셔도 좋아요!'
+    if (role === 'guardian') return '아이 화면에 보이는 동의 코드를 입력하면 아이 계정이 연결되고 학습 진도를 볼 수 있어요. 아이가 배우는 챕터를 직접 체험해보셔도 좋아요!'
     if (load.ch) return '오늘은 뭘 해볼까? 잠깐만, 기록을 확인하고 있어…'
     if (current) {
       const no = Number(current.order_num)
@@ -115,7 +146,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
     if (allDone && lastProject) return `모든 챕터 완료! 🎓 만들던 '${lastProject.title}' 이어서 만들어볼까?`
     if (allDone) return '모든 챕터를 끝냈어! 이제 배운 블록으로 나만의 게임을 만들어보자 🎮'
     return '오늘도 블록으로 멋진 작품을 만들어보자!'
-  }, [load.ch, current, allDone, lastProject])
+  }, [role, load.ch, current, allDone, lastProject])
 
   const openChapter = (ch) => {
     if (ch.status === 'locked') {
@@ -191,9 +222,12 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
           <div className="user-chip">
             <CocoAvatar size={28} items={equipped} />
             <span className="user-name">{user?.username}</span>
-            {user?.level && <span className="user-level-tag">{LEVEL_LABEL[user.level] ?? user.level}</span>}
+            {isStudent
+              ? user?.level && <span className="user-level-tag">{LEVEL_LABEL[user.level] ?? user.level}</span>
+              : <span className="user-level-tag">{ROLE_LABEL[role]}</span>}
           </div>
-          <button type="button" className="btn-icon" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정">⚙️</button>
+          <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보">👤</button>
+          {isStudent && <button type="button" className="btn-icon" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정">⚙️</button>}
           <button type="button" className="btn-icon" onClick={onLogout} title="로그아웃" aria-label="로그아웃">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -209,9 +243,9 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
             <div className="welcome-coco">
               <CocoAvatar size={92} emotion="happy" items={equipped} />
               <div className="welcome-text">
-                <h2 className="welcome-title">안녕, <em>{user?.username}</em>! 👋</h2>
+                <h2 className="welcome-title">{isStudent ? <>안녕, <em>{user?.username}</em>! 👋</> : <>안녕하세요, <em>{user?.username}</em> {role === 'teacher' ? '선생님' : '보호자님'} 👋</>}</h2>
                 <p className="welcome-bubble">{pacemaker}</p>
-                {current && (
+                {current && isStudent && (
                   <button type="button" className="welcome-cta" onClick={() => openChapter(current)}>
                     챕터 {current.order_num} 이어하기 →
                   </button>
@@ -231,8 +265,12 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
           </div>
         </section>
 
+        {isStudent && consentPending && <ConsentBanner user={user} onRefresh={refreshConsent} />}
+        {role === 'teacher' && <TeacherPanel showToast={showToast} />}
+        {role === 'guardian' && <GuardianPanel showToast={showToast} />}
+
         {/* ── 오늘의 추천 주제 ── */}
-        <Section icon="⭐" title="오늘의 추천 주제" badge={user?.tags?.length ? '관심사 기반' : null}
+        {isStudent && <Section icon="⭐" title="오늘의 추천 주제" badge={user?.tags?.length ? '관심사 기반' : null}
           action={<button type="button" className="section-action" onClick={onEditSurvey}>관심사 바꾸기</button>}>
           {!user?.tags?.length && (
             <p className="dash-hint">관심사를 알려주면 딱 맞는 주제를 추천해줄게! <button type="button" className="link-btn" onClick={onEditSurvey}>관심사 고르기</button></p>
@@ -254,7 +292,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
               <div className="reco-title">빈 무대에서 내 마음대로 만들기</div>
             </button>
           </div>
-        </Section>
+        </Section>}
 
         {/* ── 단계별 기초학습 ── */}
         <Section icon="♟️" title="단계별 기초학습" badge={!load.ch && chapters.length ? `${completedNos.length}/${chapters.length}` : null}>
@@ -306,6 +344,8 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
           </div>
         </Section>
 
+        {isStudent && <StudentClasses showToast={showToast} />}
+
         {/* ── 내 포트폴리오 ── */}
         <Section icon="📁" title="내 포트폴리오" badge={projects.length ? `${projects.length}개` : null}
           action={
@@ -353,7 +393,9 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
 
         {/* ── 친구 작품 ── */}
         <Section icon="🌟" title="친구 작품" badge="리메이크해서 따라 만들어보기">
-          {community.list.length === 0 && !community.loading ? (
+          {consentPending ? (
+            <div className="empty-msg">🔒 보호자 동의가 끝나면 친구들의 작품을 보고 리메이크할 수 있어요.</div>
+          ) : community.list.length === 0 && !community.loading ? (
             <div className="empty-msg">아직 공개된 작품이 없어요. 에디터에서 🔗 공유를 눌러 첫 번째로 공개해보세요!</div>
           ) : (
             <div className="projects-grid">
@@ -369,7 +411,9 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
                   </div>
                   {Number(p.user_id) === Number(user?.id)
                     ? <button type="button" className="remake-btn mine" onClick={() => openProject(p)}>내 작품</button>
-                    : <button type="button" className="remake-btn" onClick={() => remake(p)}>🔁 리메이크</button>}
+                    : Number(p.allow_remake ?? 1)
+                      ? <button type="button" className="remake-btn" onClick={() => remake(p)}>🔁 리메이크</button>
+                      : <button type="button" className="remake-btn view-only" onClick={() => openProject(p)} title="작가가 구경만 허용한 작품이에요">👀 구경하기</button>}
                   {Number(p.user_id) !== Number(user?.id) && (
                     reporting === p.id ? (
                       <div className="report-box" role="group" aria-label="신고 이유">
@@ -387,7 +431,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
               ))}
             </div>
           )}
-          {community.hasMore && community.list.length > 0 && (
+          {!consentPending && community.hasMore && community.list.length > 0 && (
             <button type="button" className="more-btn" onClick={loadMoreCommunity} disabled={community.loading}>
               {community.loading ? '불러오는 중…' : '더 보기'}
             </button>
@@ -415,6 +459,11 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
           )}
         </Section>
       </main>
+
+      {accountOpen && (
+        <AccountModal user={user} onClose={() => setAccountOpen(false)} onUserChange={onUserChange}
+          onDeleted={onAccountDeleted} showToast={showToast} />
+      )}
     </div>
   )
 }

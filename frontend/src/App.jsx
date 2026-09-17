@@ -21,8 +21,8 @@ function readCachedUser() {
   }
 }
 
-// 설문을 한 번도 하지 않은 사용자 (건너뛰면 빈 배열로 저장됨)
-const needsSurvey = (u) => u && (u.tags === null || u.tags === undefined)
+// 설문을 한 번도 하지 않은 학생 (건너뛰면 빈 배열로 저장됨). 선생님·보호자는 설문 없음
+const needsSurvey = (u) => u && (u.role ?? 'student') === 'student' && (u.tags === null || u.tags === undefined)
 
 export default function App() {
   const [user,      setUser]      = useState(readCachedUser)
@@ -137,6 +137,8 @@ export default function App() {
         onOpenEditor={openEditor}
         onEditSurvey={() => setPage('survey-edit')}
         onOpenMyGame={openMyGame}
+        onUserChange={saveUser}
+        onAccountDeleted={clearSession}
       />
     )
   }
