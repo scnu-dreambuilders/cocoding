@@ -1,0 +1,121 @@
+:root {
+  /* ── Typography ─────────────────────────────── */
+  --sans: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo',
+    'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'JetBrains Mono',
+    Consolas, 'Courier New', monospace;
+
+  /* ── Light mode tokens ──────────────────────── */
+  --text: #64748b;
+  --text-h: #0f172a;
+  --text-muted: #94a3b8;
+
+  --bg: #f1f5f9;
+  --header-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --tabs-bg: #f8fafc;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --btn-hover: #f1f5f9;
+  --tab-hover: rgba(0, 0, 0, 0.04);
+
+  /* ── Code / terminal (always dark) ─────────── */
+  --code-bg: #0f172a;
+  --code-text: #94a3b8;
+  --code-text-h: #e2e8f0;
+  --output-bg: #0f172a;
+  --output-text: #4ade80;
+  --output-prompt: rgba(74, 222, 128, 0.5);
+
+  /* ── Accent ─────────────────────────────────── */
+  --accent: #7c3aed;
+  --accent-light: rgba(124, 58, 237, 0.1);
+
+  /* ── Base ───────────────────────────────────── */
+  /* 모든 글자 크기는 rem(1rem = 이 값) → 글씨 크기 설정 하나로 화면 전체가 커짐 (lib/textSize.js) */
+  font: 17px/1.5 var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #8b9ab0;
+    --text-h: #e6edf3;
+    --text-muted: #6e7b8e;
+
+    --bg: #010409;
+    --header-bg: #0d1117;
+    --panel-bg: #0d1117;
+    --tabs-bg: #010409;
+    --border: #21262d;
+    --border-strong: #30363d;
+
+    --btn-hover: rgba(255, 255, 255, 0.06);
+    --tab-hover: rgba(255, 255, 255, 0.04);
+
+    --code-bg: #010409;
+    --code-text: #7d8590;
+    --code-text-h: #adbac7;
+    --output-bg: #010409;
+    --output-text: #3fb950;
+    --output-prompt: rgba(63, 185, 80, 0.45);
+
+    --accent: #a371f7;
+    --accent-light: rgba(163, 113, 247, 0.12);
+  }
+}
+
+/* 글씨 크기: 작게(예전 크기) / 보통(기본) / 크게 */
+:root[data-text-size='sm'] { font-size: 15px; }
+:root[data-text-size='lg'] { font-size: 19px; }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+}
+
+/* ── 글씨 크기 버튼 (에디터·대시보드 헤더) ── */
+.text-size {
+  display: inline-flex;
+  align-items: flex-end;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.text-size-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.text-size-btn + .text-size-btn { border-left: 1px solid var(--border); }
+.text-size-btn:hover { background: var(--btn-hover); color: var(--text-h); }
+.text-size-btn.on { background: var(--accent-light); color: var(--accent); }
+/* 버튼 글자는 설정과 상관없이 고정 크기 — 세 단계 차이가 보이도록 */
+.ts-sm { font-size: 12px; }
+.ts-md { font-size: 15px; }
+.ts-lg { font-size: 19px; }

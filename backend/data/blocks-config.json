@@ -1,0 +1,126 @@
+{
+  "blocks": {
+    "move-x": {
+      "name": "x 좌표를 {value} 만큼 바꾸기",
+      "category": "move",
+      "tooltip": "캐릭터를 좌우로 이동시켜요",
+      "hasInput": true,
+      "defaultValue": 10,
+      "codeTemplate": "sprite.x += {value};"
+    },
+    "move-y": {
+      "name": "y 좌표를 {value} 만큼 바꾸기",
+      "category": "move",
+      "tooltip": "캐릭터를 위아래로 이동시켜요",
+      "hasInput": true,
+      "defaultValue": 10,
+      "codeTemplate": "sprite.y += {value};"
+    },
+    "set-dir": {
+      "name": "방향을 {value} 도로 정하기",
+      "category": "move",
+      "tooltip": "캐릭터가 바라보는 방향을 정해요",
+      "hasInput": true,
+      "defaultValue": 90,
+      "codeTemplate": "sprite.direction = {value};"
+    },
+    "repeat-n": {
+      "name": "{value} 번 반복하기",
+      "category": "repeat",
+      "tooltip": "안에 있는 블록들을 정해진 횟수만큼 반복해요",
+      "hasInput": true,
+      "defaultValue": 5,
+      "codeTemplate": "for(let i=0; i<{value}; i++) {"
+    },
+    "repeat-inf": {
+      "name": "무한 반복하기",
+      "category": "repeat",
+      "tooltip": "안에 있는 블록들을 계속해서 반복해요",
+      "hasInput": false,
+      "codeTemplate": "while(true) {"
+    },
+    "if-cond": {
+      "name": "만약 ~라면",
+      "category": "cond",
+      "tooltip": "조건이 맞을 때만 안에 있는 블록들을 실행해요",
+      "hasInput": false,
+      "codeTemplate": "if(condition) {"
+    },
+    "touch-detect": {
+      "name": "벽에 닿았는가?",
+      "category": "cond",
+      "tooltip": "캐릭터가 벽에 닿았는지 확인해요",
+      "hasInput": false,
+      "codeTemplate": "sprite.isTouchingWall()"
+    },
+    "key-detect": {
+      "name": "키보드를 눌렀는가?",
+      "category": "cond",
+      "tooltip": "키보드 버튼이 눌렸는지 확인해요",
+      "hasInput": false,
+      "codeTemplate": "isKeyPressed()"
+    },
+    "var-make": {
+      "name": "변수 만들기",
+      "category": "variable",
+      "tooltip": "새로운 값을 저장할 주머니를 만들어요",
+      "hasInput": true,
+      "defaultValue": "점수",
+      "codeTemplate": "let {value} = 0;"
+    },
+    "var-change": {
+      "name": "변수 값을 {value} 만큼 바꾸기",
+      "category": "variable",
+      "tooltip": "변수에 들어있는 값을 더하거나 빼요",
+      "hasInput": true,
+      "defaultValue": 1,
+      "codeTemplate": "{varName} += {value};"
+    },
+    "var-set": {
+      "name": "변수 값을 {value} (으)로 정하기",
+      "category": "variable",
+      "tooltip": "변수에 새로운 값을 넣어요",
+      "hasInput": true,
+      "defaultValue": 0,
+      "codeTemplate": "{varName} = {value};"
+    },
+    "var-show": {
+      "name": "변수 보이기",
+      "category": "variable",
+      "tooltip": "화면에 변수 값을 표시해요",
+      "hasInput": false,
+      "codeTemplate": "showVariable({varName});"
+    },
+    "msg-send": {
+      "name": "메시지 보내기",
+      "category": "event",
+      "tooltip": "다른 캐릭터에게 신호를 보내요",
+      "hasInput": true,
+      "defaultValue": "안녕",
+      "codeTemplate": "broadcast('{value}');"
+    },
+    "msg-receive": {
+      "name": "메시지를 받았을 때",
+      "category": "event",
+      "tooltip": "신호를 받으면 아래 블록들을 실행해요",
+      "hasInput": true,
+      "defaultValue": "안녕",
+      "codeTemplate": "onReceive('{value}', () => {"
+    },
+    "scene-start": {
+      "name": "장면 시작하기",
+      "category": "event",
+      "tooltip": "새로운 장면으로 넘어가요",
+      "hasInput": true,
+      "defaultValue": "배경1",
+      "codeTemplate": "startScene('{value}');"
+    }
+  },
+  "chapters": {
+    "1": {"newBlocks": ["move-x", "move-y", "set-dir"], "allBlocks": ["move-x", "move-y", "set-dir"]},
+    "2": {"newBlocks": ["repeat-n", "repeat-inf"], "allBlocks": ["move-x", "move-y", "set-dir", "repeat-n", "repeat-inf"]},
+    "3": {"newBlocks": ["if-cond", "touch-detect", "key-detect"], "allBlocks": ["move-x", "move-y", "set-dir", "repeat-n", "repeat-inf", "if-cond", "touch-detect", "key-detect"]},
+    "4": {"newBlocks": ["var-make", "var-change", "var-set", "var-show"], "allBlocks": ["move-x", "move-y", "set-dir", "repeat-n", "repeat-inf", "if-cond", "touch-detect", "key-detect", "var-make", "var-change", "var-set", "var-show"]},
+    "5": {"newBlocks": ["msg-send", "msg-receive", "scene-start"], "allBlocks": ["move-x", "move-y", "set-dir", "repeat-n", "repeat-inf", "if-cond", "touch-detect", "key-detect", "var-make", "var-change", "var-set", "var-show", "msg-send", "msg-receive", "scene-start"]}
+  }
+}

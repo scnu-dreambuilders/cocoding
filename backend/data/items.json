@@ -1,0 +1,21 @@
+{
+  "items": {
+    "빨간 모자":     { "type": "hat",        "emoji": "🧢" },
+    "반짝이는 안경": { "type": "glasses",    "emoji": "🕶️" },
+    "푸른 숲 배경":  { "type": "background", "emoji": "🌳" },
+    "황금 트로피":   { "type": "accessory",  "emoji": "🏆" },
+    "우주선 배경":   { "type": "background", "emoji": "🚀" },
+    "왕관":          { "type": "hat",        "emoji": "👑" },
+    "마법사 모자":   { "type": "hat",        "emoji": "🎩" },
+    "학사모":        { "type": "hat",        "emoji": "🎓" },
+    "물안경":        { "type": "glasses",    "emoji": "🥽" },
+    "리본":          { "type": "accessory",  "emoji": "🎀" },
+    "헤드폰":        { "type": "accessory",  "emoji": "🎧" },
+    "마법 지팡이":   { "type": "accessory",  "emoji": "🪄" },
+    "풍선":          { "type": "accessory",  "emoji": "🎈" },
+    "무지개 배경":   { "type": "background", "emoji": "🌈" },
+    "별빛 배경":     { "type": "background", "emoji": "✨" },
+    "꽃밭 배경":     { "type": "background", "emoji": "🌸" }
+  },
+  "free_pool": ["왕관", "마법사 모자", "학사모", "물안경", "리본", "헤드폰", "마법 지팡이", "풍선", "무지개 배경", "별빛 배경", "꽃밭 배경"]
+}

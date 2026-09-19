@@ -1,0 +1,29 @@
+# 의존성 / 빌드 결과
+node_modules/
+frontend/dist/
+
+# 비밀 정보 — DB 비밀번호, JWT 키 (setup-db.bat 실행하면 자동 생성)
+backend/.env
+*.local
+
+# 실행 중 생기는 파일
+backend/data/.rate_limit.json
+backend/data/.schema_version
+*.log
+
+# 로컬 도구 / 에디터 설정
+.claude/
+.vscode/
+.idea/
+.DS_Store
+
+# 기획 문서는 blueprint 브랜치에서 관리
+*.docx
+*.hwp
+*.pdf
+coco_gemini_prompts.md
+
+# deploy 폴더의 예전 빌드·백엔드 사본 (npm run build + backend/ 로 다시 만들 수 있음)
+deploy/public/
+deploy/backend/
+deploy/schema.sql
