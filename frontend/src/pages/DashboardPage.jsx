@@ -64,7 +64,7 @@ function Thumb({ src, fallback = '🧩' }) {
 /* ════════════════════════════════════════════════
    DashboardPage
    ════════════════════════════════════════════════ */
-export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted }) {
+export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome }) {
   const role = user?.role ?? 'student'
   const isStudent = role === 'student'
   // 만 14세 미만 + 보호자 동의 전: 친구 작품 보기·공유·리메이크 잠김 (챕터·작품 만들기는 가능)
@@ -226,6 +226,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
         user={user}
         onNavigate={handleNavigate}
         onLogout={onLogout}
+        onBrandClick={onGoHome}
         right={
           <div className="dash-header-right">
             <TextSizeControl />

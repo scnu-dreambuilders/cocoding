@@ -56,7 +56,7 @@ function Modal({ onClose, children, labelledBy }) {
   )
 }
 
-export default function HomePage({ onAuth }) {
+export default function HomePage({ user, onAuth, onGoDashboard }) {
   const [guideOpen, setGuideOpen] = useState(false)
   const [character, setCharacter] = useState(null)
   const [projects, setProjects] = useState({ list: [], loading: true, locked: false })
@@ -90,7 +90,15 @@ export default function HomePage({ onAuth }) {
   return (
     <div className="home-root">
       {toast && <div className="home-toast" role="status">{toast}</div>}
-      <TopNav user={null} onNavigate={handleNavigate} onLogin={onAuth} onSignup={onAuth} />
+      <TopNav
+        user={null}
+        onNavigate={handleNavigate}
+        onLogin={onAuth}
+        onSignup={onAuth}
+        right={user
+          ? <button type="button" className="home-btn-primary" onClick={onGoDashboard}>📋 대시보드로 가기</button>
+          : undefined}
+      />
 
       <main className="home-main">
         {/* ── 히어로 ── */}

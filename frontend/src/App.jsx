@@ -140,6 +140,7 @@ export default function App() {
         onOpenMyGame={openMyGame}
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
+        onGoHome={() => setPage('home')}
       />
     )
   }
@@ -147,8 +148,10 @@ export default function App() {
   if (page === 'home') {
     return (
       <HomePage
+        user={user}
         onAuth={() => setPage('auth')}
         onGuest={() => openEditor({ mode: 'free' })}
+        onGoDashboard={() => setPage('dashboard')}
       />
     )
   }
