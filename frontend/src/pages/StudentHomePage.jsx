@@ -231,7 +231,6 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
         right={
           <div className="dash-header-right">
             <TextSizeControl />
-            <button type="button" className="btn-dash-new" onClick={openBlank}>＋ 새 프로젝트</button>
             <div className="user-chip">
               <CocoAvatar size={28} items={equipped} />
               <span className="user-name">{user?.username}</span>
