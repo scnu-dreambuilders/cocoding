@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
-import { BrandIcon } from '../components/icons'
 import { CocoAvatar } from '../components/Coco'
+import TopNav from '../components/TopNav'
 import { CHAPTERS, CHAPTER_COUNT } from '../data/chapters'
 import { INTEREST_EMOJI, LEVEL_LABEL, ITEM_TYPE_LABEL } from '../data/library'
 import { BLOCK_INFO } from '../blockly/blocks'
@@ -31,9 +31,9 @@ function Skeleton({ count = 3, cls = '' }) {
   return Array.from({ length: count }, (_, i) => <div key={i} className={`skeleton-card ${cls}`} aria-hidden="true" />)
 }
 
-function Section({ icon, title, badge, action, children }) {
+function Section({ id, icon, title, badge, action, children }) {
   return (
-    <section className="dash-section">
+    <section id={id} className="dash-section">
       <div className="section-header">
         <h3 className="section-title"><span aria-hidden="true">{icon}</span>{title}</h3>
         {badge && <span className="section-badge">{badge}</span>}
@@ -160,6 +160,17 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
   const openTopic = (t) => onOpenEditor({ mode: 'free', topic: t, completedChapters: completedNos })
   const openBlank = () => onOpenEditor({ mode: 'free', completedChapters: completedNos })
 
+  // 공통 TopNav의 카테고리 메뉴 클릭 처리. Q&A·게임존은 이번 MVP에서 미구현이라 안내만 표시.
+  const handleNavigate = (key) => {
+    if (key === 'study') {
+      document.getElementById('chapters-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else if (key === 'free') {
+      openBlank()
+    } else {
+      showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
+    }
+  }
+
   const removeProject = async (p) => {
     if (!window.confirm(`'${p.title}' 작품을 삭제할까요? 되돌릴 수 없어요.`)) return
     try {
@@ -211,30 +222,31 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
   return (
     <div className="dash-root">
       {toast && <div className="dash-toast" role="status">{toast}</div>}
-      <header className="dash-header">
-        <div className="dash-header-left">
-          <BrandIcon />
-          <span className="dash-brand-name">코코딩</span>
-        </div>
-        <div className="dash-header-right">
-          <TextSizeControl />
-          <button type="button" className="btn-dash-new" onClick={openBlank}>＋ 새 프로젝트</button>
-          <div className="user-chip">
-            <CocoAvatar size={28} items={equipped} />
-            <span className="user-name">{user?.username}</span>
-            {isStudent
-              ? user?.level && <span className="user-level-tag">{LEVEL_LABEL[user.level] ?? user.level}</span>
-              : <span className="user-level-tag">{ROLE_LABEL[role]}</span>}
+      <TopNav
+        user={user}
+        onNavigate={handleNavigate}
+        onLogout={onLogout}
+        right={
+          <div className="dash-header-right">
+            <TextSizeControl />
+            <button type="button" className="btn-dash-new" onClick={openBlank}>＋ 새 프로젝트</button>
+            <div className="user-chip">
+              <CocoAvatar size={28} items={equipped} />
+              <span className="user-name">{user?.username}</span>
+              {isStudent
+                ? user?.level && <span className="user-level-tag">{LEVEL_LABEL[user.level] ?? user.level}</span>
+                : <span className="user-level-tag">{ROLE_LABEL[role]}</span>}
+            </div>
+            <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보">👤</button>
+            {isStudent && <button type="button" className="btn-icon" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정">⚙️</button>}
+            <button type="button" className="btn-icon" onClick={onLogout} title="로그아웃" aria-label="로그아웃">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
-          <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보">👤</button>
-          {isStudent && <button type="button" className="btn-icon" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정">⚙️</button>}
-          <button type="button" className="btn-icon" onClick={onLogout} title="로그아웃" aria-label="로그아웃">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="dash-main">
         {/* ── 환영 + 페이스메이커 ── */}
@@ -245,14 +257,21 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
               <div className="welcome-text">
                 <h2 className="welcome-title">{isStudent ? <>안녕, <em>{user?.username}</em>! 👋</> : <>안녕하세요, <em>{user?.username}</em> {role === 'teacher' ? '선생님' : '보호자님'} 👋</>}</h2>
                 <p className="welcome-bubble">{pacemaker}</p>
-                {current && isStudent && (
-                  <button type="button" className="welcome-cta" onClick={() => openChapter(current)}>
-                    챕터 {current.order_num} 이어하기 →
-                  </button>
-                )}
-                {allDone && (
-                  <button type="button" className="welcome-cta" onClick={onOpenMyGame}>🎮 나만의 게임 만들기 →</button>
-                )}
+                <div className="welcome-cta-row">
+                  {current && isStudent && (
+                    <button type="button" className="welcome-cta" onClick={() => openChapter(current)}>
+                      챕터 {current.order_num} 이어하기 →
+                    </button>
+                  )}
+                  {allDone && (
+                    <button type="button" className="welcome-cta" onClick={onOpenMyGame}>🎮 나만의 게임 만들기 →</button>
+                  )}
+                  {isStudent && (
+                    <button type="button" className="welcome-cta welcome-cta-secondary" onClick={openBlank}>
+                      🎨 자유창작 시작하기
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             <div className="welcome-stats">
@@ -295,7 +314,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
         </Section>}
 
         {/* ── 단계별 기초학습 ── */}
-        <Section icon="♟️" title="단계별 기초학습" badge={!load.ch && chapters.length ? `${completedNos.length}/${chapters.length}` : null}>
+        <Section id="chapters-section" icon="♟️" title="단계별 기초학습" badge={!load.ch && chapters.length ? `${completedNos.length}/${chapters.length}` : null}>
           <p className="dash-hint">체스를 폰 하나로 시작하듯, 챕터마다 새 블록 몇 개씩만 배워요. 앞 챕터를 끝내면 다음 챕터가 열려요.</p>
           <div className="chapters-list">
             {load.ch ? <Skeleton count={5} cls="chapter-skeleton" />
@@ -344,9 +363,7 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
           </div>
         </Section>
 
-        {isStudent && <StudentClasses showToast={showToast} />}
-
-        {/* ── 내 포트폴리오 ── */}
+        {/* ── 내 포트폴리오 (단계별 학습 바로 다음 — 학생이 자기 진도·작품을 먼저 보도록) ── */}
         <Section icon="📁" title="내 포트폴리오" badge={projects.length ? `${projects.length}개` : null}
           action={
             <div className="filter-tabs" role="tablist">
@@ -390,6 +407,8 @@ export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurv
             </div>
           )}
         </Section>
+
+        {isStudent && <StudentClasses showToast={showToast} />}
 
         {/* ── 친구 작품 ── */}
         <Section icon="🌟" title="친구 작품" badge="리메이크해서 따라 만들어보기">

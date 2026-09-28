@@ -632,8 +632,14 @@
   line-height: 1.5;
   max-width: 460px;
 }
-.welcome-cta {
+.welcome-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-top: 10px;
+}
+.welcome-cta {
   padding: 7px 14px;
   border: none;
   border-radius: 999px;
@@ -646,6 +652,15 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 .welcome-cta:hover { transform: translateY(-1px); }
+
+/* 자유창작 진입 — 기존 노란 CTA와 나란히 두되, 과하지 않게 톤을 한 단계 낮춤 */
+.welcome-cta-secondary {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: none;
+}
+.welcome-cta-secondary:hover { background: rgba(255, 255, 255, 0.26); }
 
 .dash-toast {
   position: fixed;

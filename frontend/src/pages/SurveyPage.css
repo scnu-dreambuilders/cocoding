@@ -10,6 +10,7 @@
     radial-gradient(circle at 90% 100%, rgba(96, 165, 250, 0.2), transparent 45%), var(--bg);
 }
 .survey-card {
+  position: relative;
   width: 760px;
   max-width: 100%;
   background: var(--panel-bg);
@@ -19,7 +20,71 @@
   box-shadow: 0 16px 48px rgba(15, 23, 42, 0.1);
   color: var(--text-h);
 }
-.survey-coco { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+
+/* 상단 건너뛰기 (화면설계서 WEB-AUTH-004 ①) */
+.survey-topskip {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8667rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+}
+.survey-topskip:hover { color: var(--text-h); }
+.survey-topskip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.survey-coco { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding-right: 90px; }
+
+/* 관심사 · 코딩 수준 섹션 구획 (기존 로직은 그대로, 표시만 단계처럼 정리) */
+.survey-section + .survey-section {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--border);
+}
+.survey-section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.survey-step-badge {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #6d28d9, #9333ea);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.survey-section-head > div { flex: 1; min-width: 180px; }
+.survey-desc { margin: 2px 0 0; font-size: 0.8267rem; color: var(--text-muted); }
+.survey-count-badge {
+  flex-shrink: 0;
+  align-self: flex-start;
+  font-size: 0.7733rem;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 20px;
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+  white-space: nowrap;
+}
+.survey-later-note {
+  margin: 16px 0 0;
+  font-size: 0.7733rem;
+  color: var(--text-muted);
+}
 .survey-bubble {
   background: #f5f3ff;
   color: #4c1d95;
@@ -29,9 +94,10 @@
   font-weight: 600;
   font-size: 0.9333rem;
 }
-.survey-title { font-size: 1.4667rem; margin: 8px 0 12px; }
+.survey-title { font-size: 1.4667rem; margin: 0; }
 .survey-title small { font-size: 0.8667rem; color: var(--text-muted); font-weight: 500; }
-.interest-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+/* 15개 관심사 카드 — 화면이 넓으면 여러 열, 좁으면 자연스럽게 줄어듦 (개수·데이터는 그대로) */
+.interest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
 .interest-card {
   position: relative;
   display: flex;
@@ -67,7 +133,7 @@
   align-items: center;
   justify-content: center;
 }
-.survey-sub { font-size: 1.1333rem; margin: 22px 0 10px; }
+.survey-sub { font-size: 1.1333rem; margin: 0; }
 .level-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .level-card {
   display: flex;
@@ -111,6 +177,7 @@
   .survey-bubble { background: #1f1633; color: #ddd6fe; border-color: #6d28d9; }
 }
 @media (max-width: 640px) {
-  .interest-grid { grid-template-columns: repeat(3, 1fr); }
   .level-row { grid-template-columns: 1fr; }
+  .survey-topskip { position: static; display: block; margin: 0 0 10px; text-align: right; }
+  .survey-coco { padding-right: 0; }
 }
