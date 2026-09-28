@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import HomePage      from './pages/HomePage'
 import AuthPage      from './pages/AuthPage'
 import SurveyPage    from './pages/SurveyPage'
 import DashboardPage from './pages/DashboardPage'
@@ -26,7 +27,7 @@ const needsSurvey = (u) => u && (u.role ?? 'student') === 'student' && (u.tags =
 
 export default function App() {
   const [user,      setUser]      = useState(readCachedUser)
-  const [page,      setPage]      = useState(() => (readCachedUser() ? 'dashboard' : 'auth'))
+  const [page,      setPage]      = useState(() => (readCachedUser() ? 'dashboard' : 'home'))
   const [launch,    setLaunch]    = useState(null)
   const [editorKey, setEditorKey] = useState(0)
 
@@ -100,7 +101,7 @@ export default function App() {
 
   const goDashboard = () => {
     setLaunch(null)
-    setPage(user ? 'dashboard' : 'auth')
+    setPage(user ? 'dashboard' : 'home')
   }
 
   /* ── Render ───────────────────────────────────── */
@@ -139,6 +140,15 @@ export default function App() {
         onOpenMyGame={openMyGame}
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
+      />
+    )
+  }
+
+  if (page === 'home') {
+    return (
+      <HomePage
+        onAuth={() => setPage('auth')}
+        onGuest={() => openEditor({ mode: 'free' })}
       />
     )
   }

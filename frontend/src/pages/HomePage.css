@@ -1,0 +1,384 @@
+/* ════════════════════════════════════════════════
+   HomePage
+   ════════════════════════════════════════════════ */
+.home-root {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.home-main {
+  flex: 1;
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+/* ── Toast (Q&A·게임존 준비중 안내) ── */
+.home-toast {
+  position: fixed;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: var(--text-h);
+  color: var(--header-bg);
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.8667rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* ── Hero ── */
+.home-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding-top: 24px;
+}
+
+.home-hero-text { max-width: 560px; }
+
+.home-hero-eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+.home-hero-text h1 {
+  font-size: 2.4rem;
+  line-height: 1.25;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.6px;
+  margin: 0 0 14px;
+}
+
+.home-hero-text p {
+  font-size: 1rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0 0 26px;
+}
+
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.home-hero-img {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+  animation: home-hero-float 4.5s ease-in-out infinite;
+}
+
+@keyframes home-hero-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+@media (max-width: 760px) {
+  .home-hero { flex-direction: column; text-align: center; }
+  .home-hero-text { max-width: none; }
+  .home-hero-actions { justify-content: center; }
+  .home-hero-img { width: 140px; height: 140px; }
+  .home-hero-text h1 { font-size: 1.9rem; }
+}
+
+/* ── Buttons (홈 전용 — App.css의 .btn 계열과 별개) ── */
+.home-btn-primary,
+.home-btn-ghost {
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9333rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.home-btn-primary {
+  border: none;
+  background: linear-gradient(145deg, #6d28d9, #9333ea);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.home-btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+
+.home-btn-ghost {
+  border: 1px solid var(--border);
+  background: var(--header-bg);
+  color: var(--text-h);
+}
+.home-btn-ghost:hover { background: var(--btn-hover); }
+
+/* ── Section shell ── */
+.home-section-title {
+  font-size: 1.2667rem;
+  font-weight: 800;
+  color: var(--text-h);
+  letter-spacing: -0.3px;
+  margin: 0 0 18px;
+}
+
+/* ── AI 캐릭터 카드 ── */
+.home-char-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.home-char-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--header-bg);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.home-char-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.14);
+}
+.home-char-card b { font-size: 0.9333rem; color: var(--text-h); }
+.home-char-card span { font-size: 0.7733rem; color: var(--text-muted); text-align: center; }
+
+.home-char-emoji {
+  font-size: 2.2rem;
+  line-height: 1;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-light);
+}
+.home-char-emoji-lg { width: 72px; height: 72px; font-size: 2.8rem; }
+
+/* ── 새소식 ── */
+.home-news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-news-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--header-bg);
+}
+
+.home-news-tag {
+  flex-shrink: 0;
+  font-size: 0.7333rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.home-news-date {
+  flex-shrink: 0;
+  font-size: 0.7733rem;
+  color: var(--text-muted);
+}
+
+.home-news-title {
+  font-size: 0.8933rem;
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+@media (max-width: 560px) {
+  .home-news-card { flex-wrap: wrap; }
+}
+
+/* ── 추천 프로젝트 ── */
+.home-proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.home-proj-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--header-bg);
+  overflow: hidden;
+}
+
+.home-thumb {
+  aspect-ratio: 4 / 3;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.home-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.home-proj-info {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.home-proj-info b { font-size: 0.8667rem; color: var(--text-h); }
+.home-proj-info span { font-size: 0.76rem; color: var(--text-muted); }
+
+.home-proj-skeleton {
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  background: var(--tabs-bg);
+  animation: home-pulse 1.4s ease-in-out infinite;
+}
+@keyframes home-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+.home-empty {
+  padding: 28px 20px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.home-empty p {
+  margin: 0;
+  font-size: 0.8667rem;
+  color: var(--text-muted);
+  max-width: 420px;
+}
+
+/* ════════════════════════════════════════════════
+   모달 (사용법 안내 / 캐릭터 소개 공용)
+   ════════════════════════════════════════════════ */
+.home-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.home-modal-panel {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--header-bg);
+  border-radius: 16px;
+  padding: 28px 26px 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.home-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.home-modal-close:hover { background: var(--btn-hover); }
+
+.home-modal-title {
+  font-size: 1.1333rem;
+  font-weight: 800;
+  color: var(--text-h);
+  margin: 0 0 18px;
+}
+
+.home-modal-cta {
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* 사용법 안내 스텝 */
+.home-guide-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.home-guide-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.home-guide-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #6d28d9, #9333ea);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.home-guide-steps b { font-size: 0.8933rem; color: var(--text-h); }
+.home-guide-steps p { margin: 2px 0 0; font-size: 0.8267rem; color: var(--text-muted); line-height: 1.5; }
+
+/* 캐릭터 소개 모달 */
+.home-char-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.home-char-modal-head .home-modal-title { margin: 0 0 4px; }
+.home-char-role {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+.home-char-desc {
+  font-size: 0.8667rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 10px 0 0;
+}
