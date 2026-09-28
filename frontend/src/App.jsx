@@ -57,6 +57,20 @@ export default function App() {
     return () => window.removeEventListener('cocoding:unauthorized', clearSession)
   }, [clearSession])
 
+  /* 브라우저 bfcache 복원(뒤로가기 등) 방어: 비로그인 상태로 guest 자유창작 에디터가
+     그대로 되살아난 경우만 홈으로 정리한다. 로그인 사용자·일반 새로고침에는 영향 없음
+     (persisted가 false면 아무 것도 하지 않음 — 최초 로드/새로고침은 위 useState 초기값으로 이미 처리됨) */
+  useEffect(() => {
+    const onPageShow = (e) => {
+      if (e.persisted && !user && page === 'editor' && launch?.mode === 'free') {
+        setLaunch(null)
+        setPage('home')
+      }
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [user, page, launch])
+
   /* ── Re-validate cached session against the server ───────────── */
   useEffect(() => {
     if (!localStorage.getItem('cocooding_token')) return
