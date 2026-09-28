@@ -96,7 +96,7 @@ export default function HomePage({ user, onAuth, onGoDashboard }) {
         onLogin={onAuth}
         onSignup={onAuth}
         right={user
-          ? <button type="button" className="home-btn-primary" onClick={onGoDashboard}>📋 대시보드로 가기</button>
+          ? <button type="button" className="home-btn-primary" onClick={onGoDashboard}>🏠 학생 홈으로</button>
           : undefined}
       />
 
@@ -108,7 +108,9 @@ export default function HomePage({ user, onAuth, onGoDashboard }) {
             <h1>코코딩과 함께하는<br />코딩 모험!</h1>
             <p>AI 캐릭터 친구들과 함께 블록 코딩으로 프로그래밍을 배우는 초등학생 맞춤 교육 플랫폼이에요.</p>
             <div className="home-hero-actions">
-              <button type="button" className="home-btn-primary" onClick={onAuth}>🚀 코딩 모험 시작하기</button>
+              <button type="button" className="home-btn-primary" onClick={user ? onGoDashboard : onAuth}>
+                {user ? '🏠 학생 홈으로 가기' : '🚀 코딩 모험 시작하기'}
+              </button>
               <button type="button" className="home-btn-ghost" onClick={() => setGuideOpen(true)}>▶ 코코딩 사용법 알아보기</button>
             </div>
           </div>

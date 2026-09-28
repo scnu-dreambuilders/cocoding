@@ -11,7 +11,7 @@ import AccountModal from '../components/AccountModal'
 import { ConsentBanner, GuardianPanel, StudentClasses, TeacherPanel } from '../components/RolePanels'
 import { ROLE_LABEL } from '../lib/validators'
 import emptyProjectsImg from '../assets/empty-projects.png'
-import './DashboardPage.css'
+import './StudentHomePage.css'
 
 const STATUS = {
   completed:   { label: '완료',    cls: 'done',   icon: '✓' },
@@ -62,9 +62,10 @@ function Thumb({ src, fallback = '🧩' }) {
 }
 
 /* ════════════════════════════════════════════════
-   DashboardPage
+   StudentHomePage — 로그인한 학생이 쓰는 통합형 학생 홈
+   (추천 주제·단계별 학습·자유창작 진입·포트폴리오·우리 반·친구 작품·코코 꾸미기)
    ════════════════════════════════════════════════ */
-export default function DashboardPage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome }) {
+export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome }) {
   const role = user?.role ?? 'student'
   const isStudent = role === 'student'
   // 만 14세 미만 + 보호자 동의 전: 친구 작품 보기·공유·리메이크 잠김 (챕터·작품 만들기는 가능)

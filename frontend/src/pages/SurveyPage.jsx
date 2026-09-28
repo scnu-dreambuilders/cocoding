@@ -95,7 +95,7 @@ export default function SurveyPage({ user, editing = false, onDone, onSkip }) {
           <p className="survey-note">고른 수준에 따라 자유 창작에서 보이는 블록 수가 달라져요. 처음이면 꼭 필요한 블록만 보여줄게요!</p>
         </section>
 
-        <p className="survey-later-note">🔧 관심사와 코딩 수준은 나중에 언제든 대시보드 설정에서 바꿀 수 있어요.</p>
+        <p className="survey-later-note">🔧 관심사와 코딩 수준은 나중에 언제든 학생 홈에서 바꿀 수 있어요.</p>
 
         {error && <p className="survey-error" role="alert">{error}</p>}
         <div className="survey-actions">

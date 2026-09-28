@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import HomePage      from './pages/HomePage'
 import AuthPage      from './pages/AuthPage'
 import SurveyPage    from './pages/SurveyPage'
-import DashboardPage from './pages/DashboardPage'
+import StudentHomePage from './pages/StudentHomePage'
 import EditorPage    from './pages/EditorPage'
 import { api } from './api/client'
 import { CHAPTER_COUNT } from './data/chapters'
@@ -132,7 +132,7 @@ export default function App() {
 
   if (page === 'dashboard' && user) {
     return (
-      <DashboardPage
+      <StudentHomePage
         user={user}
         onLogout={logout}
         onOpenEditor={openEditor}
