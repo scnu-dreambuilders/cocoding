@@ -56,7 +56,7 @@ function Modal({ onClose, children, labelledBy }) {
   )
 }
 
-export default function HomePage({ user, onAuth, onGoDashboard }) {
+export default function HomePage({ user, onAuth, onGoDashboard, onOpenQna }) {
   const [guideOpen, setGuideOpen] = useState(false)
   const [character, setCharacter] = useState(null)
   const [projects, setProjects] = useState({ list: [], loading: true, locked: false })
@@ -82,8 +82,10 @@ export default function HomePage({ user, onAuth, onGoDashboard }) {
   }, [])
 
   // 단계별 학습·자유창작 모두 로그인 후 이용하는 흐름으로 통일 (체험 모드는 AuthPage의 "로그인 없이 체험하기"로만 제공)
+  // Q&A 게시판은 비로그인 상태에서도 열람할 수 있어야 하므로 로그인 유도 없이 바로 이동
   const handleNavigate = (key) => {
     if (key === 'study' || key === 'free') onAuth?.()
+    else if (key === 'qna') onOpenQna?.()
     else showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
   }
 

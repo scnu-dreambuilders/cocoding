@@ -4,6 +4,7 @@ import AuthPage      from './pages/AuthPage'
 import SurveyPage    from './pages/SurveyPage'
 import StudentHomePage from './pages/StudentHomePage'
 import EditorPage    from './pages/EditorPage'
+import QnaPage        from './pages/QnaPage'
 import { api } from './api/client'
 import { CHAPTER_COUNT } from './data/chapters'
 
@@ -113,6 +114,8 @@ export default function App() {
     openEditor({ mode: 'free', template: 'mygame', completedChapters: Array.from({ length: CHAPTER_COUNT }, (_, i) => i + 1) })
   }, [openEditor])
 
+  const openQna = () => setPage('qna')
+
   const goDashboard = () => {
     setLaunch(null)
     setPage(user ? 'dashboard' : 'home')
@@ -155,6 +158,20 @@ export default function App() {
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
         onGoHome={() => setPage('home')}
+        onOpenQna={openQna}
+      />
+    )
+  }
+
+  if (page === 'qna') {
+    return (
+      <QnaPage
+        user={user}
+        onBack={goDashboard}
+        onAuth={() => setPage('auth')}
+        onLogout={logout}
+        onOpenEditor={openEditor}
+        onGoDashboard={goDashboard}
       />
     )
   }
@@ -166,6 +183,7 @@ export default function App() {
         onAuth={() => setPage('auth')}
         onGuest={() => openEditor({ mode: 'free' })}
         onGoDashboard={() => setPage('dashboard')}
+        onOpenQna={openQna}
       />
     )
   }

@@ -166,4 +166,35 @@ export const api = {
 
   /* ── Topics ────────────────────────────────── */
   recommendations: () => request('/topics/recommend.php'),
+
+  /* ── Q&A 게시판 (목록/상세 조회는 비로그인도 가능) ── */
+  questions: (category, keyword) => {
+    const params = new URLSearchParams()
+    if (category) params.set('category', category)
+    if (keyword) params.set('q', keyword)
+    const qs = params.toString()
+    return request(`/qna/questions/index.php${qs ? `?${qs}` : ''}`)
+  },
+
+  createQuestion: (category, title, body) =>
+    request('/qna/questions/index.php', {
+      method: 'POST',
+      body: JSON.stringify({ category, title, body }),
+    }),
+
+  getQuestion: (id) => request(`/qna/questions/view.php?id=${encodeURIComponent(id)}`),
+
+  deleteQuestion: (id) =>
+    request(`/qna/questions/view.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  answers: (questionId) => request(`/qna/answers/index.php?question_id=${encodeURIComponent(questionId)}`),
+
+  createAnswer: (questionId, body) =>
+    request('/qna/answers/index.php', {
+      method: 'POST',
+      body: JSON.stringify({ question_id: questionId, body }),
+    }),
+
+  deleteAnswer: (id) =>
+    request(`/qna/answers/view.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
