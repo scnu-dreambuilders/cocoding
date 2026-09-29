@@ -196,19 +196,14 @@ export default function AuthPage({ onLogin, onGuest }) {
               <div className="auth-step-panel">
                 <fieldset className="role-picker">
                   <legend>어떤 분이세요?</legend>
-                  {ROLES.map((r) => {
-                    // 이번 단계는 학생 회원가입 UI만 완성 — 선생님·보호자는 기존 코드/분기는 그대로 두고 선택만 잠깐 막아둔다
-                    const soon = r.id !== 'student'
-                    return (
-                      <label key={r.id} className={`role-option ${form.role === r.id ? 'on' : ''} ${soon ? 'soon' : ''}`}>
-                        <input type="radio" name="role" value={r.id} checked={form.role === r.id} onChange={update('role')} disabled={soon} />
-                        <span className="role-emoji" aria-hidden="true">{r.emoji}</span>
-                        <span className="role-label">{r.label}</span>
-                        <span className="role-desc">{soon ? '준비 중이에요' : r.desc}</span>
-                        {soon && <span className="role-soon-badge">준비 중</span>}
-                      </label>
-                    )
-                  })}
+                  {ROLES.map((r) => (
+                    <label key={r.id} className={`role-option ${form.role === r.id ? 'on' : ''}`}>
+                      <input type="radio" name="role" value={r.id} checked={form.role === r.id} onChange={update('role')} />
+                      <span className="role-emoji" aria-hidden="true">{r.emoji}</span>
+                      <span className="role-label">{r.label}</span>
+                      <span className="role-desc">{r.desc}</span>
+                    </label>
+                  ))}
                 </fieldset>
                 <div className="auth-step-actions">
                   <button type="button" className="auth-next" onClick={() => setStep(2)}>다음 →</button>
