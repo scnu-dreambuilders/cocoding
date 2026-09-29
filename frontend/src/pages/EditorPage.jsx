@@ -136,6 +136,10 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   const stepRef = useRef(step)
   const gradingRef = useRef(false)
   const [loadedTypes, setLoadedTypes] = useState([])
+  // 게스트 이탈 경고 전용: 초기 워크스페이스 로드가 만드는 가짜 dirty와
+  // 실제 사용자 편집을 구분하기 위한 별도 추적 (기존 dirty/저장 로직은 그대로 둠)
+  const guestDirtyRef = useRef(false)
+  const guestDirtyReadyRef = useRef(false)
 
   useEffect(() => {
     projectRef.current = project
@@ -148,7 +152,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     setProjectState((p) => (typeof updater === 'function' ? updater(p) : updater))
     if (runtimeRef.current && !runtimeRef.current.running) runtimeRef.current = null // 편집하면 처음 배치를 보여줌
     setDirty(true)
-  }, [])
+    if (!user) guestDirtyRef.current = true
+  }, [user])
 
   /* 캐릭터/장면/소리 이름이 바뀌면 블록 드롭다운 갱신 */
   const ctxKey = JSON.stringify([
@@ -278,10 +283,21 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     return () => clearTimeout(idleTimer.current)
   }, [loading, resetIdle])
 
+  // 게스트 자유창작 진입 직후 초기 시작 블록이 로드되며 발생하는 이벤트를
+  // "사용자가 직접 편집함"으로 오인하지 않도록 잠깐의 유예 후에만 추적 시작
+  useEffect(() => {
+    if (loading || user || isChapter) return undefined
+    const t = setTimeout(() => { guestDirtyReadyRef.current = true }, 1000)
+    return () => clearTimeout(t)
+  }, [loading, user, isChapter])
+
   /* ── 블록 에디터 콜백 ──────────────────────── */
   const onActivity = useCallback((e) => {
     resetIdle()
-    if (!e.isUiEvent) setDirty(true)
+    if (!e.isUiEvent) {
+      setDirty(true)
+      if (guestDirtyReadyRef.current) guestDirtyRef.current = true
+    }
   }, [resetIdle])
 
   const onConnect = useCallback(() => {
@@ -641,6 +657,9 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
 
   const handleBack = () => {
     if (dirty && user && !isChapter && meta.owner && !window.confirm('저장하지 않은 변경이 있어요. 그래도 나갈까요?')) return
+    // 게스트는 애초에 저장할 수 없으므로(위 분기는 user가 있어야만 들어옴) 별도로 안내.
+    // guestDirtyRef는 초기 시작 블록 로드를 걸러낸, 실제 사용자 편집만 반영하는 값(dirty와 다름)
+    if (guestDirtyRef.current && !user && !isChapter && launch?.mode === 'free' && !window.confirm('홈으로 이동하면 지금 만든 내용이 사라집니다. 이동할까요?')) return
     stopRun()
     onBack()
   }
@@ -704,7 +723,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           <span className="header-sep" aria-hidden="true">/</span>
           {editTitle && !isChapter ? (
             <input className="editor-title-input" autoFocus value={meta.title} maxLength={60} aria-label="프로젝트 제목"
-              onChange={(e) => { setMeta((m) => ({ ...m, title: e.target.value })); setDirty(true) }}
+              onChange={(e) => { setMeta((m) => ({ ...m, title: e.target.value })); setDirty(true); if (!user) guestDirtyRef.current = true }}
               onBlur={() => { setEditTitle(false); setMeta((m) => ({ ...m, title: m.title.trim() || '새 프로젝트' })) }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') e.currentTarget.blur() }} />
           ) : (
