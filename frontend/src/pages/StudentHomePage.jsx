@@ -115,6 +115,7 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
   }
 
   useEffect(() => {
+    if (!isStudent) return // 교사·보호자는 학생 전용 데이터를 쓰지 않음 (TeacherPanel/GuardianPanel이 각자 필요한 데이터를 따로 불러옴)
     api.chapters().then(setChapters).catch((e) => setErr((x) => ({ ...x, ch: e.message })))
       .finally(() => setLoad((l) => ({ ...l, ch: false })))
     api.myProjects().then(setProjects).catch((e) => setErr((x) => ({ ...x, pr: e.message })))
