@@ -11,7 +11,7 @@ import SoundModal from '../components/SoundModal'
 import GradeModal from '../components/GradeModal'
 import ShareModal from '../components/ShareModal'
 import TextSizeControl from '../components/TextSizeControl'
-import { IconBack, IconPlay, IconSave, IconSpinner, IconCode } from '../components/icons'
+import { IconBack, IconSave, IconSpinner, IconCode } from '../components/icons'
 import { BLOCK_INFO, CATEGORIES, setBlockContext } from '../blockly/blocks'
 import { buildToolbox, categoryIdOf, LEVEL_BLOCKS, ALL_BLOCKS } from '../blockly/toolbox'
 import { Runtime, validateWorkspace } from '../engine/runtime'
@@ -746,8 +746,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           )}
           <button type="button" className={`btn btn-run ${running ? 'is-running' : ''}`} onClick={handleRun}
             disabled={demoRunning || grading} title="실행 / 정지 (Ctrl+Enter)">
-            {running ? <span className="stop-square" aria-hidden="true" /> : <IconPlay />}
-            {running ? '정지' : '실행'}
+            {running ? '■ 정지' : '▶ 실행'}
           </button>
         </div>
       </header>
@@ -799,7 +798,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         <aside className={`ed-side ${isChapter ? 'is-chapter' : ''}`}>
           <div className="stage-card">
             <div className="stage-toolbar">
-              <button type="button" className={`btn btn-sm ${running ? 'btn-stop' : 'btn-run'}`} onClick={handleRun} disabled={demoRunning || grading}>
+              <button type="button" className={`btn btn-sm ${running ? 'btn-stop' : 'btn-run'}`} onClick={handleRun} disabled={demoRunning || grading}
+                title="실행 / 정지 (Ctrl+Enter)">
                 {running ? '■ 정지' : '▶ 실행'}
               </button>
               <button type="button" className={`btn btn-ghost btn-sm ${showGrid ? 'on' : ''}`} onClick={() => setShowGrid((g) => !g)}
