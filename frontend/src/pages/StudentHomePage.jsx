@@ -135,8 +135,8 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
 
   /* 페이스메이커: 오늘 할 일을 코코가 먼저 제안 */
   const pacemaker = useMemo(() => {
-    if (role === 'teacher') return '선생님, 반을 만들고 참여 코드를 알려주시면 학생들의 챕터 진도를 한눈에 볼 수 있어요. 아래에서 학생들이 배우는 챕터를 직접 체험해보셔도 좋아요!'
-    if (role === 'guardian') return '아이 화면에 보이는 동의 코드를 입력하면 아이 계정이 연결되고 학습 진도를 볼 수 있어요. 아이가 배우는 챕터를 직접 체험해보셔도 좋아요!'
+    if (role === 'teacher') return '선생님, 반을 만들고 참여 코드를 알려주시면 학생들의 챕터 진도를 한눈에 볼 수 있어요.'
+    if (role === 'guardian') return '아이 화면에 보이는 동의 코드를 입력하면 아이 계정이 연결되고 학습 진도를 볼 수 있어요.'
     if (load.ch) return '오늘은 뭘 해볼까? 잠깐만, 기록을 확인하고 있어…'
     if (current) {
       const no = Number(current.order_num)
@@ -166,7 +166,8 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
     if (key === 'study') {
       document.getElementById('chapters-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     } else if (key === 'free') {
-      openBlank()
+      if (isStudent) openBlank()
+      else showToast('자유창작은 학생 계정에서만 이용할 수 있어요.')
     } else {
       showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
     }
@@ -264,7 +265,7 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                       챕터 {current.order_num} 이어하기 →
                     </button>
                   )}
-                  {allDone && (
+                  {allDone && isStudent && (
                     <button type="button" className="welcome-cta" onClick={onOpenMyGame}>🎮 나만의 게임 만들기 →</button>
                   )}
                   {isStudent && (
@@ -275,13 +276,15 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                 </div>
               </div>
             </div>
-            <div className="welcome-stats">
-              <div className="stat"><span className="stat-num">{completedNos.length}/{CHAPTER_COUNT}</span><span className="stat-label">챕터 완료</span></div>
-              <div className="stat-divider" />
-              <div className="stat"><span className="stat-num">{load.pr ? '…' : projects.length}</span><span className="stat-label">내 작품</span></div>
-              <div className="stat-divider" />
-              <div className="stat"><span className="stat-num">{items.length}</span><span className="stat-label">아이템</span></div>
-            </div>
+            {isStudent && (
+              <div className="welcome-stats">
+                <div className="stat"><span className="stat-num">{completedNos.length}/{CHAPTER_COUNT}</span><span className="stat-label">챕터 완료</span></div>
+                <div className="stat-divider" />
+                <div className="stat"><span className="stat-num">{load.pr ? '…' : projects.length}</span><span className="stat-label">내 작품</span></div>
+                <div className="stat-divider" />
+                <div className="stat"><span className="stat-num">{items.length}</span><span className="stat-label">아이템</span></div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -314,8 +317,8 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
           </div>
         </Section>}
 
-        {/* ── 단계별 기초학습 ── */}
-        <Section id="chapters-section" icon="♟️" title="단계별 기초학습" badge={!load.ch && chapters.length ? `${completedNos.length}/${chapters.length}` : null}>
+        {/* ── 단계별 기초학습 (학생 전용) ── */}
+        {isStudent && <Section id="chapters-section" icon="♟️" title="단계별 기초학습" badge={!load.ch && chapters.length ? `${completedNos.length}/${chapters.length}` : null}>
           <p className="dash-hint">체스를 폰 하나로 시작하듯, 챕터마다 새 블록 몇 개씩만 배워요. 앞 챕터를 끝내면 다음 챕터가 열려요.</p>
           <div className="chapters-list">
             {load.ch ? <Skeleton count={5} cls="chapter-skeleton" />
@@ -362,10 +365,10 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
               </button>
             )}
           </div>
-        </Section>
+        </Section>}
 
-        {/* ── 내 포트폴리오 (단계별 학습 바로 다음 — 학생이 자기 진도·작품을 먼저 보도록) ── */}
-        <Section icon="📁" title="내 포트폴리오" badge={projects.length ? `${projects.length}개` : null}
+        {/* ── 내 포트폴리오 (단계별 학습 바로 다음 — 학생이 자기 진도·작품을 먼저 보도록, 학생 전용) ── */}
+        {isStudent && <Section icon="📁" title="내 포트폴리오" badge={projects.length ? `${projects.length}개` : null}
           action={
             <div className="filter-tabs" role="tablist">
               {[['all', '전체'], ['chapter', '챕터 완성작'], ['free', '자유 창작']].map(([v, l]) => (
@@ -407,12 +410,12 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
               ))}
             </div>
           )}
-        </Section>
+        </Section>}
 
         {isStudent && <StudentClasses showToast={showToast} />}
 
-        {/* ── 친구 작품 ── */}
-        <Section icon="🌟" title="친구 작품" badge="리메이크해서 따라 만들어보기">
+        {/* ── 친구 작품 (학생 전용) ── */}
+        {isStudent && <Section icon="🌟" title="친구 작품" badge="리메이크해서 따라 만들어보기">
           {consentPending ? (
             <div className="empty-msg">🔒 보호자 동의가 끝나면 친구들의 작품을 보고 리메이크할 수 있어요.</div>
           ) : community.list.length === 0 && !community.loading ? (
@@ -456,10 +459,10 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
               {community.loading ? '불러오는 중…' : '더 보기'}
             </button>
           )}
-        </Section>
+        </Section>}
 
-        {/* ── 코코 꾸미기 ── */}
-        <Section icon="🎀" title="코코 꾸미기" badge={items.length ? `${items.length}개 모음` : null}>
+        {/* ── 코코 꾸미기 (학생 전용) ── */}
+        {isStudent && <Section icon="🎀" title="코코 꾸미기" badge={items.length ? `${items.length}개 모음` : null}>
           {items.length === 0 ? (
             <div className="empty-msg">챕터를 완료하거나 작품을 저장하면 코코를 꾸밀 아이템을 받아요!</div>
           ) : (
@@ -477,7 +480,7 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
               </div>
             </div>
           )}
-        </Section>
+        </Section>}
       </main>
 
       {accountOpen && (

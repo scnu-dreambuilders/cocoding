@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../models/ChapterModel.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
 
-$payload = Auth::requireUser();
+$payload = Auth::requireRole(['student']);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);

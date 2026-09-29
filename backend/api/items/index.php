@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
 
-$payload = Auth::requireUser();
+$payload = Auth::requireRole(['student']);
 $itemModel = new ItemModel();
 
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {

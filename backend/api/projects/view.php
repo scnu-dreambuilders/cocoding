@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
 
-$payload = Auth::requireUser();
+$payload = Auth::requireRole(['student']);
 
 $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if (!$id) {
