@@ -5,7 +5,7 @@ require_once __DIR__ . '/../config/Validators.php';
 
 class ClassModel {
     const MAX_CLASSES_PER_TEACHER = 10;
-    const MAX_MEMBERS = 40;
+    const MAX_MEMBERS = 100;
     const MAX_NAME_LENGTH = 40;
     const CODE_LENGTH = 6;
 
