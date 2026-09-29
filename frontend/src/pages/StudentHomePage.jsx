@@ -65,7 +65,7 @@ function Thumb({ src, fallback = '🧩' }) {
    StudentHomePage — 로그인한 학생이 쓰는 통합형 학생 홈
    (추천 주제·단계별 학습·자유창작 진입·포트폴리오·우리 반·친구 작품·코코 꾸미기)
    ════════════════════════════════════════════════ */
-export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome }) {
+export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome, onOpenGame }) {
   const role = user?.role ?? 'student'
   const isStudent = role === 'student'
   // 만 14세 미만 + 보호자 동의 전: 친구 작품 보기·공유·리메이크 잠김 (챕터·작품 만들기는 가능)
@@ -161,12 +161,14 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
   const openTopic = (t) => onOpenEditor({ mode: 'free', topic: t, completedChapters: completedNos })
   const openBlank = () => onOpenEditor({ mode: 'free', completedChapters: completedNos })
 
-  // 공통 TopNav의 카테고리 메뉴 클릭 처리. Q&A·게임존은 이번 MVP에서 미구현이라 안내만 표시.
+  // 공통 TopNav의 카테고리 메뉴 클릭 처리. Q&A는 이번 MVP에서 미구현이라 안내만 표시.
   const handleNavigate = (key) => {
     if (key === 'study') {
       document.getElementById('chapters-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     } else if (key === 'free') {
       openBlank()
+    } else if (key === 'game') {
+      onOpenGame?.()
     } else {
       showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
     }
