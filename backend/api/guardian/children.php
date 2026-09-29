@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../config/Validators.php';
 require_once __DIR__ . '/../../models/UserModel.php';
 require_once __DIR__ . '/../../models/GuardianModel.php';
 require_once __DIR__ . '/../../models/StudentProgress.php';
+require_once __DIR__ . '/../../models/ProjectModel.php';
 
 $payload = Auth::requireRole(['guardian']);
 $guardianId = (int)$payload['id'];
@@ -19,7 +20,14 @@ $users = new UserModel();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    Response::success(StudentProgress::summarize($guardians->studentIds($guardianId)));
+    $projectModel = new ProjectModel();
+    $summary = StudentProgress::summarize($guardians->studentIds($guardianId));
+    // 자녀 프로젝트 목록(읽기 전용) — blocks_data는 findByUser()가 애초에 포함하지 않음
+    foreach ($summary as &$child) {
+        $child['projects_list'] = $projectModel->findByUser($child['id']);
+    }
+    unset($child);
+    Response::success($summary);
 }
 
 if ($method === 'POST') {

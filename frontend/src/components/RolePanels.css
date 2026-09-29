@@ -235,6 +235,10 @@
 .child-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #16a34a); }
 .child-chapters { display: flex; gap: 4px; flex-wrap: wrap; }
 .child-meta { display: flex; gap: 12px; color: var(--text); }
+.child-projects-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.child-project-row { display: flex; align-items: center; gap: 10px; }
+.child-project-row .project-info { flex: 1; min-width: 0; }
+.child-projects-empty { padding: 4px 0; }
 .child-card .role-btn { align-self: flex-start; }
 
 /* ── 내 정보 창 ── */

@@ -443,6 +443,27 @@ export function GuardianPanel({ showToast }) {
               <span>📁 작품 {c.projects}개</span>
               <span>🌟 공개 {c.shared_projects}개</span>
             </div>
+            {c.projects_list?.length ? (
+              <ul className="child-projects-list">
+                {c.projects_list.map((p) => (
+                  <li key={p.id} className="child-project-row">
+                    <div className="project-thumb" aria-hidden="true">
+                      {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" /> : <span>{p.track === 'chapter' ? '🏆' : '🧩'}</span>}
+                    </div>
+                    <div className="project-info">
+                      <div className="project-title">{p.title}</div>
+                      <div className="project-meta">
+                        <span className={`project-track track-${p.track}`}>{p.track === 'chapter' ? '챕터' : '자유 창작'}</span>
+                        {Number(p.is_public) ? <span className="project-public">공개</span> : <span className="project-private">비공개</span>}
+                        <span className="project-date">{daysAgo(p.updated_at)}</span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-msg child-projects-empty">아직 만든 프로젝트가 없어요.</p>
+            )}
             <button type="button" className="role-btn ghost danger-text" onClick={() => unlink(c)}>연결 끊기</button>
           </article>
         ))}
