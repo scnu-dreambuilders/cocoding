@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import HomePage      from './pages/HomePage'
 import AuthPage      from './pages/AuthPage'
 import SurveyPage    from './pages/SurveyPage'
-import DashboardPage from './pages/DashboardPage'
+import StudentHomePage from './pages/StudentHomePage'
 import EditorPage    from './pages/EditorPage'
 import { api } from './api/client'
 import { CHAPTER_COUNT } from './data/chapters'
@@ -26,7 +27,7 @@ const needsSurvey = (u) => u && (u.role ?? 'student') === 'student' && (u.tags =
 
 export default function App() {
   const [user,      setUser]      = useState(readCachedUser)
-  const [page,      setPage]      = useState(() => (readCachedUser() ? 'dashboard' : 'auth'))
+  const [page,      setPage]      = useState(() => (readCachedUser() ? 'dashboard' : 'home'))
   const [launch,    setLaunch]    = useState(null)
   const [editorKey, setEditorKey] = useState(0)
 
@@ -55,6 +56,20 @@ export default function App() {
     window.addEventListener('cocoding:unauthorized', clearSession)
     return () => window.removeEventListener('cocoding:unauthorized', clearSession)
   }, [clearSession])
+
+  /* 브라우저 bfcache 복원(뒤로가기 등) 방어: 비로그인 상태로 guest 자유창작 에디터가
+     그대로 되살아난 경우만 홈으로 정리한다. 로그인 사용자·일반 새로고침에는 영향 없음
+     (persisted가 false면 아무 것도 하지 않음 — 최초 로드/새로고침은 위 useState 초기값으로 이미 처리됨) */
+  useEffect(() => {
+    const onPageShow = (e) => {
+      if (e.persisted && !user && page === 'editor' && launch?.mode === 'free') {
+        setLaunch(null)
+        setPage('home')
+      }
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [user, page, launch])
 
   /* ── Re-validate cached session against the server ───────────── */
   useEffect(() => {
@@ -100,7 +115,7 @@ export default function App() {
 
   const goDashboard = () => {
     setLaunch(null)
-    setPage(user ? 'dashboard' : 'auth')
+    setPage(user ? 'dashboard' : 'home')
   }
 
   /* ── Render ───────────────────────────────────── */
@@ -131,7 +146,7 @@ export default function App() {
 
   if (page === 'dashboard' && user) {
     return (
-      <DashboardPage
+      <StudentHomePage
         user={user}
         onLogout={logout}
         onOpenEditor={openEditor}
@@ -139,6 +154,18 @@ export default function App() {
         onOpenMyGame={openMyGame}
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
+        onGoHome={() => setPage('home')}
+      />
+    )
+  }
+
+  if (page === 'home') {
+    return (
+      <HomePage
+        user={user}
+        onAuth={() => setPage('auth')}
+        onGuest={() => openEditor({ mode: 'free' })}
+        onGoDashboard={() => setPage('dashboard')}
       />
     )
   }

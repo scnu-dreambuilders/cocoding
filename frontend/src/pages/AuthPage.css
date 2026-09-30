@@ -346,6 +346,26 @@
 .role-label { font-size: 0.8667rem; font-weight: 700; color: var(--text-h); }
 .role-desc { font-size: 0.7rem; line-height: 1.3; color: var(--text-muted); }
 
+/* 선생님·보호자 회원가입 — 이번 단계는 학생 UI만 완성이라 잠깐 비활성 (코드·분기는 그대로 유지) */
+.role-option.soon {
+  position: relative;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.role-option.soon:hover { border-color: var(--border); background: var(--bg); }
+.role-soon-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.6133rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--tabs-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
 .field select {
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -374,3 +394,166 @@
   cursor: pointer;
 }
 .auth-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+/* ════════════════════════════════════════════════
+   회원가입 3단계 위저드 (STEP 1 유형선택 · 2 약관동의 · 3 정보입력)
+   ════════════════════════════════════════════════ */
+.auth-card-wide { max-width: 440px; }
+
+.auth-steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: 22px;
+}
+.auth-step-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.auth-step-item:last-child { flex: 0; }
+
+.auth-step-dot {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7333rem;
+  font-weight: 700;
+  background: var(--bg);
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-muted);
+}
+.auth-step-dot.current {
+  background: linear-gradient(145deg, #6d28d9, #9333ea);
+  border-color: transparent;
+  color: #fff;
+}
+.auth-step-dot.done { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+.auth-step-label {
+  margin-left: 6px;
+  font-size: 0.7333rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.auth-step-label.on { color: var(--text-h); }
+
+.auth-step-line {
+  flex: 1;
+  height: 2px;
+  margin: 0 8px;
+  background: var(--border);
+}
+.auth-step-line.done { background: var(--accent); }
+
+.auth-step-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-step-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.auth-step-actions .auth-next,
+.auth-step-actions .auth-prev {
+  flex: 1;
+  padding: 11px;
+  border-radius: 9px;
+  font-size: 0.9333rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.auth-step-actions .auth-next-submit { flex: 2; width: auto; margin-top: 0; }
+
+.auth-prev {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+}
+.auth-prev:hover { background: var(--btn-hover); }
+
+.auth-next {
+  border: none;
+  background: linear-gradient(145deg, #6d28d9, #9333ea);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(109, 40, 217, 0.4);
+  flex: 2;
+}
+.auth-next:hover:not(:disabled) { opacity: 0.92; }
+.auth-next:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* ── 약관 동의 ── */
+.terms-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.term-all {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.term-block + .term-block { border-top: 1px solid var(--border); }
+
+.term-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px;
+  cursor: pointer;
+}
+.term-row input { width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; }
+.term-row span {
+  flex: 1;
+  font-size: 0.8533rem;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.term-tag {
+  flex-shrink: 0;
+  font-size: 0.6933rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.term-tag.req { background: var(--accent-light); color: var(--accent); }
+.term-tag.opt { background: var(--tabs-bg); color: var(--text-muted); }
+
+.term-view {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.7733rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+}
+.term-view:hover { color: var(--text-h); }
+
+.term-detail {
+  margin: 0 8px 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 0.7733rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
