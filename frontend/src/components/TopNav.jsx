@@ -34,9 +34,10 @@ export default function TopNav({ user, active, onNavigate, onBrandClick, onLogin
               type="button"
               className={`topnav-menu-btn ${active === m.key ? 'active' : ''}`}
               onClick={() => go(m.key)}
+              aria-label={m.label}
             >
               <span aria-hidden="true">{m.icon}</span>
-              {m.label}
+              <span>{m.label}</span>
             </button>
           ))}
         </nav>
