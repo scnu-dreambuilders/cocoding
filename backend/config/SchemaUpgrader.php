@@ -4,7 +4,7 @@
 // migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-09-18';
+    const VERSION = '2026-09-30';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -146,6 +146,11 @@ class SchemaUpgrader {
         $db->exec("UPDATE user_items SET item_type = 'hat' WHERE item_name = '빨간 모자'");
         $db->exec("UPDATE user_items SET item_type = 'glasses' WHERE item_name = '반짝이는 안경'");
         $db->exec("UPDATE user_items SET item_type = 'background' WHERE item_name IN ('푸른 숲 배경', '우주선 배경')");
+
+        /* ── 2026-09-30 교사 소속 정보 ── */
+        if (self::column($db, 'users', 'affiliation') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN affiliation VARCHAR(50) NULL AFTER consent_at");
+        }
 
         // 챕터가 예전 블록 id(move-x처럼 하이픈)로 되어 있으면 새 내용으로 교체
         $chapters = [

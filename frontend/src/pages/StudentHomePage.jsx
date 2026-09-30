@@ -258,7 +258,13 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
             <div className="welcome-coco">
               <CocoAvatar size={92} emotion="happy" items={equipped} />
               <div className="welcome-text">
-                <h2 className="welcome-title">{isStudent ? <>안녕, <em>{user?.username}</em>! 👋</> : <>안녕하세요, <em>{user?.username}</em> {role === 'teacher' ? '선생님' : '보호자님'} 👋</>}</h2>
+                <h2 className="welcome-title">
+                  {isStudent
+                    ? <>안녕, <em>{user?.username}</em>! 👋</>
+                    : role === 'teacher'
+                      ? <>안녕하세요, {user?.affiliation ? <>{user.affiliation} <em>{user?.username}</em></> : <em>{user?.username}</em>} 선생님 👋</>
+                      : <>안녕하세요, <em>{user?.username}</em> 보호자님 👋</>}
+                </h2>
                 <p className="welcome-bubble">{pacemaker}</p>
                 <div className="welcome-cta-row">
                   {current && isStudent && (

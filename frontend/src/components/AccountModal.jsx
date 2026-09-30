@@ -10,6 +10,7 @@ const CONSENT_LABEL = { pending: '보호자 동의 대기', granted: '보호자 
 
 export default function AccountModal({ user, onClose, onUserChange, onDeleted, showToast }) {
   const [username, setUsername] = useState(user.username)
+  const [affiliation, setAffiliation] = useState(user.affiliation ?? '')
   const [pw, setPw] = useState({ current: '', next: '' })
   const [delPw, setDelPw] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -34,6 +35,14 @@ export default function AccountModal({ user, onClose, onUserChange, onDeleted, s
     run('name', username.trim() === user.username ? '지금 닉네임과 같아요' : usernameError(username), async () => {
       onUserChange(await api.changeUsername(username.trim()))
       showToast('닉네임을 바꿨어요')
+    })
+  }
+
+  const saveAffiliation = (e) => {
+    e.preventDefault()
+    run('affiliation', '', async () => {
+      onUserChange(await api.changeAffiliation(affiliation.trim()))
+      showToast('소속을 바꿨어요')
     })
   }
 
@@ -79,6 +88,18 @@ export default function AccountModal({ user, onClose, onUserChange, onDeleted, s
           </div>
           {error.name && <p className="form-error" role="alert">{error.name}</p>}
         </form>
+
+        {user.role === 'teacher' && (
+          <form className="account-form" onSubmit={saveAffiliation}>
+            <h4>소속 바꾸기</h4>
+            <div className="account-row">
+              <input value={affiliation} onChange={(e) => setAffiliation(e.target.value)} maxLength={50}
+                placeholder="예: ○○초등학교 / ○○학원" aria-label="소속" />
+              <button type="submit" className="role-btn" disabled={busy === 'affiliation'}>바꾸기</button>
+            </div>
+            {error.affiliation && <p className="form-error" role="alert">{error.affiliation}</p>}
+          </form>
+        )}
 
         <form className="account-form" onSubmit={savePassword}>
           <h4>비밀번호 바꾸기</h4>

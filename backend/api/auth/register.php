@@ -1,6 +1,6 @@
 <?php
 // backend/api/auth/register.php
-// POST {username, email, password, role, birth_year?, adult?}
+// POST {username, email, password, role, birth_year?, adult?, affiliation?}
 // 가입 즉시 토큰을 발급해서 자동 로그인 → (학생) 관심사 설문으로 이어진다
 // 학생은 태어난 해를 받아 만 14세 미만이면 보호자 동의 코드를 만든다 (동의 전에는 공유 기능 제한)
 // 선생님·보호자는 성인 확인만 받는다 (태어난 해 등 추가 개인정보는 받지 않음)
@@ -22,6 +22,7 @@ $email = is_string($data['email'] ?? null) ? strtolower(trim($data['email'])) : 
 $password = is_string($data['password'] ?? null) ? $data['password'] : '';
 $role = $data['role'] ?? 'student';
 $birthYear = $data['birth_year'] ?? null;
+$affiliation = is_string($data['affiliation'] ?? null) ? trim($data['affiliation']) : null;
 
 if ($username === '' || $email === '' || $password === '') {
     Response::error("모든 필드를 입력해주세요.");
@@ -43,6 +44,10 @@ if ($role === 'student') {
 } elseif (($data['adult'] ?? false) !== true) {
     Response::error("선생님·보호자 계정은 성인만 만들 수 있어요.");
 }
+if ($role === 'teacher') {
+    $error = Validators::affiliation($affiliation);
+    if ($error) Response::error($error);
+}
 
 $userModel = new UserModel();
 if ($userModel->findByEmail($email)) {
@@ -52,7 +57,7 @@ if ($userModel->findByUsername($username)) {
     Response::error("이미 사용 중인 닉네임입니다.");
 }
 
-$userId = $userModel->create($username, $email, $password, $role, $role === 'student' ? $birthYear : null);
+$userId = $userModel->create($username, $email, $password, $role, $role === 'student' ? $birthYear : null, $affiliation);
 
 Response::success([
     "token" => Auth::issueToken($userId, $username),
