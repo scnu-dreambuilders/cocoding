@@ -173,6 +173,22 @@ export default function HomePage({ user, onAuth, onGoDashboard }) {
             </div>
           )}
         </section>
+
+        {/* ── 보호자 동의 안내 ── */}
+        <section className="home-section">
+          <div className="home-safety-card">
+            <span className="home-safety-icon" aria-hidden="true">🛡️</span>
+            <div className="home-safety-body">
+              <b>안전하게 시작해요</b>
+              <p>
+                만 14세 미만 학생은 안전한 서비스 이용을 위해 보호자 동의가 필요해요.
+                학생 계정에 표시되는 동의 코드를 보호자 계정에 입력하면 계정이 연결되고,
+                보호자가 학습 진행 상황을 함께 확인할 수 있어요.
+              </p>
+            </div>
+            <button type="button" className="home-btn-ghost home-safety-cta" onClick={onAuth}>회원가입하러 가기</button>
+          </div>
+        </section>
       </main>
 
       {guideOpen && (

@@ -281,6 +281,37 @@
   max-width: 420px;
 }
 
+/* ── 보호자 동의 안내 ── */
+.home-safety-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--header-bg);
+}
+.home-safety-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.home-safety-body { flex: 1; min-width: 0; }
+.home-safety-body b { display: block; font-size: 0.9333rem; color: var(--text-h); margin-bottom: 4px; }
+.home-safety-body p { margin: 0; font-size: 0.8267rem; color: var(--text-muted); line-height: 1.6; }
+.home-safety-cta { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .home-safety-card { flex-direction: column; align-items: flex-start; text-align: left; }
+  .home-safety-cta { width: 100%; }
+}
+
 /* ════════════════════════════════════════════════
    모달 (사용법 안내 / 캐릭터 소개 공용)
    ════════════════════════════════════════════════ */
