@@ -123,4 +123,5 @@
   .topnav-left { gap: 14px; }
   .topnav-brand-name { display: none; }
   .topnav-menu-btn span:last-child { display: none; }
+  .topnav-menu-btn { padding: 7px 7px; }
 }
