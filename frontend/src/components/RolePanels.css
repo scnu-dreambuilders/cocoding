@@ -166,6 +166,16 @@
 .progress-table thead th { font-size: 0.7667rem; font-weight: 600; color: var(--text-muted); }
 .progress-table tbody th { text-align: left; color: var(--text-h); font-weight: 600; }
 .progress-table td b { color: var(--text-h); }
+.move-student-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.move-student-row select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8rem;
+}
 .consent-pill {
   margin-left: 6px;
   padding: 1px 6px;

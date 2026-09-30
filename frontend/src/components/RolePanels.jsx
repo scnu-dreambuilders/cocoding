@@ -151,6 +151,7 @@ export function TeacherPanel({ showToast }) {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [reload, setReload] = useState(0)
+  const [moveTargets, setMoveTargets] = useState({})
 
   useEffect(() => {
     api.classes()
@@ -225,6 +226,29 @@ export function TeacherPanel({ showToast }) {
     }
   }
 
+  // 이 반이 아닌, 내가 가진 다른 반 (이동 대상 후보)
+  const otherClasses = (classes ?? []).filter((c) => c.id !== detail?.id)
+
+  const moveStudent = async (s) => {
+    const toClassId = Number(moveTargets[s.id])
+    if (!toClassId) return
+    const toClass = otherClasses.find((c) => c.id === toClassId)
+    if (!window.confirm(`${s.username} 학생을 '${toClass?.name ?? ''}' 반으로 옮길까요?`)) return
+    try {
+      await api.moveStudent(detail.id, s.id, toClassId)
+      setDetail((d) => ({ ...d, students: d.students.filter((x) => x.id !== s.id) }))
+      setClasses((l) => l.map((x) => {
+        if (x.id === detail.id) return { ...x, member_count: x.member_count - 1 }
+        if (x.id === toClassId) return { ...x, member_count: x.member_count + 1 }
+        return x
+      }))
+      setMoveTargets((m) => { const next = { ...m }; delete next[s.id]; return next })
+      showToast(`${s.username} 학생을 '${toClass?.name ?? ''}' 반으로 옮겼어요.`)
+    } catch (err) {
+      showToast(err.message)
+    }
+  }
+
   const students = detail?.students ?? []
   const avg = students.length ? (students.reduce((n, s) => n + s.completed, 0) / students.length).toFixed(1) : '-'
   const chapterCount = students[0]?.chapter_count ?? Object.keys(CHAPTERS).length
@@ -290,6 +314,7 @@ export function TeacherPanel({ showToast }) {
                     <th scope="col">완료</th>
                     <th scope="col">작품</th>
                     <th scope="col">최근 활동</th>
+                    {otherClasses.length > 0 && <th scope="col">다른 반으로 이동</th>}
                     <th scope="col"><span className="sr-only">관리</span></th>
                   </tr>
                 </thead>
@@ -304,6 +329,18 @@ export function TeacherPanel({ showToast }) {
                       <td><b>{s.completed}</b>/{s.chapter_count}</td>
                       <td>{s.projects}{s.shared_projects > 0 && <small> (공개 {s.shared_projects})</small>}</td>
                       <td>{daysAgo(s.last_active)}</td>
+                      {otherClasses.length > 0 && (
+                        <td>
+                          <div className="move-student-row">
+                            <select value={moveTargets[s.id] ?? ''} onChange={(e) => setMoveTargets((m) => ({ ...m, [s.id]: e.target.value }))}
+                              aria-label={`${s.username} 학생을 옮길 반 선택`}>
+                              <option value="">반 선택</option>
+                              {otherClasses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                            <button type="button" className="role-btn ghost" disabled={!moveTargets[s.id]} onClick={() => moveStudent(s)}>이동</button>
+                          </div>
+                        </td>
+                      )}
                       <td><button type="button" className="row-remove" onClick={() => removeStudent(s)} aria-label={`${s.username} 반에서 빼기`} title="반에서 빼기">×</button></td>
                     </tr>
                   ))}
