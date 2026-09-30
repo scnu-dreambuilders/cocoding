@@ -152,6 +152,9 @@ export function TeacherPanel({ showToast }) {
   const [busy, setBusy] = useState(false)
   const [reload, setReload] = useState(0)
   const [moveTargets, setMoveTargets] = useState({})
+  const [editingName, setEditingName] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [savingName, setSavingName] = useState(false)
 
   useEffect(() => {
     api.classes()
@@ -175,6 +178,9 @@ export function TeacherPanel({ showToast }) {
     return () => { alive = false }
   }, [selected, reload, showToast])
 
+  // 다른 반을 고르면 수정 중이던 이름 입력은 취소
+  useEffect(() => { setEditingName(false) }, [selected])
+
   const create = async (e) => {
     e.preventDefault()
     if (!name.trim()) return
@@ -189,6 +195,30 @@ export function TeacherPanel({ showToast }) {
       showToast(err.message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  const startEditName = () => {
+    setNameDraft(detail?.name ?? '')
+    setEditingName(true)
+  }
+
+  const cancelEditName = () => setEditingName(false)
+
+  const saveName = async (e) => {
+    e.preventDefault()
+    const trimmed = nameDraft.trim()
+    if (!trimmed) return
+    setSavingName(true)
+    try {
+      const c = await api.updateClass(detail.id, { name: trimmed })
+      setDetail((d) => ({ ...d, name: c.name }))
+      setClasses((l) => l.map((x) => (x.id === c.id ? { ...x, name: c.name } : x)))
+      setEditingName(false)
+    } catch (err) {
+      showToast(err.message)
+    } finally {
+      setSavingName(false)
     }
   }
 
@@ -280,6 +310,19 @@ export function TeacherPanel({ showToast }) {
       {detail && detail.id === selected && (
         <div className="class-detail">
           <div className="class-summary">
+            {editingName ? (
+              <form className="code-form class-name-box" onSubmit={saveName}>
+                <input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} maxLength={40}
+                  aria-label="반 이름 수정" autoFocus />
+                <button type="submit" className="role-btn" disabled={savingName || !nameDraft.trim()}>저장</button>
+                <button type="button" className="role-btn ghost" onClick={cancelEditName} disabled={savingName}>취소</button>
+              </form>
+            ) : (
+              <div className="class-name-box">
+                <b className="class-name-current">{detail.name}</b>
+                <button type="button" className="role-btn ghost" onClick={startEditName}>✏️ 수정</button>
+              </div>
+            )}
             <div className="join-code-box">
               <span className="consent-code-label">참여 코드</span>
               <span className="consent-code">{detail.join_code}</span>

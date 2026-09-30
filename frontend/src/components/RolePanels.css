@@ -153,6 +153,8 @@
   border: 1px solid var(--border);
 }
 .class-summary { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.class-name-box { display: flex; align-items: center; gap: 8px; }
+.class-name-current { font-size: 1.0667rem; color: var(--text-h); }
 .join-code-actions { display: flex; gap: 6px; }
 .class-stats { display: flex; gap: 20px; flex: 1 1 auto; }
 .class-stats div { display: flex; flex-direction: column; }
