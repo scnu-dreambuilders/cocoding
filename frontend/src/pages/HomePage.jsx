@@ -39,6 +39,37 @@ const PROJECT_EMPTY_MESSAGE = {
   failed: '작품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
 }
 
+// ── 추천 작품 선택 ──
+// 기존 공개 작품 API(최신순, 페이지당 12개)만 재사용한다. 전체 공개 작품에서 뽑는 게 아니라
+// "최근 공개된 작품 후보(최대 3페이지, 후보 12개를 모으면 중단)"에서 무작위로 고른다.
+const RECO_MAX = 4        // 메인 홈에 보여줄 작품 수
+const RECO_POOL = 12      // 무작위로 고를 후보 수
+const RECO_MAX_PAGES = 3  // 후보를 모으려고 불러올 최대 페이지 수
+
+function shuffled(list) {
+  const a = [...list]
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+// 다른 학생의 공개 작품 중 무작위 최대 4개 (내 작품·비공개·신고 숨김 작품은 후보에서 제외)
+async function pickRecommended(myId) {
+  if (!Number.isFinite(myId)) throw new Error('사용자 정보를 확인할 수 없어요')
+  const pool = []
+  for (let page = 1; page <= RECO_MAX_PAGES; page += 1) {
+    const res = await api.publicProjects(page)
+    for (const p of res.projects ?? []) {
+      const open = Number(p.is_public) === 1 && Number(p.report_hidden ?? 0) === 0
+      if (open && Number(p.user_id) !== myId) pool.push(p)
+    }
+    if (!res.hasMore || pool.length >= RECO_POOL) break
+  }
+  return shuffled(pool).slice(0, RECO_MAX)
+}
+
 // 공지 API가 아직 없어서 mock 데이터로 대체 (백엔드 새로 만들지 않음)
 // body: 상세 보기에 보여줄 문단. 실제 구현된 기능만 적는다.
 const NEWS = [
@@ -134,14 +165,37 @@ export default function HomePage({
     : !isStudent ? 'staff'
       : user.consent_status === 'pending' ? 'pending'
         : 'ok'
+  const viewerId = user?.id
   useEffect(() => {
     if (projectAccess !== 'ok') return undefined
     let alive = true
-    api.publicProjects(1)
-      .then((res) => { if (alive) setProjects({ list: res.projects ?? [], loading: false, failed: false }) })
+    // 선택은 불러온 직후 한 번만 한다 (렌더링할 때마다 순서가 바뀌지 않게 state에 고정)
+    pickRecommended(Number(viewerId))
+      .then((list) => { if (alive) setProjects({ list, loading: false, failed: false }) })
       .catch(() => { if (alive) setProjects({ list: [], loading: false, failed: true }) })
     return () => { alive = false }
-  }, [projectAccess])
+  }, [projectAccess, viewerId])
+
+  // "더 많은 작품 보기": 학생 홈으로 이동한 뒤 "친구 작품" 섹션으로 스크롤한다.
+  // 학생 홈의 친구 작품 섹션에는 앵커(id)가 없어서 제목으로 찾고, 못 찾으면 학생 홈에만 머문다.
+  // 목록이 로딩 중(골격 카드)일 때 스크롤하면 이후 콘텐츠가 늘어나 위치가 어긋나므로, 로딩이 끝나길 잠깐 기다린다.
+  const goFriendWorks = () => {
+    onGoDashboard?.()
+    let tries = 0
+    const scrollWhenReady = () => {
+      const title = [...document.querySelectorAll('.dash-section .section-title')]
+        .find((el) => el.textContent.includes('친구 작품'))
+      const section = title?.closest('.dash-section')
+      const loading = document.querySelector('.dash-main .skeleton-card')
+      if ((!section || loading) && tries < 20) {
+        tries += 1
+        setTimeout(scrollWhenReady, 150)
+        return
+      }
+      section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    setTimeout(scrollWhenReady, 150)
+  }
 
   // 단계별 학습·자유창작은 로그인한 학생의 기능이다.
   //  · 비로그인: 로그인 유도 (체험 모드는 AuthPage의 "로그인 없이 체험하기"로만 제공)
@@ -232,7 +286,7 @@ export default function HomePage({
 
         {/* ── 추천 프로젝트 ── */}
         <section className="home-section">
-          <h2 className="home-section-title">친구들은 뭘 만들었을까? 추천 프로젝트</h2>
+          <h2 className="home-section-title">코코딩 친구들의 작품을 만나보세요!</h2>
           {projectAccess === 'ok' && projects.loading ? (
             <div className="home-proj-grid">
               {Array.from({ length: 4 }, (_, i) => <div key={i} className="home-proj-skeleton" aria-hidden="true" />)}
@@ -245,17 +299,22 @@ export default function HomePage({
               )}
             </div>
           ) : (
-            <div className="home-proj-grid">
-              {projects.list.slice(0, 4).map((p) => (
-                <div key={p.id} className="home-proj-card">
-                  <Thumb src={p.thumbnail_url} />
-                  <div className="home-proj-info">
-                    <b>{p.title}</b>
-                    <span>by {p.username}</span>
+            <>
+              <div className="home-proj-grid">
+                {projects.list.map((p) => (
+                  <div key={p.id} className="home-proj-card">
+                    <Thumb src={p.thumbnail_url} />
+                    <div className="home-proj-info">
+                      <b title={p.title}>{p.title}</b>
+                      <span>by {p.username}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <div className="home-proj-more">
+                <button type="button" className="home-btn-ghost" onClick={goFriendWorks}>더 많은 작품 보기</button>
+              </div>
+            </>
           )}
         </section>
 

@@ -241,7 +241,8 @@
 /* ── 추천 프로젝트 ── */
 .home-proj-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  /* auto-fill: 작품이 1~3개여도 카드 한 장이 가로로 늘어나지 않고 4개일 때와 같은 크기를 유지 */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
   gap: 14px;
 }
 
@@ -268,8 +269,27 @@
   flex-direction: column;
   gap: 2px;
 }
-.home-proj-info b { font-size: 0.8667rem; color: var(--text-h); }
-.home-proj-info span { font-size: 0.76rem; color: var(--text-muted); }
+/* 제목은 두 줄까지, 닉네임은 한 줄까지만 보여주고 넘치면 …로 줄인다 (카드 레이아웃 보호) */
+.home-proj-card { min-width: 0; }
+.home-proj-info { min-width: 0; }
+.home-proj-info b {
+  font-size: 0.8667rem;
+  color: var(--text-h);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.home-proj-info span {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-proj-more { display: flex; justify-content: center; margin-top: 18px; }
 
 .home-proj-skeleton {
   aspect-ratio: 4 / 3;
