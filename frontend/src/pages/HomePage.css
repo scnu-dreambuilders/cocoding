@@ -216,6 +216,24 @@
   font-weight: 500;
 }
 
+/* 클릭하면 상세 보기가 열리는 카드 (button) — 기본 모양은 위 .home-news-card 그대로 */
+.home-news-card-btn {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.home-news-card-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.12);
+}
+.home-news-card-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 @media (max-width: 560px) {
   .home-news-card { flex-wrap: wrap; }
 }
@@ -393,6 +411,22 @@
 }
 .home-guide-steps b { font-size: 0.8933rem; color: var(--text-h); }
 .home-guide-steps p { margin: 2px 0 0; font-size: 0.8267rem; color: var(--text-muted); line-height: 1.5; }
+
+/* 새 소식 상세 모달 */
+.home-news-modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-right: 28px; /* 닫기(×) 버튼 자리 */
+}
+.home-news-modal-title { margin-bottom: 14px; line-height: 1.4; }
+.home-news-modal-body {
+  margin: 0 0 8px;
+  font-size: 0.8667rem;
+  color: var(--text);
+  line-height: 1.65;
+}
 
 /* 캐릭터 소개 모달 */
 .home-char-modal-head {

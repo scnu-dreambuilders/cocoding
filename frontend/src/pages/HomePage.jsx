@@ -39,10 +39,31 @@ const PROJECT_EMPTY_MESSAGE = {
 }
 
 // 공지 API가 아직 없어서 mock 데이터로 대체 (백엔드 새로 만들지 않음)
+// body: 상세 보기에 보여줄 문단. 실제 구현된 기능만 적는다.
 const NEWS = [
-  { tag: '안내', date: '2026.09', title: '초등학생 눈높이에 맞춘 힌트 친구, 코코를 만나보세요' },
-  { tag: '업데이트', date: '2026.09', title: '자유창작에서 배경과 소리를 직접 그리고 녹음할 수 있어요' },
-  { tag: '안내', date: '2026.08', title: '챕터 5개를 모두 완료하면 나만의 게임 만들기가 열려요' },
+  {
+    tag: '안내', date: '2026.09', title: '초등학생 눈높이에 맞춘 힌트 친구, 코코를 만나보세요',
+    body: [
+      '코코는 코코딩에서 블록 코딩을 함께 배우는 안내 캐릭터예요.',
+      '미션을 풀다가 막히면 힌트를 건네고, 해냈을 때는 칭찬을 해줘요.',
+      '이 화면의 "AI 캐릭터 친구들을 만나보세요!"에서 코코를 만나볼 수 있어요.',
+    ],
+  },
+  {
+    tag: '업데이트', date: '2026.09', title: '자유창작에서 배경과 소리를 직접 그리고 녹음할 수 있어요',
+    body: [
+      '자유창작에서는 나만의 캐릭터를 직접 그려서 작품에 쓸 수 있어요.',
+      '마이크로 소리를 녹음해 두면 "소리 재생하기" 블록에서 골라 쓸 수 있어요.',
+      '장면마다 배경색을 골라 작품을 꾸밀 수도 있어요.',
+    ],
+  },
+  {
+    tag: '안내', date: '2026.08', title: '챕터 5개를 모두 완료하면 나만의 게임 만들기가 열려요',
+    body: [
+      '단계별 학습의 챕터 5개를 모두 완료하면 학생 홈에서 "나만의 게임 만들기"가 열려요.',
+      '지금까지 배운 블록과 직접 그린 캐릭터, 녹음한 소리를 모아 나만의 게임을 완성해 보세요.',
+    ],
+  },
 ]
 
 function Thumb({ src, fallback = '🧩' }) {
@@ -54,11 +75,27 @@ function Thumb({ src, fallback = '🧩' }) {
 }
 
 function Modal({ onClose, children, labelledBy }) {
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose })
+
+  // 키보드 사용자를 위해: 열릴 때 닫기 버튼에 포커스, Esc로 닫기, 닫히면 원래 있던 곳으로 포커스 복귀
+  const closeBtnRef = useRef(null)
+  useEffect(() => {
+    const opener = document.activeElement
+    closeBtnRef.current?.focus()
+    const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current?.() }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      if (opener instanceof HTMLElement) opener.focus()
+    }
+  }, [])
+
   return (
     <div className="home-modal-overlay" role="presentation" onClick={onClose}>
       <div className="home-modal-panel" role="dialog" aria-modal="true" aria-labelledby={labelledBy}
         onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="home-modal-close" onClick={onClose} aria-label="닫기">×</button>
+        <button ref={closeBtnRef} type="button" className="home-modal-close" onClick={onClose} aria-label="닫기">×</button>
         {children}
       </div>
     </div>
@@ -68,6 +105,7 @@ function Modal({ onClose, children, labelledBy }) {
 export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
   const [guideOpen, setGuideOpen] = useState(false)
   const [character, setCharacter] = useState(null)
+  const [newsItem, setNewsItem] = useState(null)
   const [projects, setProjects] = useState({ list: [], loading: true, failed: false })
   const [toast, setToast] = useState('')
   const toastTimer = useRef(0)
@@ -170,11 +208,11 @@ export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
           <h2 className="home-section-title">코코딩은 변신 중! 새 소식</h2>
           <div className="home-news-list">
             {NEWS.map((n, i) => (
-              <div key={i} className="home-news-card">
+              <button key={i} type="button" className="home-news-card home-news-card-btn" onClick={() => setNewsItem(n)}>
                 <span className={`home-news-tag tag-${n.tag}`}>{n.tag}</span>
                 <span className="home-news-date">{n.date}</span>
                 <span className="home-news-title">{n.title}</span>
-              </div>
+              </button>
             ))}
           </div>
         </section>
@@ -242,6 +280,18 @@ export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
           <button type="button" className="home-btn-primary home-modal-cta" onClick={() => setGuideOpen(false)}>
             시작할 준비 완료!
           </button>
+        </Modal>
+      )}
+
+      {newsItem && (
+        <Modal onClose={() => setNewsItem(null)} labelledBy="news-title">
+          <div className="home-news-modal-meta">
+            <span className={`home-news-tag tag-${newsItem.tag}`}>{newsItem.tag}</span>
+            <span className="home-news-date">{newsItem.date}</span>
+          </div>
+          <h3 id="news-title" className="home-modal-title home-news-modal-title">{newsItem.title}</h3>
+          {newsItem.body.map((p, i) => <p key={i} className="home-news-modal-body">{p}</p>)}
+          <button type="button" className="home-btn-ghost home-modal-cta" onClick={() => setNewsItem(null)}>닫기</button>
         </Modal>
       )}
 
