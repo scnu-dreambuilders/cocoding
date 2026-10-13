@@ -347,11 +347,24 @@
 .home-modal-panel {
   position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 540px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   background: var(--header-bg);
   border-radius: 16px;
-  padding: 28px 26px 24px;
+  padding: 34px 34px 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  /* 한글은 기본값이면 글자 단위로 줄이 바뀌어 읽기 어렵다 → 띄어쓰기 단위로만 줄바꿈 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+/* 줄 끝에 한두 글자만 덩그러니 남지 않도록 줄 길이를 고르게 맞춘다 */
+.home-modal-panel h3,
+.home-modal-panel p { text-wrap: balance; }
+
+@media (max-width: 480px) {
+  .home-modal-panel { padding: 28px 22px 22px; }
 }
 
 .home-modal-close {
@@ -371,15 +384,16 @@
 .home-modal-close:hover { background: var(--btn-hover); }
 
 .home-modal-title {
-  font-size: 1.1333rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: var(--text-h);
-  margin: 0 0 18px;
+  line-height: 1.4;
+  margin: 0 0 22px;
 }
 
 .home-modal-cta {
   width: 100%;
-  margin-top: 20px;
+  margin-top: 26px;
 }
 
 /* 사용법 안내 스텝 */
@@ -389,61 +403,65 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
+  text-align: left; /* 번호 배지와 문장이 한 쌍이라 목록은 왼쪽 정렬 유지 */
 }
 .home-guide-steps li {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
 }
 .home-guide-num {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(145deg, #6d28d9, #9333ea);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.9333rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.home-guide-steps b { font-size: 0.8933rem; color: var(--text-h); }
-.home-guide-steps p { margin: 2px 0 0; font-size: 0.8267rem; color: var(--text-muted); line-height: 1.5; }
+.home-guide-steps b { font-size: 1.0667rem; color: var(--text-h); line-height: 1.4; }
+.home-guide-steps p { margin: 4px 0 0; font-size: 0.9333rem; color: var(--text-h); line-height: 1.7; }
 
 /* 새 소식 상세 모달 */
 .home-news-modal-meta {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin-bottom: 10px;
-  padding-right: 28px; /* 닫기(×) 버튼 자리 */
+  margin-bottom: 12px;
 }
-.home-news-modal-title { margin-bottom: 14px; line-height: 1.4; }
+.home-news-modal-meta .home-news-tag { font-size: 0.8rem; padding: 4px 11px; }
+.home-news-modal-meta .home-news-date { font-size: 0.8667rem; }
+.home-news-modal-title { margin-bottom: 18px; }
 .home-news-modal-body {
-  margin: 0 0 8px;
-  font-size: 0.8667rem;
-  color: var(--text);
-  line-height: 1.65;
+  margin: 0 0 12px;
+  font-size: 0.9667rem;
+  color: var(--text-h);
+  line-height: 1.75;
 }
 
 /* 캐릭터 소개 모달 */
 .home-char-modal-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   margin-bottom: 6px;
 }
 .home-char-modal-head .home-modal-title { margin: 0 0 4px; }
 .home-char-role {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--accent);
   font-weight: 600;
 }
 .home-char-desc {
-  font-size: 0.8667rem;
-  color: var(--text);
-  line-height: 1.6;
-  margin: 10px 0 0;
+  font-size: 0.9667rem;
+  color: var(--text-h);
+  line-height: 1.75;
+  margin: 14px 0 0;
 }
