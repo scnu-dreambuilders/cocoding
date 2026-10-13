@@ -12,9 +12,9 @@ import './HomePage.css'
    ════════════════════════════════════════════════ */
 
 const GUIDE_STEPS = [
-  { n: 1, title: '관심 분야 선택', desc: '어떤 걸 좋아하는지 알려주면 딱 맞는 학습 주제를 추천해줘요.' },
-  { n: 2, title: '단계별 학습', desc: '챕터마다 새로운 블록을 하나씩 배우며 코딩의 기초를 익혀요.' },
-  { n: 3, title: '자유창작', desc: '배운 블록으로 나만의 게임과 이야기를 자유롭게 만들어요.' },
+  { n: 1, title: '관심 분야 선택하기', desc: '좋아하는 주제를 선택하면 나에게 맞는 코딩 활동을 추천해 줘요.' },
+  { n: 2, title: '단계별 학습으로 코딩 배우기', desc: '블록을 연결하고 미션을 해결하면서 코딩의 기초를 차근차근 배워요.' },
+  { n: 3, title: '자유창작으로 작품 만들기', desc: '배운 블록을 활용해 나만의 게임이나 이야기를 만들고 작품을 저장해 보세요.' },
 ]
 
 // 코코 외 캐릭터는 이번 단계에서 전용 일러스트를 새로 만들지 않고, 이모지 배지로 소개만 제공
@@ -28,6 +28,15 @@ const CHARACTERS = [
   { id: 'beat', name: '비트', role: '빠른 실행 토끼', emoji: '🐰',
     desc: '빠릿빠릿하게 실행 결과를 보여주고 다음 도전을 응원해줘요.' },
 ]
+
+// 추천 프로젝트 영역 안내 문구 (사용자 상태별). 로그인 버튼은 비로그인에게만 보여준다.
+const PROJECT_EMPTY_MESSAGE = {
+  guest: '🔒 친구들의 작품은 로그인 후에 만나볼 수 있어요. (어린이 작품·개인정보 보호를 위해서예요)',
+  pending: '보호자 동의가 완료되면 친구들의 공개 작품을 볼 수 있어요.',
+  staff: '친구들의 공개 작품은 학생 계정에서 이용할 수 있어요.',
+  empty: '아직 소개할 작품이 없어요. 새로운 작품이 올라오면 여기서 만날 수 있어요!',
+  failed: '작품을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
+}
 
 // 공지 API가 아직 없어서 mock 데이터로 대체 (백엔드 새로 만들지 않음)
 const NEWS = [
@@ -56,12 +65,15 @@ function Modal({ onClose, children, labelledBy }) {
   )
 }
 
-export default function HomePage({ user, onAuth, onGoDashboard }) {
+export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
   const [guideOpen, setGuideOpen] = useState(false)
   const [character, setCharacter] = useState(null)
-  const [projects, setProjects] = useState({ list: [], loading: true, locked: false })
+  const [projects, setProjects] = useState({ list: [], loading: true, failed: false })
   const [toast, setToast] = useState('')
   const toastTimer = useRef(0)
+
+  const role = user ? (user.role ?? 'student') : null
+  const isStudent = role === 'student'
 
   const showToast = (msg) => {
     clearTimeout(toastTimer.current)
@@ -70,21 +82,41 @@ export default function HomePage({ user, onAuth, onGoDashboard }) {
   }
   useEffect(() => () => clearTimeout(toastTimer.current), [])
 
-  // 추천 프로젝트 — 기존 publicProjects API 재사용. 이 API는 아동 보호를 위해
-  // 로그인한 사용자만 조회할 수 있으므로(친구 작품 = 로그인 후 공개), 비로그인
-  // 상태에서는 항상 "잠김" 빈 상태로 자연스럽게 보여준다 (새 API를 만들지 않음).
+  // 추천 프로젝트 — 기존 publicProjects API 재사용(새 API·권한 변경 없음).
+  // 이 API는 로그인한 학생(보호자 동의 완료)만 쓸 수 있으므로, 그 외 상태는 호출하지 않고
+  // 사용자 상태(로그인/역할/동의)에 맞는 안내만 보여준다.
+  const projectAccess = !user ? 'guest'
+    : !isStudent ? 'staff'
+      : user.consent_status === 'pending' ? 'pending'
+        : 'ok'
   useEffect(() => {
+    if (projectAccess !== 'ok') return undefined
     let alive = true
     api.publicProjects(1)
-      .then((res) => { if (alive) setProjects({ list: res.projects ?? [], loading: false, locked: false }) })
-      .catch(() => { if (alive) setProjects({ list: [], loading: false, locked: true }) })
+      .then((res) => { if (alive) setProjects({ list: res.projects ?? [], loading: false, failed: false }) })
+      .catch(() => { if (alive) setProjects({ list: [], loading: false, failed: true }) })
     return () => { alive = false }
-  }, [])
+  }, [projectAccess])
 
-  // 단계별 학습·자유창작 모두 로그인 후 이용하는 흐름으로 통일 (체험 모드는 AuthPage의 "로그인 없이 체험하기"로만 제공)
+  // 단계별 학습·자유창작은 로그인한 학생의 기능이다.
+  //  · 비로그인: 로그인 유도 (체험 모드는 AuthPage의 "로그인 없이 체험하기"로만 제공)
+  //  · 학생: 학생 홈과 같은 경로로 이동 (로그인 화면으로 보내지 않음)
+  //  · 교사·보호자: 학생 전용 기능이라 안내만 표시
   const handleNavigate = (key) => {
-    if (key === 'study' || key === 'free') onAuth?.()
-    else showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
+    if (key !== 'study' && key !== 'free') {
+      showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
+      return
+    }
+    if (!user) {
+      onAuth?.()
+    } else if (!isStudent) {
+      showToast(key === 'study' ? '단계별 학습은 학생 계정에서만 이용할 수 있어요.' : '자유창작은 학생 계정에서만 이용할 수 있어요.')
+    } else if (key === 'study') {
+      onGoDashboard?.()
+      setTimeout(() => document.getElementById('chapters-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    } else {
+      (onOpenFree ?? onGoDashboard)?.()
+    }
   }
 
   return (
@@ -150,14 +182,16 @@ export default function HomePage({ user, onAuth, onGoDashboard }) {
         {/* ── 추천 프로젝트 ── */}
         <section className="home-section">
           <h2 className="home-section-title">친구들은 뭘 만들었을까? 추천 프로젝트</h2>
-          {projects.loading ? (
+          {projectAccess === 'ok' && projects.loading ? (
             <div className="home-proj-grid">
               {Array.from({ length: 4 }, (_, i) => <div key={i} className="home-proj-skeleton" aria-hidden="true" />)}
             </div>
-          ) : projects.locked || projects.list.length === 0 ? (
+          ) : projectAccess !== 'ok' || projects.failed || projects.list.length === 0 ? (
             <div className="home-empty">
-              <p>🔒 친구들의 작품은 로그인 후에 만나볼 수 있어요. (어린이 작품·개인정보 보호를 위해서예요)</p>
-              <button type="button" className="home-btn-primary" onClick={onAuth}>로그인하고 구경하기</button>
+              <p>{PROJECT_EMPTY_MESSAGE[projectAccess === 'ok' ? (projects.failed ? 'failed' : 'empty') : projectAccess]}</p>
+              {projectAccess === 'guest' && (
+                <button type="button" className="home-btn-primary" onClick={onAuth}>로그인하고 구경하기</button>
+              )}
             </div>
           ) : (
             <div className="home-proj-grid">
@@ -205,7 +239,7 @@ export default function HomePage({ user, onAuth, onGoDashboard }) {
               </li>
             ))}
           </ol>
-          <button type="button" className="home-btn-primary home-modal-cta" onClick={() => { setGuideOpen(false); onAuth?.() }}>
+          <button type="button" className="home-btn-primary home-modal-cta" onClick={() => setGuideOpen(false)}>
             시작할 준비 완료!
           </button>
         </Modal>
