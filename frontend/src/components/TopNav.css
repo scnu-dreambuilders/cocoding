@@ -123,4 +123,13 @@
   .topnav-left { gap: 14px; }
   .topnav-brand-name { display: none; }
   .topnav-menu-btn span:last-child { display: none; }
+  .topnav-menu-btn { padding: 7px 7px; }
+  .topnav-btn-ghost,
+  .topnav-btn-solid { padding: 7px 10px; }
+}
+
+/* 360px대 작은 폰: 여백을 더 줄여 메뉴 5개 + 계정 영역이 겹치지 않게 */
+@media (max-width: 380px) {
+  .topnav { padding: 0 10px; gap: 6px; }
+  .topnav-left { gap: 8px; }
 }

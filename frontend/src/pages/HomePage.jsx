@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import TopNav from '../components/TopNav'
+import UserMenu from '../components/UserMenu'
 import { CocoAvatar } from '../components/Coco'
 import heroImg from '../assets/hero.png'
 import './HomePage.css'
@@ -102,7 +103,13 @@ function Modal({ onClose, children, labelledBy }) {
   )
 }
 
-export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
+// 로그인 후 개인 홈(App의 dashboard)으로 가는 메뉴 라벨과 메인 홈 버튼 문구 — 역할별
+const HOME_MENU_LABEL = { student: '학생 홈', teacher: '내 반 관리', guardian: '우리 아이' }
+const HOME_CTA_LABEL = { student: '🏠 학생 홈으로 가기', teacher: '🏠 내 반 관리하기', guardian: '🏠 우리 아이 학습 확인하기' }
+
+export default function HomePage({
+  user, onAuth, onGoDashboard, onOpenFree, onLogout, onUserChange, onAccountDeleted, onEditSurvey,
+}) {
   const [guideOpen, setGuideOpen] = useState(false)
   const [character, setCharacter] = useState(null)
   const [newsItem, setNewsItem] = useState(null)
@@ -141,6 +148,10 @@ export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
   //  · 학생: 학생 홈과 같은 경로로 이동 (로그인 화면으로 보내지 않음)
   //  · 교사·보호자: 학생 전용 기능이라 안내만 표시
   const handleNavigate = (key) => {
+    if (key === 'home') {
+      onGoDashboard?.()
+      return
+    }
     if (key !== 'study' && key !== 'free') {
       showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
       return
@@ -165,8 +176,10 @@ export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
         onNavigate={handleNavigate}
         onLogin={onAuth}
         onSignup={onAuth}
+        extraMenu={user ? [{ key: 'home', icon: '🏠', label: HOME_MENU_LABEL[role] ?? '내 홈' }] : []}
         right={user
-          ? <button type="button" className="home-btn-primary" onClick={onGoDashboard}>🏠 학생 홈으로</button>
+          ? <UserMenu user={user} onLogout={onLogout} onUserChange={onUserChange}
+            onAccountDeleted={onAccountDeleted} onEditSurvey={onEditSurvey} showToast={showToast} />
           : undefined}
       />
 
@@ -179,7 +192,7 @@ export default function HomePage({ user, onAuth, onGoDashboard, onOpenFree }) {
             <p>AI 캐릭터 친구들과 함께 블록 코딩으로 프로그래밍을 배우는 초등학생 맞춤 교육 플랫폼이에요.</p>
             <div className="home-hero-actions">
               <button type="button" className="home-btn-primary" onClick={user ? onGoDashboard : onAuth}>
-                {user ? '🏠 학생 홈으로 가기' : '🚀 코딩 모험 시작하기'}
+                {user ? (HOME_CTA_LABEL[role] ?? '🏠 내 홈으로 가기') : '🚀 코딩 모험 시작하기'}
               </button>
               <button type="button" className="home-btn-ghost" onClick={() => setGuideOpen(true)}>▶ 코코딩 사용법 알아보기</button>
             </div>

@@ -17,7 +17,8 @@ const MENU = [
   { key: 'game', label: '게임존', icon: '🎮' },
 ]
 
-export default function TopNav({ user, active, onNavigate, onBrandClick, onLogin, onSignup, onLogout, right }) {
+// extraMenu: 페이지가 메뉴 맨 앞에 더 얹는 항목 [{ key, label, icon }] (예: 로그인 후 "학생 홈")
+export default function TopNav({ user, active, onNavigate, onBrandClick, onLogin, onSignup, onLogout, right, extraMenu = [] }) {
   const go = (key) => onNavigate?.(key)
 
   return (
@@ -28,15 +29,16 @@ export default function TopNav({ user, active, onNavigate, onBrandClick, onLogin
           <span className="topnav-brand-name">코코딩</span>
         </button>
         <nav className="topnav-menu" aria-label="주요 메뉴">
-          {MENU.map((m) => (
+          {[...extraMenu, ...MENU].map((m) => (
             <button
               key={m.key}
               type="button"
               className={`topnav-menu-btn ${active === m.key ? 'active' : ''}`}
               onClick={() => go(m.key)}
+              aria-label={m.label}
             >
               <span aria-hidden="true">{m.icon}</span>
-              {m.label}
+              <span>{m.label}</span>
             </button>
           ))}
         </nav>

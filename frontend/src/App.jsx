@@ -179,6 +179,10 @@ export default function App() {
         onGuest={() => openEditor({ mode: 'free' })}
         onGoDashboard={() => setPage('dashboard')}
         onOpenFree={openFreeFromHome}
+        onLogout={logout}
+        onUserChange={saveUser}
+        onAccountDeleted={clearSession}
+        onEditSurvey={() => setPage('survey-edit')}
       />
     )
   }
