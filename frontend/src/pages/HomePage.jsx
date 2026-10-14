@@ -263,7 +263,7 @@ export default function HomePage({
               <button type="button" className="home-btn-primary" onClick={user ? onGoDashboard : onAuth}>
                 {user ? (HOME_CTA_LABEL[role] ?? '🏠 내 홈으로 가기') : '🚀 코딩 모험 시작하기'}
               </button>
-              <button type="button" className="home-btn-ghost" onClick={() => setGuideOpen(true)}>▶ 코코딩 사용법 알아보기</button>
+              <button type="button" className="home-btn-ghost" onClick={() => setGuideOpen(true)}>📖 코코딩 사용법 알아보기</button>
             </div>
           </div>
           <img src={heroImg} alt="" className="home-hero-img" aria-hidden="true" />
@@ -294,6 +294,7 @@ export default function HomePage({
                 <span className={`home-news-tag tag-${n.tag}`}>{n.tag}</span>
                 <span className="home-news-date">{n.date}</span>
                 <span className="home-news-title">{n.title}</span>
+                <span className="home-news-more" aria-hidden="true">›</span>
               </button>
             ))}
           </div>
@@ -340,7 +341,7 @@ export default function HomePage({
         </section>
 
         {/* ── 보호자 동의 안내 ── */}
-        <section className="home-section">
+        <section className="home-section" id="home-safety">
           <div className="home-safety-card">
             <span className="home-safety-icon" aria-hidden="true">🛡️</span>
             <div className="home-safety-body">
@@ -351,10 +352,33 @@ export default function HomePage({
                 보호자가 학습 진행 상황을 함께 확인할 수 있어요.
               </p>
             </div>
-            <button type="button" className="home-btn-ghost home-safety-cta" onClick={onAuth}>회원가입하러 가기</button>
+            {!user && (
+              <button type="button" className="home-btn-ghost home-safety-cta" onClick={onAuth}>회원가입하러 가기</button>
+            )}
           </div>
         </section>
       </main>
+
+      {/* ── 푸터: 새 페이지·연락처 없이, 이미 있는 안내만 한곳에 모아 둔다 ── */}
+      <footer className="home-footer">
+        <div className="home-footer-inner">
+          <div className="home-footer-brand">
+            <b>코코딩</b>
+            <span>초등학생을 위한 블록 코딩 학습 서비스</span>
+          </div>
+          <nav className="home-footer-links" aria-label="안내">
+            <button type="button" onClick={() => setGuideOpen(true)}>코코딩 사용법</button>
+            <button type="button"
+              onClick={() => document.getElementById('home-safety')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+              보호자 동의 안내
+            </button>
+          </nav>
+          <p className="home-footer-note">
+            회원가입과 서비스 제공에 필요한 최소한의 정보(닉네임, 이메일, 태어난 해 등)만 수집하고 안전하게 보관해요.
+          </p>
+          <small>© 2026 코코딩</small>
+        </div>
+      </footer>
 
       {guideOpen && (
         <Modal onClose={() => setGuideOpen(false)} labelledBy="guide-title">

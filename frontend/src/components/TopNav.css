@@ -128,6 +128,11 @@
   .topnav-btn-solid { padding: 7px 10px; }
 }
 
+/* 좁은 화면(주로 손가락으로 누르는 화면): 메뉴 버튼의 누르는 영역을 세로로 키운다 (가로는 메뉴가 겹치지 않게 그대로) */
+@media (max-width: 860px) {
+  .topnav-menu-btn { min-height: 44px; }
+}
+
 /* 360px대 작은 폰: 여백을 더 줄여 메뉴 5개 + 계정 영역이 겹치지 않게 */
 @media (max-width: 380px) {
   .topnav { padding: 0 10px; gap: 6px; }

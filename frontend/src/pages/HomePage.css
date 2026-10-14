@@ -506,3 +506,53 @@
   line-height: 1.75;
   margin: 14px 0 0;
 }
+
+/* ════════════════════════════════════════════════
+   2차 사용성 보완 — 새 소식 › 표시, 푸터, 모바일 추천 작품 2열
+   ════════════════════════════════════════════════ */
+/* 새 소식: 눌러서 볼 수 있다는 표시 (마우스가 없는 모바일에서도 보이게) */
+.home-news-more {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--home-muted);
+}
+.home-news-card-btn:hover .home-news-more { color: var(--accent); }
+
+/* 푸터 */
+.home-footer {
+  border-top: 1px solid var(--border);
+  background: var(--header-bg);
+}
+.home-footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 26px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.home-footer-brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.home-footer-brand b { font-size: 1rem; color: var(--text-h); }
+.home-footer-brand span { font-size: 0.8667rem; color: var(--home-muted); }
+.home-footer-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.home-footer-links button {
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.8667rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.home-footer-links button:hover { text-decoration: underline; }
+.home-footer-links button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.home-footer-note { margin: 0; font-size: 0.8267rem; line-height: 1.6; color: var(--home-muted); word-break: keep-all; }
+.home-footer small { font-size: 0.78rem; color: var(--home-muted); }
+
+/* 모바일: 추천 작품 4개가 1열로 길게 이어지지 않도록 2열로 */
+@media (max-width: 560px) {
+  .home-proj-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

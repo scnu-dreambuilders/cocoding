@@ -46,9 +46,11 @@ export default function App() {
   }, [])
 
   // 로그아웃 버튼: 서버에서도 토큰을 무효화
+  // (토큰 만료처럼 자동으로 세션이 지워질 때는 clearSession만 써서 로그인 화면으로 보낸다)
   const logout = useCallback(() => {
     api.logout().catch(() => {})
     clearSession()
+    setPage('home')
   }, [clearSession])
 
   /* 어떤 요청이든 401(토큰 만료·다른 곳에서 로그아웃)이 오면 로그인 화면으로 */
