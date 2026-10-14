@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import TopNav from '../components/TopNav'
 import UserMenu from '../components/UserMenu'
+import { BrandIcon } from '../components/icons'
 import { CocoAvatar } from '../components/Coco'
 import heroImg from '../assets/hero.png'
 import './HomePage.css'
@@ -362,21 +363,28 @@ export default function HomePage({
       {/* ── 푸터: 새 페이지·연락처 없이, 이미 있는 안내만 한곳에 모아 둔다 ── */}
       <footer className="home-footer">
         <div className="home-footer-inner">
-          <div className="home-footer-brand">
-            <b>코코딩</b>
-            <span>초등학생을 위한 블록 코딩 학습 서비스</span>
+          <div className="home-footer-top">
+            <div className="home-footer-brand">
+              <BrandIcon />
+              <div>
+                <b>코코딩</b>
+                <span>초등학생을 위한 블록 코딩 학습 서비스</span>
+              </div>
+            </div>
+            <nav className="home-footer-links" aria-label="안내">
+              <button type="button" onClick={() => setGuideOpen(true)}>📖 코코딩 사용법</button>
+              <button type="button"
+                onClick={() => document.getElementById('home-safety')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+                🛡️ 보호자 동의 안내
+              </button>
+            </nav>
           </div>
-          <nav className="home-footer-links" aria-label="안내">
-            <button type="button" onClick={() => setGuideOpen(true)}>코코딩 사용법</button>
-            <button type="button"
-              onClick={() => document.getElementById('home-safety')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
-              보호자 동의 안내
-            </button>
-          </nav>
-          <p className="home-footer-note">
-            회원가입과 서비스 제공에 필요한 최소한의 정보(닉네임, 이메일, 태어난 해 등)만 수집하고 안전하게 보관해요.
-          </p>
-          <small>© 2026 코코딩</small>
+          <div className="home-footer-bottom">
+            <p className="home-footer-note">
+              🔒 회원가입과 서비스 제공에 필요한 최소한의 정보(닉네임, 이메일, 태어난 해 등)만 수집하고 안전하게 보관해요.
+            </p>
+            <small>© 2026 코코딩 · DreamBuilders 팀</small>
+          </div>
         </div>
       </footer>
 

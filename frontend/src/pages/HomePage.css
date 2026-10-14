@@ -14,6 +14,13 @@
   .home-root { --home-muted: #9aa7b8; }
 }
 
+/* 한글은 기본값이면 글자 단위로 줄이 바뀌어 단어가 잘린다 → 띄어쓰기 단위로만 줄바꿈 (긴 단어만 예외) */
+.home-main,
+.home-footer {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 .home-main {
   flex: 1;
   max-width: 1080px;
@@ -522,35 +529,71 @@
 
 /* 푸터 */
 .home-footer {
+  margin-top: 8px;
   border-top: 1px solid var(--border);
-  background: var(--header-bg);
+  background: linear-gradient(180deg, var(--accent-light), transparent 140%), var(--header-bg);
 }
 .home-footer-inner {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 26px 24px 30px;
+  padding: 30px 24px 26px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
 }
-.home-footer-brand { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-.home-footer-brand b { font-size: 1rem; color: var(--text-h); }
+.home-footer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+}
+.home-footer-brand { display: flex; align-items: center; gap: 12px; }
+.home-footer-brand > div { display: flex; flex-direction: column; gap: 2px; }
+.home-footer-brand b { font-size: 1.0667rem; font-weight: 800; color: var(--text-h); letter-spacing: -0.3px; }
 .home-footer-brand span { font-size: 0.8667rem; color: var(--home-muted); }
-.home-footer-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+
+/* 바로가기: 눌러 볼 수 있는 둥근 칩 */
+.home-footer-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .home-footer-links button {
-  padding: 4px 0;
-  border: none;
-  background: transparent;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--header-bg);
   font-family: inherit;
   font-size: 0.8667rem;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--text-h);
   cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, transform 0.12s;
 }
-.home-footer-links button:hover { text-decoration: underline; }
-.home-footer-links button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.home-footer-note { margin: 0; font-size: 0.8267rem; line-height: 1.6; color: var(--home-muted); word-break: keep-all; }
-.home-footer small { font-size: 0.78rem; color: var(--home-muted); }
+.home-footer-links button:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.home-footer-links button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.home-footer-bottom {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 24px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-strong);
+}
+.home-footer-note {
+  flex: 1 1 360px;
+  margin: 0;
+  font-size: 0.8267rem;
+  line-height: 1.65;
+  color: var(--home-muted);
+  word-break: keep-all;
+}
+.home-footer small { font-size: 0.78rem; color: var(--home-muted); white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .home-footer-inner { padding: 24px 16px 22px; }
+  .home-footer-links { width: 100%; }
+  .home-footer-links button { flex: 1 1 auto; text-align: center; }
+}
 
 /* 모바일: 추천 작품 4개가 1열로 길게 이어지지 않도록 2열로 */
 @media (max-width: 560px) {
