@@ -7,6 +7,11 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  /* 전역 --text-muted(#94a3b8)는 흰 배경에서 명암비 2.6:1이라 읽기 어렵다 → 홈 화면은 4.5:1 이상으로 */
+  --home-muted: #5b6676;
+}
+@media (prefers-color-scheme: dark) {
+  .home-root { --home-muted: #9aa7b8; }
 }
 
 .home-main {
@@ -162,7 +167,9 @@
   box-shadow: 0 8px 20px rgba(124, 58, 237, 0.14);
 }
 .home-char-card b { font-size: 0.9333rem; color: var(--text-h); }
-.home-char-card span { font-size: 0.7733rem; color: var(--text-muted); text-align: center; }
+.home-char-card span { font-size: 0.8267rem; color: var(--home-muted); text-align: center; }
+/* 위 span 규칙이 이모지 크기를 덮어써서 13px로 줄어들던 문제 방지 (선택자를 더 구체적으로) */
+.home-char-card .home-char-emoji { font-size: 2.2rem; color: inherit; }
 
 .home-char-emoji {
   font-size: 2.2rem;
@@ -207,7 +214,7 @@
 .home-news-date {
   flex-shrink: 0;
   font-size: 0.7733rem;
-  color: var(--text-muted);
+  color: var(--home-muted);
 }
 
 .home-news-title {
@@ -271,6 +278,20 @@
 }
 /* 제목은 두 줄까지, 닉네임은 한 줄까지만 보여주고 넘치면 …로 줄인다 (카드 레이아웃 보호) */
 .home-proj-card { min-width: 0; }
+/* 눌러서 친구 작품으로 이동하는 카드 */
+.home-proj-card-btn {
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.home-proj-card-btn:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.14);
+}
+.home-proj-card-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .home-proj-info { min-width: 0; }
 .home-proj-info b {
   font-size: 0.8667rem;
@@ -284,7 +305,7 @@
 }
 .home-proj-info span {
   font-size: 0.76rem;
-  color: var(--text-muted);
+  color: var(--home-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -315,7 +336,7 @@
 .home-empty p {
   margin: 0;
   font-size: 0.8667rem;
-  color: var(--text-muted);
+  color: var(--home-muted);
   max-width: 420px;
 }
 
@@ -342,7 +363,7 @@
 }
 .home-safety-body { flex: 1; min-width: 0; }
 .home-safety-body b { display: block; font-size: 0.9333rem; color: var(--text-h); margin-bottom: 4px; }
-.home-safety-body p { margin: 0; font-size: 0.8267rem; color: var(--text-muted); line-height: 1.6; }
+.home-safety-body p { margin: 0; font-size: 0.8267rem; color: var(--home-muted); line-height: 1.6; }
 .home-safety-cta { flex-shrink: 0; }
 
 @media (max-width: 640px) {
@@ -395,7 +416,7 @@
   height: 28px;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--home-muted);
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;

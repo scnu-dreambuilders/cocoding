@@ -70,6 +70,23 @@ async function pickRecommended(myId) {
   return shuffled(pool).slice(0, RECO_MAX)
 }
 
+// 학생 홈으로 이동한 뒤 목록 로딩(골격 카드)이 끝나면 해당 섹션으로 스크롤한다.
+// 로딩 중에 스크롤하면 이후 콘텐츠가 늘어나 위치가 어긋난다. 섹션을 못 찾으면 학생 홈에만 머문다.
+function scrollDashboardTo(findSection) {
+  let tries = 0
+  const tick = () => {
+    const section = findSection()
+    const loading = document.querySelector('.dash-main .skeleton-card')
+    if ((!section || loading) && tries < 20) {
+      tries += 1
+      setTimeout(tick, 150)
+      return
+    }
+    section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  setTimeout(tick, 150)
+}
+
 // 공지 API가 아직 없어서 mock 데이터로 대체 (백엔드 새로 만들지 않음)
 // body: 상세 보기에 보여줄 문단. 실제 구현된 기능만 적는다.
 const NEWS = [
@@ -181,24 +198,21 @@ export default function HomePage({
   // 목록이 로딩 중(골격 카드)일 때 스크롤하면 이후 콘텐츠가 늘어나 위치가 어긋나므로, 로딩이 끝나길 잠깐 기다린다.
   const goFriendWorks = () => {
     onGoDashboard?.()
-    let tries = 0
-    const scrollWhenReady = () => {
-      const title = [...document.querySelectorAll('.dash-section .section-title')]
-        .find((el) => el.textContent.includes('친구 작품'))
-      const section = title?.closest('.dash-section')
-      const loading = document.querySelector('.dash-main .skeleton-card')
-      if ((!section || loading) && tries < 20) {
-        tries += 1
-        setTimeout(scrollWhenReady, 150)
-        return
-      }
-      section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    setTimeout(scrollWhenReady, 150)
+    scrollDashboardTo(() => [...document.querySelectorAll('.dash-section .section-title')]
+      .find((el) => el.textContent.includes('친구 작품'))?.closest('.dash-section'))
+  }
+
+  // 비로그인이 학생 기능을 눌렀을 때: 갑자기 화면이 바뀌어 당황하지 않게 이유를 알려주고 로그인 화면으로 보낸다
+  const authTimer = useRef(0)
+  useEffect(() => () => clearTimeout(authTimer.current), [])
+  const guideToLogin = (what) => {
+    showToast(`${what}은 로그인하면 이용할 수 있어요. 로그인 화면으로 이동할게요!`)
+    clearTimeout(authTimer.current)
+    authTimer.current = setTimeout(() => onAuth?.(), 1300)
   }
 
   // 단계별 학습·자유창작은 로그인한 학생의 기능이다.
-  //  · 비로그인: 로그인 유도 (체험 모드는 AuthPage의 "로그인 없이 체험하기"로만 제공)
+  //  · 비로그인: 이유를 안내한 뒤 로그인 화면으로 (체험 모드는 AuthPage의 "로그인 없이 체험하기"로만 제공)
   //  · 학생: 학생 홈과 같은 경로로 이동 (로그인 화면으로 보내지 않음)
   //  · 교사·보호자: 학생 전용 기능이라 안내만 표시
   const handleNavigate = (key) => {
@@ -210,13 +224,14 @@ export default function HomePage({
       showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
       return
     }
+    const what = key === 'study' ? '단계별 학습' : '자유창작'
     if (!user) {
-      onAuth?.()
+      guideToLogin(what)
     } else if (!isStudent) {
-      showToast(key === 'study' ? '단계별 학습은 학생 계정에서만 이용할 수 있어요.' : '자유창작은 학생 계정에서만 이용할 수 있어요.')
+      showToast(`${what}은 학생 계정에서만 이용할 수 있어요.`)
     } else if (key === 'study') {
       onGoDashboard?.()
-      setTimeout(() => document.getElementById('chapters-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+      scrollDashboardTo(() => document.getElementById('chapters-section'))
     } else {
       (onOpenFree ?? onGoDashboard)?.()
     }
@@ -302,7 +317,13 @@ export default function HomePage({
             <>
               <div className="home-proj-grid">
                 {projects.list.map((p) => (
-                  <div key={p.id} className="home-proj-card">
+                  // 눌러서 학생 홈의 "친구 작품"에서 볼 수 있다 (리메이크·신고는 그곳에 이미 있음)
+                  <div key={p.id} className="home-proj-card home-proj-card-btn" role="button" tabIndex={0}
+                    onClick={goFriendWorks}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goFriendWorks() }
+                    }}
+                    aria-label={`${p.title}, ${p.username}님의 작품 — 친구 작품에서 보기`}>
                     <Thumb src={p.thumbnail_url} />
                     <div className="home-proj-info">
                       <b title={p.title}>{p.title}</b>
