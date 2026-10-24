@@ -1,11 +1,12 @@
 <?php
 // backend/api/chapters/progress.php
-// POST {chapter_id, score, passed, title, blocks_data, thumbnail}
-// 정답 제출(자동 채점 결과) 기록 → 도전 횟수 +1, 최고 점수 갱신
+// POST {chapter_id, title, blocks_data, thumbnail}
+// 정답 제출 → 서버가 제출한 코드를 직접 다시 채점(config/Grader.php) → 도전 횟수 +1, 최고 점수 갱신
 // 통과했으면 챕터 완료 + 보상 아이템(최초 1회) + 다음 챕터 잠금 해제 + 완성작 포트폴리오 저장
-// (score/passed 없이 보내는 예전 클라이언트는 통과로 처리)
+// 브라우저가 보내는 score/passed는 쓰지 않는다 (조작 방지)
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
+require_once __DIR__ . '/../../config/Grader.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ChapterModel.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
@@ -17,6 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);
 }
 RateLimiter::limit("chapter:complete:{$payload['id']}", 120, 3600);
+// 제출마다 서버에서 채점기를 실행하므로 짧은 시간에 몰아서 보내는 것도 막는다
+RateLimiter::limit("chapter:grade:min:{$payload['id']}", 10, 60, "제출을 너무 빨리 했어요. 잠깐 쉬었다가 다시 제출해주세요.");
 
 $data = json_decode(file_get_contents("php://input"), true) ?? [];
 $chapterId = filter_var($data['chapter_id'] ?? null, FILTER_VALIDATE_INT);
@@ -26,12 +29,12 @@ if (!$chapterId) {
     Response::error("챕터 ID가 필요합니다.");
 }
 
-$score = null;
-if (isset($data['score'])) {
-    $score = filter_var($data['score'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 100]]);
-    if ($score === false) Response::error("점수는 0~100 사이여야 합니다.");
+// 제출한 코드 (채점 + 통과 시 포트폴리오 저장)
+$blocksData = $data['blocks_data'] ?? null;
+$thumbnail = $data['thumbnail'] ?? null;
+if ($blocksData === null) {
+    Response::error("채점할 코드가 없어요. 화면을 새로고침한 뒤 다시 제출해주세요.");
 }
-$passed = !array_key_exists('passed', $data) || $data['passed'] === true;
 
 $chapterModel = new ChapterModel();
 $itemModel = new ItemModel();
@@ -49,19 +52,22 @@ if ($status === 'locked') {
 }
 $alreadyCompleted = $status === 'completed';
 
+$title = is_string($data['title'] ?? null) && trim($data['title']) !== '' ? mb_substr(trim($data['title']), 0, 200) : $chapter['title'];
+$err = ProjectModel::validateInput($title, 'chapter', $blocksData) ?? ProjectModel::validateThumbnail($thumbnail);
+if ($err) Response::error($err);
+
+try {
+    $graded = Grader::grade($chapter['order_num'], $blocksData);
+} catch (GraderUnavailableException $e) {
+    error_log('[Grader] ' . $e->getMessage());
+    Response::error("채점 서버에 문제가 생겼어요. 잠시 후 다시 제출해주세요.", 503);
+}
+$score = $graded['score'];
+
 // 채점에서 통과하지 못함 → 도전 기록만 남김
-if (!$passed) {
+if (!$graded['passed']) {
     $record = $chapterModel->recordAttempt($userId, $chapterId, $score);
     Response::success(["passed" => false, "score" => $score] + $record);
-}
-
-// 완성작 (선택) — 포트폴리오 저장용
-$blocksData = $data['blocks_data'] ?? null;
-$thumbnail = $data['thumbnail'] ?? null;
-$title = is_string($data['title'] ?? null) && trim($data['title']) !== '' ? mb_substr(trim($data['title']), 0, 200) : $chapter['title'];
-if ($blocksData !== null) {
-    $err = ProjectModel::validateInput($title, 'chapter', $blocksData) ?? ProjectModel::validateThumbnail($thumbnail);
-    if ($err) Response::error($err);
 }
 
 $db = Database::getInstance();
