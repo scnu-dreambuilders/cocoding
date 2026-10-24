@@ -43,10 +43,7 @@ function GradeResult({ grade, onClose, onNext, onRetrySave }) {
           <li key={it.label} className={it.done ? 'ok' : 'no'}>
             <span className="grade-mark" aria-hidden="true">{it.done ? '✓' : '✗'}</span>
             <div className="grade-item-body">
-              <div className="grade-item-label">
-                {it.label}
-                {it.via === 'live' && <em className="grade-via">직접 실행에서 확인</em>}
-              </div>
+              <div className="grade-item-label">{it.label}</div>
               {it.tip && <div className="grade-tip">💡 {it.tip}</div>}
             </div>
             <span className="grade-pts">{it.earned}<small>/{it.max}</small></span>

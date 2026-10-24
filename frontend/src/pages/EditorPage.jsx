@@ -4,6 +4,7 @@ import BlocklyEditor from '../components/BlocklyEditor'
 import Stage from '../components/Stage'
 import { SpritePanel, SceneBar } from '../components/StagePanels'
 import Coco from '../components/Coco'
+import CocoChat from '../components/CocoChat'
 import MissionPanel from '../components/MissionPanel'
 import CodePanel from '../components/CodePanel'
 import DrawingModal from '../components/DrawingModal'
@@ -15,7 +16,7 @@ import { IconBack, IconSave, IconSpinner, IconCode } from '../components/icons'
 import { BLOCK_INFO, CATEGORIES, setBlockContext } from '../blockly/blocks'
 import { buildToolbox, categoryIdOf, LEVEL_BLOCKS, ALL_BLOCKS } from '../blockly/toolbox'
 import { Runtime, validateWorkspace } from '../engine/runtime'
-import { gradeChapter } from '../engine/grader'
+import { gradeChapter, starsOf } from '../engine/grader'
 import { CHAPTERS, MY_GAME, chapterBlocks, learnedBlocks, usedTypes } from '../data/chapters'
 import { LEVELS } from '../data/library'
 import { makeProject, makeSprite, normalizeProject, serializeProject } from '../lib/project'
@@ -28,8 +29,6 @@ const IDLE_MS = 30000
 const PRAISE = ['좋아, 잘 연결했어! 👍', '블록이 딱 맞았어!', '멋진데? 계속 해보자!', '오, 점점 완성되고 있어! ✨']
 const blockName = (t) => BLOCK_INFO[t]?.name ?? t
 const catName = (t) => CATEGORIES[BLOCK_INFO[t]?.cat]?.name ?? ''
-// 블록 위치·id를 뺀 코드 모양 — 직접 실행한 코드와 제출한 코드가 같은지 비교
-const codeSig = (ws) => JSON.stringify(Blockly.serialization.workspaces.save(ws), (k, v) => (k === 'x' || k === 'y' || k === 'id' ? undefined : v))
 
 function Celebration() {
   const pieces = ['🎉', '⭐', '🎊', '✨', '🏆', '💜']
@@ -103,6 +102,9 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   const [tab, setTab] = useState(isChapter ? 'mission' : 'code')
   const [modal, setModal] = useState(null)
   const [coco, setCoco] = useState({ message: null, emotion: 'normal' })
+  const [chatOpen, setChatOpen] = useState(false) // 코코에게 물어보기 (로그인한 사용자만)
+  const chatOpenRef = useRef(false) // 대화 중에는 30초 막힘 힌트를 띄우지 않음
+  useEffect(() => { chatOpenRef.current = chatOpen }, [chatOpen])
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
   const [dirty, setDirty] = useState(false)
@@ -124,7 +126,6 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   const blocklyRef = useRef(null)
   const runtimeRef = useRef(null)
   const judgeRef = useRef(null)
-  const liveRef = useRef({ sig: null, done: new Set() }) // 직접 실행에서 채운 조건 (같은 코드일 때 채점에 인정)
   const canvasRef = useRef(null)
   const projectRef = useRef(project)
   const sceneRef = useRef(sceneId)
@@ -255,7 +256,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   /* ── 30초 막힘 감지 → 힌트 ─────────────────── */
   const idleHint = useCallback(() => {
     const ed = blocklyRef.current
-    if (!ed || runtimeRef.current?.running) return
+    if (!ed || runtimeRef.current?.running || chatOpenRef.current) return
     const used = ed.usedTypes()
     let pool = allowed.filter((t) => t !== 'variables_get')
     if (isChapter && stepRef.current === 3) pool = chapter.required
@@ -338,27 +339,27 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   }, [])
 
   /* ── 정답 제출 → 자동 채점 ─────────────────── */
-  // 채점 결과를 서버에 기록 (통과면 완료 처리 + 보상 + 포트폴리오 저장)
+  // 제출한 코드를 서버에 보내면 서버가 같은 채점기로 다시 채점해서 기록
+  // (통과면 완료 처리 + 보상 + 포트폴리오 저장). 최종 점수·통과 여부는 서버 결과를 따른다
   const saveGrade = useCallback(async (res, { state, thumbnail }) => {
     setGrade((g) => g && { ...g, saving: true, saveError: '' })
     try {
       const saved = await api.submitChapter(launch.chapter.id, {
-        score: res.score,
-        passed: res.passed,
-        ...(res.passed && {
-          title: `챕터 ${chapterNo} · ${chapter.title.split(' – ')[0]}`,
-          blocks_data: serializeProject(projectRef.current, state),
-          thumbnail,
-        }),
+        title: `챕터 ${chapterNo} · ${chapter.title.split(' – ')[0]}`,
+        blocks_data: serializeProject(projectRef.current, state),
+        thumbnail,
       })
       setRecord({ best: saved.bestScore, attempts: saved.attempts })
       setGrade((g) => g && { ...g, saving: false, saved })
-      if (!res.passed) return
-      setResult({ ...saved, score: res.score, stars: res.stars })
+      if (!saved.passed) {
+        if (res.passed) say(`채점 서버에서 다시 확인해보니 ${saved.score}점이었어. 코드를 한 번 더 살펴보자 💪`, 'hint', 'thinking', { duration: 15000 })
+        return
+      }
+      setResult({ ...saved, score: saved.score, stars: starsOf(saved.score) })
       setMaxStep(4)
       setStep(4)
-      say(saved.nextChapterId ? `${res.score}점으로 챕터 ${chapterNo} 완료! 다음 챕터가 열렸어 🔓\n보상: ${saved.rewardEmoji ?? ''} ${saved.rewardItem}`
-        : `${res.score}점! 모든 챕터를 끝냈어! 🎓 이제 '나만의 게임 만들기'가 열렸어!`, 'success', 'celebrate', { duration: 0 })
+      say(saved.nextChapterId ? `${saved.score}점으로 챕터 ${chapterNo} 완료! 다음 챕터가 열렸어 🔓\n보상: ${saved.rewardEmoji ?? ''} ${saved.rewardItem}`
+        : `${saved.score}점! 모든 챕터를 끝냈어! 🎓 이제 '나만의 게임 만들기'가 열렸어!`, 'success', 'celebrate', { duration: 0 })
       onUserUpdate?.()
       if (user) api.items().then((list) => setItems(list.filter((i) => Number(i.equipped)))).catch(() => {})
     } catch (err) {
@@ -372,14 +373,14 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     runtimeRef.current?.stop('submit')
     ed.clearErrors()
     const ws = ed.getWorkspace()
-    const live = liveRef.current.sig === codeSig(ws) ? [...liveRef.current.done] : []
     setGrade({ phase: 'grading', progress: 0 })
     say('채점 로봇이 네 코드를 실행해보고 있어… 🤖', 'intro', 'thinking', { duration: 0 })
     const started = performance.now()
     let res
     try {
       res = await gradeChapter({
-        chapter, workspace: ws, project: projectRef.current, liveDone: live,
+        // 서버도 같은 채점기로 다시 채점하므로, 서버가 확인할 수 없는 '직접 실행' 기록은 인정하지 않음
+        chapter, workspace: ws, project: projectRef.current,
         onProgress: (p) => setGrade((g) => (g?.phase === 'grading' ? { ...g, progress: p } : g)),
       })
     } catch (err) {
@@ -462,8 +463,6 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     let allDone = false
     if (judgeRef.current) {
       setChecks(judgeRef.current.checks())
-      const sig = codeSig(ws)
-      if (liveRef.current.sig !== sig) liveRef.current = { sig, done: new Set() } // 코드가 바뀌면 직접 실행 기록도 새로
       setReady(false)
     }
 
@@ -480,7 +479,6 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
             checksRaf.current = 0
             const list = j.checks()
             setChecks(list)
-            list.forEach((c, i) => c.done && liveRef.current.done.add(i))
             if (!allDone && list.every((c) => c.done)) {
               allDone = true
               setReady(true)
@@ -810,7 +808,27 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
             items={items}
             actions={coco.message?.actions}
             onClose={() => setCoco((c) => ({ ...c, message: null }))}
-            onAvatarClick={() => (coco.message ? setCoco((c) => ({ ...c, message: null })) : idleHint())}
+            onAvatarClick={() => {
+              if (user) {
+                setCoco((c) => ({ ...c, message: null }))
+                setChatOpen((o) => !o)
+              } else if (coco.message) {
+                setCoco((c) => ({ ...c, message: null }))
+              } else {
+                idleHint()
+              }
+            }}
+            panel={chatOpen && (
+              <CocoChat
+                getContext={() => ({
+                  chapter: isChapter ? `챕터 ${chapterNo} · ${chapter.title}` : '',
+                  code,
+                })}
+                onHint={() => { setChatOpen(false); chatOpenRef.current = false; idleHint() }}
+                onClose={() => setChatOpen(false)}
+                onEmotion={(emotion) => setCoco((c) => ({ ...c, emotion }))}
+              />
+            )}
           />
         </section>
 

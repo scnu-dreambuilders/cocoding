@@ -113,12 +113,12 @@ export const api = {
   /* ── Chapters ──────────────────────────────── */
   chapters: () => request('/chapters/index.php'),
 
-  // 정답 제출 채점 결과 기록 (도전 횟수·최고 점수)
-  // passed면 완료 처리 + 보상 아이템 + 다음 챕터 잠금 해제 + 포트폴리오 자동 저장
-  submitChapter: (chapterId, { score, passed, title, blocks_data, thumbnail }) =>
+  // 정답 제출: 서버가 제출한 코드를 다시 채점해서 기록 (도전 횟수·최고 점수) → { passed, score, ... }
+  // 통과면 완료 처리 + 보상 아이템 + 다음 챕터 잠금 해제 + 포트폴리오 자동 저장
+  submitChapter: (chapterId, { title, blocks_data, thumbnail }) =>
     request('/chapters/progress.php', {
       method: 'POST',
-      body: JSON.stringify({ chapter_id: chapterId, score, passed, title, blocks_data, thumbnail }),
+      body: JSON.stringify({ chapter_id: chapterId, title, blocks_data, thumbnail }),
     }),
 
   /* ── Projects ──────────────────────────────── */
@@ -166,4 +166,15 @@ export const api = {
 
   /* ── Topics ────────────────────────────────── */
   recommendations: () => request('/topics/recommend.php'),
+
+  /* ── 코코 AI 대화 (Gemini, 서버에서 호출) ───── */
+  // { enabled, remaining, limit }
+  cocoStatus: () => request('/coco/chat.php'),
+
+  // history: [{ role: 'user' | 'coco', text }], context: { chapter, code }
+  askCoco: (message, history = [], context = {}) =>
+    request('/coco/chat.php', {
+      method: 'POST',
+      body: JSON.stringify({ message, history, context }),
+    }),
 }

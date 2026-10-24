@@ -496,7 +496,6 @@
 .grade-items li.ok .grade-mark { background: #22c55e; }
 .grade-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .grade-item-label { font-size: 0.9333rem; font-weight: 600; color: var(--text-h); }
-.grade-via { margin-left: 6px; font-style: normal; font-size: 0.8rem; font-weight: 500; color: #2563eb; }
 .grade-tip { font-size: 0.8667rem; color: var(--text-h); line-height: 1.5; }
 .grade-pts { font-weight: 800; font-size: 1rem; color: var(--text-h); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .grade-pts small { font-weight: 500; color: var(--text-muted); }
