@@ -41,6 +41,9 @@ $payload = Auth::requireUser();
 $userId = (int)$payload['id'];
 $dailyLimit = max(1, (int)Env::get('COCO_DAILY_LIMIT', 30));
 $dailyKey = "coco:chat:day:$userId";
+// 사이트 전체 하루 한도: 계정을 여러 개 만들어 API 할당량·요금을 다 써버리는 것을 막는다
+$globalLimit = max(1, (int)Env::get('COCO_GLOBAL_DAILY_LIMIT', 1000));
+$globalKey = 'coco:chat:day:all';
 
 function remaining($key, $limit) {
     return max(0, $limit - RateLimiter::count($key, 86400));
@@ -66,6 +69,9 @@ RateLimiter::limit("coco:chat:min:$userId", PER_MINUTE, 60, '너무 빨리 물�
 if (RateLimiter::tooMany($dailyKey, $dailyLimit, 86400)) {
     Response::error("오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐 🌙", 429);
 }
+if (RateLimiter::tooMany($globalKey, $globalLimit, 86400)) {
+    Response::error("오늘은 친구들이 코코를 너무 많이 불러서 쉬는 중이야. 내일 또 물어봐 🌙", 429);
+}
 
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
@@ -75,8 +81,9 @@ function scrub($text) {
     return preg_replace('/\d{2,4}[-\s.]?\d{3,4}[-\s.]?\d{4}/u', '[전화번호]', $text);
 }
 
+// 문자열이 아닌 값(배열 등)은 빈 문자열로 → 형변환 경고로 500이 나지 않게
 function clip($text, $max) {
-    return mb_substr(trim((string)$text), 0, $max);
+    return is_string($text) ? mb_substr(trim($text), 0, $max) : '';
 }
 
 $message = clip($data['message'] ?? '', MESSAGE_MAX);
@@ -87,6 +94,7 @@ if ($message === '') {
 $contents = [];
 $history = is_array($data['history'] ?? null) ? array_slice($data['history'], -HISTORY_MAX) : [];
 foreach ($history as $turn) {
+    if (!is_array($turn)) continue;
     $text = clip($turn['text'] ?? '', HISTORY_TEXT_MAX);
     if ($text === '') continue;
     $contents[] = ['role' => ($turn['role'] ?? '') === 'coco' ? 'model' : 'user', 'text' => scrub($text)];
@@ -115,6 +123,7 @@ try {
 
 // 답을 받았을 때만 하루 횟수를 센다 (오류로 횟수가 줄지 않게)
 RateLimiter::hit($dailyKey);
+RateLimiter::hit($globalKey);
 
 if ($reply === null) {
     $reply = '음, 그건 코코가 대답하기 어려운 이야기야. 우리 코딩 이야기 해볼까? 🙂';
