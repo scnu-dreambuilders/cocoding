@@ -4,6 +4,7 @@ import BlocklyEditor from '../components/BlocklyEditor'
 import Stage from '../components/Stage'
 import { SpritePanel, SceneBar } from '../components/StagePanels'
 import Coco from '../components/Coco'
+import CocoChat from '../components/CocoChat'
 import MissionPanel from '../components/MissionPanel'
 import CodePanel from '../components/CodePanel'
 import DrawingModal from '../components/DrawingModal'
@@ -103,6 +104,9 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   const [tab, setTab] = useState(isChapter ? 'mission' : 'code')
   const [modal, setModal] = useState(null)
   const [coco, setCoco] = useState({ message: null, emotion: 'normal' })
+  const [chatOpen, setChatOpen] = useState(false) // 코코에게 물어보기 (로그인한 사용자만)
+  const chatOpenRef = useRef(false) // 대화 중에는 30초 막힘 힌트를 띄우지 않음
+  useEffect(() => { chatOpenRef.current = chatOpen }, [chatOpen])
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState('')
   const [dirty, setDirty] = useState(false)
@@ -255,7 +259,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   /* ── 30초 막힘 감지 → 힌트 ─────────────────── */
   const idleHint = useCallback(() => {
     const ed = blocklyRef.current
-    if (!ed || runtimeRef.current?.running) return
+    if (!ed || runtimeRef.current?.running || chatOpenRef.current) return
     const used = ed.usedTypes()
     let pool = allowed.filter((t) => t !== 'variables_get')
     if (isChapter && stepRef.current === 3) pool = chapter.required
@@ -810,7 +814,27 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
             items={items}
             actions={coco.message?.actions}
             onClose={() => setCoco((c) => ({ ...c, message: null }))}
-            onAvatarClick={() => (coco.message ? setCoco((c) => ({ ...c, message: null })) : idleHint())}
+            onAvatarClick={() => {
+              if (user) {
+                setCoco((c) => ({ ...c, message: null }))
+                setChatOpen((o) => !o)
+              } else if (coco.message) {
+                setCoco((c) => ({ ...c, message: null }))
+              } else {
+                idleHint()
+              }
+            }}
+            panel={chatOpen && (
+              <CocoChat
+                getContext={() => ({
+                  chapter: isChapter ? `챕터 ${chapterNo} · ${chapter.title}` : '',
+                  code,
+                })}
+                onHint={() => { setChatOpen(false); chatOpenRef.current = false; idleHint() }}
+                onClose={() => setChatOpen(false)}
+                onEmotion={(emotion) => setCoco((c) => ({ ...c, emotion }))}
+              />
+            )}
           />
         </section>
 

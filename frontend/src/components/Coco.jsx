@@ -1,8 +1,10 @@
 /* ════════════════════════════════════════════════
-   AI 캐릭터 '코코' — 외부 AI API 없이 상황별 문구 + CSS 애니메이션
+   AI 캐릭터 '코코' — 상황별 문구(말풍선) + CSS 애니메이션
+   자유 대화는 panel로 받은 CocoChat(Gemini, 서버 호출)이 담당
    emotion: normal | happy | thinking | celebrate
    message.type: intro | hint | error | success | encourage
    items: 장착한 꾸미기 아이템 [{ type, emoji }]
+   panel: 말풍선 대신 띄울 대화창 (열려 있으면 말풍선은 숨김)
    ════════════════════════════════════════════════ */
 import './Coco.css'
 
@@ -52,10 +54,11 @@ export function CocoAvatar({ emotion = 'normal', items = [], size = 96 }) {
   )
 }
 
-export default function Coco({ message, emotion, items, onClose, onAvatarClick, actions }) {
+export default function Coco({ message, emotion, items, onClose, onAvatarClick, actions, panel }) {
   return (
     <div className="coco-dock">
-      {message && (
+      {panel}
+      {!panel && message && (
         <div key={message.id} className={`coco-bubble coco-bubble-${message.type}`} role="status" aria-live="polite">
           <button type="button" className="coco-bubble-x" onClick={onClose} aria-label="말풍선 닫기">×</button>
           <p>{message.text}</p>
@@ -68,7 +71,7 @@ export default function Coco({ message, emotion, items, onClose, onAvatarClick, 
           )}
         </div>
       )}
-      <button type="button" className="coco-btn" onClick={onAvatarClick} title="코코에게 도움 받기" aria-label="코코에게 도움 받기">
+      <button type="button" className="coco-btn" onClick={onAvatarClick} title="코코에게 도움 받기" aria-label="코코에게 도움 받기" aria-expanded={panel ? true : undefined}>
         <CocoAvatar emotion={emotion} items={items} size={84} />
       </button>
     </div>

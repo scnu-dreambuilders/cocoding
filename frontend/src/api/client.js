@@ -166,4 +166,15 @@ export const api = {
 
   /* ── Topics ────────────────────────────────── */
   recommendations: () => request('/topics/recommend.php'),
+
+  /* ── 코코 AI 대화 (Gemini, 서버에서 호출) ───── */
+  // { enabled, remaining, limit }
+  cocoStatus: () => request('/coco/chat.php'),
+
+  // history: [{ role: 'user' | 'coco', text }], context: { chapter, code }
+  askCoco: (message, history = [], context = {}) =>
+    request('/coco/chat.php', {
+      method: 'POST',
+      body: JSON.stringify({ message, history, context }),
+    }),
 }
