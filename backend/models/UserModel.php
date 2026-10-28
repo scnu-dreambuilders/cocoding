@@ -15,7 +15,7 @@ class UserModel {
     // 본인에게만 돌려주는 정보 (로그인·내 정보). consent_code는 동의 전 학생 본인만 봄
     // tags: NULL이면 설문 전(null), 건너뛰었으면 빈 배열
     public function findById($id) {
-        $stmt = $this->db->prepare("SELECT id, username, email, role, birth_year, consent_status, consent_code, level, tags, created_at
+        $stmt = $this->db->prepare("SELECT id, username, email, role, birth_year, consent_status, consent_code, affiliation, level, tags, created_at
                                     FROM users WHERE id = ?");
         $stmt->execute([$id]);
         $user = $stmt->fetch();
@@ -48,7 +48,7 @@ class UserModel {
     }
 
     // 학생: 태어난 해로 보호자 동의 필요 여부 결정 / 선생님·보호자: 설문 없이 바로 시작(tags = [])
-    public function create($username, $email, $password, $role = 'student', $birthYear = null) {
+    public function create($username, $email, $password, $role = 'student', $birthYear = null, $affiliation = null) {
         $hash = password_hash($password, PASSWORD_BCRYPT);
         $needsConsent = $role === 'student' && Validators::needsGuardianConsent($birthYear);
         $tags = $role === 'student' ? null : '[]';
@@ -56,10 +56,10 @@ class UserModel {
         for ($try = 0; ; $try++) {
             $code = $needsConsent ? Validators::randomCode(8) : null;
             try {
-                $stmt = $this->db->prepare("INSERT INTO users (username, email, password_hash, role, birth_year, consent_status, consent_code, tags)
-                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $this->db->prepare("INSERT INTO users (username, email, password_hash, role, birth_year, consent_status, consent_code, affiliation, tags)
+                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$username, $email, $hash, $role, $role === 'student' ? $birthYear : null,
-                    $needsConsent ? 'pending' : 'not_required', $code, $tags]);
+                    $needsConsent ? 'pending' : 'not_required', $code, $role === 'teacher' ? $affiliation : null, $tags]);
                 return (int)$this->db->lastInsertId();
             } catch (PDOException $e) {
                 // 동의 코드가 우연히 겹친 경우만 다시 시도
@@ -76,6 +76,11 @@ class UserModel {
     public function updateUsername($id, $username) {
         $stmt = $this->db->prepare("UPDATE users SET username = ? WHERE id = ?");
         return $stmt->execute([$username, $id]);
+    }
+
+    public function updateAffiliation($id, $affiliation) {
+        $stmt = $this->db->prepare("UPDATE users SET affiliation = ? WHERE id = ?");
+        return $stmt->execute([$affiliation, $id]);
     }
 
     public function updatePassword($id, $password) {

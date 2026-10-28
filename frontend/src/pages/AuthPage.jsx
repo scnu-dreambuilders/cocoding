@@ -43,7 +43,7 @@ const TERMS_INFO = {
 export default function AuthPage({ onLogin, onGuest }) {
   const [mode, setMode] = useState('login') // 'login' | 'register'
   const [step, setStep] = useState(1) // register 전용: 1 유형선택 → 2 약관동의 → 3 정보입력
-  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'student', birthYear: '', adult: false })
+  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'student', birthYear: '', adult: false, affiliation: '' })
   const [terms, setTerms] = useState({ service: false, privacy: false, marketing: false }) // UI 동의만 — 서버 저장·API 전송 없음
   const [termsOpen, setTermsOpen] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -53,6 +53,7 @@ export default function AuthPage({ onLogin, onGuest }) {
     setForm((f) => ({ ...f, [key]: e.target.value }))
 
   const isStudent = form.role === 'student'
+  const isTeacher = form.role === 'teacher'
   const minor = isStudent && form.birthYear && needsGuardianConsent(form.birthYear)
   const requiredTermsAgreed = terms.service && terms.privacy
   const allTermsAgreed = requiredTermsAgreed && terms.marketing
@@ -91,6 +92,7 @@ export default function AuthPage({ onLogin, onGuest }) {
         : await api.register({
           username: form.username, email: form.email, password: form.password, role: form.role,
           ...(isStudent ? { birth_year: Number(form.birthYear) } : { adult: true }),
+          ...(isTeacher && form.affiliation.trim() ? { affiliation: form.affiliation.trim() } : {}),
         })
       localStorage.setItem('cocooding_token', data.token)
       localStorage.setItem('cocooding_user', JSON.stringify(data.user))
@@ -301,6 +303,19 @@ export default function AuthPage({ onLogin, onGuest }) {
                   <div className="auth-msg auth-msg-info" role="note">
                     👪 14살 이하 친구는 <b>보호자 동의</b>가 필요해요. 가입하면 나오는 <b>동의 코드</b>를 부모님께 보여드리세요.
                     동의 전에도 챕터 학습과 작품 만들기는 할 수 있어요!
+                  </div>
+                )}
+                {isTeacher && (
+                  <div className="field">
+                    <label htmlFor="auth-affiliation">소속 <span className="field-note">(선택)</span></label>
+                    <input
+                      id="auth-affiliation"
+                      type="text"
+                      placeholder="예: ○○초등학교 / ○○학원"
+                      value={form.affiliation}
+                      onChange={update('affiliation')}
+                      maxLength={50}
+                    />
                   </div>
                 )}
                 {!isStudent && (

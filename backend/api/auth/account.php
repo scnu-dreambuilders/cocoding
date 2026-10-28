@@ -1,6 +1,6 @@
 <?php
 // backend/api/auth/account.php — 내 정보 관리
-// PATCH  {username}                          닉네임 바꾸기
+// PATCH  {username?, affiliation?}            닉네임 바꾸기 / 소속 바꾸기(교사 전용, 각각 선택적으로 전달)
 // POST   {current_password, new_password}    비밀번호 바꾸기 → 다른 기기 로그인은 모두 끊고 새 토큰 발급
 // DELETE {password}                          회원 탈퇴 (작품·진도·아이템 모두 삭제)
 // 비밀번호를 확인하는 요청은 로그인과 같이 실패 횟수를 제한한다 (훔친 토큰으로 비밀번호 대입 방지)
@@ -34,16 +34,30 @@ function verifyCurrentPassword(UserModel $userModel, $userId, $password) {
 }
 
 if ($method === 'PATCH') {
-    RateLimiter::limit("account:username:$userId", 10, 3600, "닉네임을 너무 자주 바꿨어요. 잠시 후 다시 시도해주세요.");
-    $username = is_string($data['username'] ?? null) ? trim($data['username']) : '';
-    $error = Validators::username($username);
-    if ($error) Response::error($error);
+    if (array_key_exists('username', $data)) {
+        RateLimiter::limit("account:username:$userId", 10, 3600, "닉네임을 너무 자주 바꿨어요. 잠시 후 다시 시도해주세요.");
+        $username = is_string($data['username']) ? trim($data['username']) : '';
+        $error = Validators::username($username);
+        if ($error) Response::error($error);
 
-    $existing = $userModel->findByUsername($username);
-    if ($existing && (int)$existing['id'] !== $userId) {
-        Response::error("이미 사용 중인 닉네임입니다.");
+        $existing = $userModel->findByUsername($username);
+        if ($existing && (int)$existing['id'] !== $userId) {
+            Response::error("이미 사용 중인 닉네임입니다.");
+        }
+        $userModel->updateUsername($userId, $username);
     }
-    $userModel->updateUsername($userId, $username);
+
+    if (array_key_exists('affiliation', $data)) {
+        if ($payload['role'] !== 'teacher') {
+            Response::error("소속은 선생님 계정만 수정할 수 있어요.", 403);
+        }
+        RateLimiter::limit("account:affiliation:$userId", 10, 3600, "소속을 너무 자주 바꿨어요. 잠시 후 다시 시도해주세요.");
+        $affiliation = is_string($data['affiliation']) ? trim($data['affiliation']) : '';
+        $error = Validators::affiliation($affiliation);
+        if ($error) Response::error($error);
+        $userModel->updateAffiliation($userId, $affiliation === '' ? null : $affiliation);
+    }
+
     Response::success($userModel->findById($userId));
 }
 

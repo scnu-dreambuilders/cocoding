@@ -13,6 +13,8 @@ CREATE TABLE users (
     consent_status ENUM('not_required', 'pending', 'granted') NOT NULL DEFAULT 'not_required',
     consent_code CHAR(8) NULL UNIQUE,
     consent_at TIMESTAMP NULL,
+    -- 교사 전용 소속(학교/학원 등). 학생·보호자는 항상 NULL
+    affiliation VARCHAR(50) NULL,
     level TINYINT DEFAULT 1,
     tags JSON NULL,
     token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
