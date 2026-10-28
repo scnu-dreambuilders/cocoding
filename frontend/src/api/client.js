@@ -100,6 +100,13 @@ export const api = {
   removeStudent: (classId, studentId) =>
     request(`/classes/view.php?id=${encodeURIComponent(classId)}&student_id=${encodeURIComponent(studentId)}`, { method: 'DELETE' }),
 
+  // 선생님: 학생을 본인의 다른 반으로 이동
+  moveStudent: (fromClassId, studentId, toClassId) =>
+    request(`/classes/view.php?id=${encodeURIComponent(fromClassId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ move_student_id: studentId, move_to_class_id: toClassId }),
+    }),
+
   /* ── 보호자 ────────────────────────────────── */
   children: () => request('/guardian/children.php'),
 

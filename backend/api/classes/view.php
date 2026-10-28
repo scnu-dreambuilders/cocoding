@@ -44,6 +44,35 @@ if ($method === 'GET') {
 if ($method === 'PATCH') {
     RateLimiter::limit("class:update:$userId", 60, 3600);
     $data = json_decode(file_get_contents("php://input"), true) ?? [];
+
+    // 학생을 이 반에서 선생님의 다른 반으로 이동 (본인 소유 반 사이에서만 — PATCH 도달 시점엔 항상 $isOwner)
+    if (isset($data['move_student_id']) && isset($data['move_to_class_id'])) {
+        $moveStudentId = filter_var($data['move_student_id'], FILTER_VALIDATE_INT);
+        $moveToClassId = filter_var($data['move_to_class_id'], FILTER_VALIDATE_INT);
+        if (!$moveStudentId || !$moveToClassId) {
+            Response::error("이동할 학생과 반을 확인해주세요.");
+        }
+        if ($moveToClassId === (int)$class['id']) {
+            Response::error("같은 반으로는 이동할 수 없어요.");
+        }
+        $target = $classes->findById($moveToClassId);
+        // 다른 선생님 반은 존재 여부도 알려주지 않음 (관계없는 반 조회 정책과 동일)
+        if (!$target || (int)$target['teacher_id'] !== $userId) {
+            Response::error("반을 찾을 수 없어요.", 404);
+        }
+        if (!$classes->isMember($class['id'], $moveStudentId)) {
+            Response::error("이 반의 학생이 아니에요.", 404);
+        }
+        if ($classes->isMember($moveToClassId, $moveStudentId)) {
+            Response::error("이미 해당 반에 등록된 학생이에요.", 409);
+        }
+        if (count($classes->memberIds($moveToClassId)) >= ClassModel::MAX_MEMBERS) {
+            Response::error("반 인원이 가득 찼어요. 선생님께 말씀드려주세요.", 409);
+        }
+        $classes->moveMember($class['id'], $moveToClassId, $moveStudentId);
+        Response::success(["message" => "학생을 반으로 옮겼어요."]);
+    }
+
     if (!empty($data['regenerate_code'])) {
         $classes->regenerateCode($class['id']);
     }
