@@ -152,7 +152,9 @@ export function TeacherPanel({ showToast }) {
   const [busy, setBusy] = useState(false)
   const [reload, setReload] = useState(0)
   const [moveTargets, setMoveTargets] = useState({})
-  const [editingName, setEditingName] = useState(false)
+  // 이름을 수정 중인 반의 id (반 탭을 누르면 비우고, 선택된 반과 다르면 수정 중으로 보지 않는다)
+  const [editingNameFor, setEditingNameFor] = useState(null)
+  const editingName = editingNameFor !== null && editingNameFor === selected
   const [nameDraft, setNameDraft] = useState('')
   const [savingName, setSavingName] = useState(false)
 
@@ -178,9 +180,6 @@ export function TeacherPanel({ showToast }) {
     return () => { alive = false }
   }, [selected, reload, showToast])
 
-  // 다른 반을 고르면 수정 중이던 이름 입력은 취소
-  useEffect(() => { setEditingName(false) }, [selected])
-
   const create = async (e) => {
     e.preventDefault()
     if (!name.trim()) return
@@ -200,10 +199,10 @@ export function TeacherPanel({ showToast }) {
 
   const startEditName = () => {
     setNameDraft(detail?.name ?? '')
-    setEditingName(true)
+    setEditingNameFor(selected)
   }
 
-  const cancelEditName = () => setEditingName(false)
+  const cancelEditName = () => setEditingNameFor(null)
 
   const saveName = async (e) => {
     e.preventDefault()
@@ -214,7 +213,7 @@ export function TeacherPanel({ showToast }) {
       const c = await api.updateClass(detail.id, { name: trimmed })
       setDetail((d) => ({ ...d, name: c.name }))
       setClasses((l) => l.map((x) => (x.id === c.id ? { ...x, name: c.name } : x)))
-      setEditingName(false)
+      setEditingNameFor(null)
     } catch (err) {
       showToast(err.message)
     } finally {
@@ -288,7 +287,7 @@ export function TeacherPanel({ showToast }) {
       <div className="class-tabs" role="tablist" aria-label="반 목록">
         {(classes ?? []).map((c) => (
           <button key={c.id} type="button" role="tab" aria-selected={selected === c.id}
-            className={`class-tab ${selected === c.id ? 'on' : ''}`} onClick={() => setSelected(c.id)}>
+            className={`class-tab ${selected === c.id ? 'on' : ''}`} onClick={() => { setSelected(c.id); setEditingNameFor(null) }}>
             {c.name} <small>{c.member_count}명</small>
           </button>
         ))}
