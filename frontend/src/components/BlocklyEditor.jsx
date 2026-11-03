@@ -1,29 +1,9 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
 import * as Blockly from 'blockly'
 import { HAT_TYPES, workspaceToCode } from '../blockly/blocks'
+import { buildGrid, buildTheme, RENDERER } from '../blockly/theme'
 import { searchFlyout, setSearchQuery, variableFlyout } from '../blockly/toolbox'
 import { getTextSize, useTextSize } from '../lib/textSize'
-
-/* ── 테마 (라이트/다크) ─────────────────────────── */
-function buildTheme() {
-  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  return Blockly.Theme.defineTheme(dark ? 'cocoding-dark' : 'cocoding-light', {
-    base: Blockly.Themes.Classic,
-    startHats: true,
-    fontStyle: { family: 'system-ui, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif', weight: '600', size: 11 },
-    componentStyles: dark
-      ? {
-          workspaceBackgroundColour: '#0b0f17', toolboxBackgroundColour: '#0d1117', toolboxForegroundColour: '#e6edf3',
-          flyoutBackgroundColour: '#111827', flyoutForegroundColour: '#e6edf3', flyoutOpacity: 0.97,
-          scrollbarColour: '#30363d', scrollbarOpacity: 0.7,
-        }
-      : {
-          workspaceBackgroundColour: '#f8fafc', toolboxBackgroundColour: '#ffffff', toolboxForegroundColour: '#0f172a',
-          flyoutBackgroundColour: '#f1f5f9', flyoutForegroundColour: '#0f172a', flyoutOpacity: 0.97,
-          scrollbarColour: '#cbd5e1', scrollbarOpacity: 0.7,
-        },
-  })
-}
 
 // Blockly 아이콘·효과음·커서는 기본값이 외부 서버(blockly-demo.appspot.com) →
 // 우리 사이트(public/blockly-media)에서 받도록 해서 CSP를 지키고 외부 접속을 없앤다
@@ -63,13 +43,12 @@ export default function BlocklyEditor({
   /* ── 워크스페이스 생성 (한 번만) ───────────── */
   useEffect(() => {
     const container = containerRef.current
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
     const ws = Blockly.inject(container, {
       toolbox,
       media: BLOCKLY_MEDIA,
       theme: buildTheme(),
-      renderer: 'zelos',
-      grid: { spacing: 24, length: 3, colour: dark ? '#1c2128' : '#e2e8f0', snap: true },
+      renderer: RENDERER,
+      grid: buildGrid(),
       zoom: { controls: true, wheel: true, startScale: getTextSize().blockScale, maxScale: 2, minScale: 0.4, scaleSpeed: 1.1 },
       trashcan: true,
       move: { scrollbars: true, drag: true, wheel: true },
@@ -265,7 +244,7 @@ export function BlockPreview({ state }) {
   const ref = useRef(null)
   useEffect(() => {
     const ws = Blockly.inject(ref.current, {
-      readOnly: true, theme: buildTheme(), renderer: 'zelos', media: BLOCKLY_MEDIA,
+      readOnly: true, theme: buildTheme(), renderer: RENDERER, media: BLOCKLY_MEDIA,
       // zoomToFit은 움직일 수 있는 워크스페이스에서만 동작 → 스크롤바는 켜고 CSS로 숨김
       zoom: { startScale: 0.7 }, move: { scrollbars: true, drag: true, wheel: false },
     })

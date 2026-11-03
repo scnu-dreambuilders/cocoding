@@ -14,18 +14,19 @@ Blockly.Msg.VARIABLES_DEFAULT_NAME = '점수'
 Blockly.Msg.NEW_VARIABLE = '＋ 변수 만들기'
 Blockly.Msg.NEW_VARIABLE_TITLE = '새 변수 이름 (예: 점수, 목숨)'
 
-/* ── 카테고리 ─────────────────────────────────── */
+/* ── 카테고리 ───────────────────────────────────
+   색은 테마(blockly/theme.js)가 정한다 — 여기에는 이름만 둔다 */
 export const CATEGORIES = {
-  event:    { name: '이벤트',     colour: '#F5A623' },
-  motion:   { name: '이동',       colour: '#4C97FF' },
-  looks:    { name: '모양',       colour: '#9966FF' },
-  sound:    { name: '소리',       colour: '#CF63CF' },
-  loop:     { name: '반복',       colour: '#2FB871' },
-  cond:     { name: '조건',       colour: '#0FA8C9' },
-  sensing:  { name: '감지',       colour: '#5CB1D6' },
-  op:       { name: '연산',       colour: '#59C059' },
-  variable: { name: '변수',       colour: '#FF8C1A' },
-  message:  { name: '메시지·장면', colour: '#E6A700' },
+  event:    { name: '이벤트' },
+  motion:   { name: '이동' },
+  looks:    { name: '모양' },
+  sound:    { name: '소리' },
+  loop:     { name: '반복' },
+  cond:     { name: '조건' },
+  sensing:  { name: '감지' },
+  op:       { name: '연산' },
+  variable: { name: '변수' },
+  message:  { name: '메시지·장면' },
 }
 
 /* ── 블록 메타데이터 ──────────────────────────── */
@@ -123,8 +124,9 @@ function tip(type) {
   const info = BLOCK_INFO[type]
   return info ? `${info.name} — ${info.tooltip}` : ''
 }
-function colourOf(type) {
-  return CATEGORIES[BLOCK_INFO[type].cat].colour
+// 블록에는 색 대신 스타일 이름만 준다 → 실제 색은 theme.js의 blockStyles가 정함
+function styleOf(type) {
+  return `${BLOCK_INFO[type].cat}_style`
 }
 
 // 캐릭터 드롭다운이 붙은 이벤트(모자) 블록
@@ -135,7 +137,7 @@ function defineHat(type, build) {
       input.appendField(new Blockly.FieldDropdown(spriteOptions), 'SPRITE')
       build(input, this)
       this.setNextStatement(true)
-      this.setColour(colourOf(type))
+      this.setStyle(styleOf(type))
       this.setTooltip(tip(type))
     },
   }
@@ -157,7 +159,7 @@ Blockly.Blocks.touching = {
       .appendField(new Blockly.FieldDropdown(touchOptions), 'TARGET')
       .appendField('에 닿았는가?')
     this.setOutput(true, 'Boolean')
-    this.setColour(colourOf('touching'))
+    this.setStyle(styleOf('touching'))
     this.setTooltip(tip('touching'))
   },
 }
@@ -167,7 +169,7 @@ Blockly.Blocks.key_pressed = {
       .appendField(new Blockly.FieldDropdown(KEY_OPTIONS.filter(([, v]) => v !== 'any')), 'KEY')
       .appendField('키를 눌렀는가?')
     this.setOutput(true, 'Boolean')
-    this.setColour(colourOf('key_pressed'))
+    this.setStyle(styleOf('key_pressed'))
     this.setTooltip(tip('key_pressed'))
   },
 }
@@ -178,7 +180,7 @@ Blockly.Blocks.switch_scene = {
       .appendField('장면 시작하기')
     this.setPreviousStatement(true)
     this.setNextStatement(true)
-    this.setColour(colourOf('switch_scene'))
+    this.setStyle(styleOf('switch_scene'))
     this.setTooltip(tip('switch_scene'))
   },
 }
@@ -189,7 +191,7 @@ Blockly.Blocks.play_sound = {
       .appendField('소리 재생하기')
     this.setPreviousStatement(true)
     this.setNextStatement(true)
-    this.setColour(colourOf('play_sound'))
+    this.setStyle(styleOf('play_sound'))
     this.setTooltip(tip('play_sound'))
   },
 }
@@ -200,7 +202,7 @@ const stmt = (type, message0, args0 = [], extra = {}) => ({
   type, message0, args0,
   previousStatement: null, nextStatement: null,
   inputsInline: true,
-  colour: colourOf(type), tooltip: tip(type),
+  style: styleOf(type), tooltip: tip(type),
   ...extra,
 })
 
@@ -213,8 +215,8 @@ Blockly.defineBlocksWithJsonArray([
   stmt('goto_xy', 'x: %1 y: %2 위치로 이동하기', [num('X'), num('Y')]),
   stmt('goto_random', '무작위 위치로 이동하기'),
   stmt('turn_right', '오른쪽으로 %1 도 돌기', [num('DEG')]),
-  { type: 'get_x', message0: 'x 좌표', output: 'Number', colour: colourOf('get_x'), tooltip: tip('get_x') },
-  { type: 'get_y', message0: 'y 좌표', output: 'Number', colour: colourOf('get_y'), tooltip: tip('get_y') },
+  { type: 'get_x', message0: 'x 좌표', output: 'Number', style: styleOf('get_x'), tooltip: tip('get_x') },
+  { type: 'get_y', message0: 'y 좌표', output: 'Number', style: styleOf('get_y'), tooltip: tip('get_y') },
 
   stmt('say', '%1 말하기', [{ type: 'input_value', name: 'TEXT' }]),
   stmt('say_secs', '%1 을(를) %2 초 동안 말하기', [{ type: 'input_value', name: 'TEXT' }, num('SECS')]),
