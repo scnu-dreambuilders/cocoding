@@ -27,21 +27,6 @@
   z-index: 30;
 }
 
-.dash-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* .brand-icon from App.css shared styles */
-
-.dash-brand-name {
-  font-size: 1.0667rem;
-  font-weight: 700;
-  color: var(--text-h);
-  letter-spacing: -0.3px;
-}
-
 .dash-header-right {
   display: flex;
   align-items: center;
@@ -84,20 +69,6 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--header-bg);
-}
-
-.user-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #6d28d9, #9333ea);
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 .user-name {
@@ -202,11 +173,6 @@
 
 .section-action:hover { opacity: 0.75; }
 
-.section-sub-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
 /* ════════════════════════════════════════════════
    Welcome banner
    ════════════════════════════════════════════════ */
@@ -233,12 +199,6 @@
 .welcome-title em {
   font-style: normal;
   opacity: 0.9;
-}
-
-.welcome-sub {
-  font-size: 0.9rem;
-  opacity: 0.8;
-  margin: 0;
 }
 
 .welcome-stats {

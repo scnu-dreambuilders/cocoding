@@ -1,4 +1,5 @@
-import { BLOCK_INFO, CATEGORIES } from '../blockly/blocks'
+import { BLOCK_INFO } from '../blockly/blocks'
+import { CATEGORY_COLOURS } from '../blockly/theme'
 import { BlockPreview } from './BlocklyEditor'
 
 /* ════════════════════════════════════════════════
@@ -10,7 +11,7 @@ export function BlockChip({ type, isNew }) {
   const info = BLOCK_INFO[type]
   if (!info) return null
   return (
-    <span className={`block-chip ${isNew ? 'is-new' : ''}`} style={{ '--chip': CATEGORIES[info.cat].colour }}>
+    <span className={`block-chip ${isNew ? 'is-new' : ''}`} style={{ '--chip': CATEGORY_COLOURS[info.cat] }}>
       {info.name}
       {isNew && <b>NEW</b>}
     </span>

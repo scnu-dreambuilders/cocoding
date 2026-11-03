@@ -59,6 +59,28 @@
    
 ---
 
+## 블록 디자인 바꾸기 (Block Design)
+
+블록의 색·글꼴·외형은 **`frontend/src/blockly/theme.js` 한 파일**에서 정합니다.
+
+| 바꾸고 싶은 것 | 고칠 곳 (theme.js 안) |
+| --- | --- |
+| 카테고리별 블록 색 10가지 | `CATEGORY_COLOURS` |
+| 🔍 찾기 칸 색 | `SEARCH_COLOUR` |
+| 블록 전체 외형 (둥근 스크래치풍 ↔ 각진 기본) | `RENDERER` |
+| 시작 블록 위 모자 | `START_HATS` |
+| 블록 글꼴·굵기·크기 | `FONT` |
+| 작업공간·팔레트 배경 (라이트/다크) | `CHROME` |
+| 작업공간 점 격자 | `GRID` |
+
+`CATEGORY_COLOURS`를 고치면 **블록 색 · 팔레트 카테고리 색 · 미션 패널의 블록 칩 색**이 함께 바뀝니다.
+
+* 블록 정의 파일(`frontend/src/blockly/blocks.js`)에는 색상값이 없고 스타일 이름(`motion_style`)만 있습니다. 블록이 서로 끼워지는 구조는 블록의 동작이라 정의 파일에 남아 있습니다.
+* 서버 재채점기(`backend/grader/grade.mjs`)는 `blocks.js`만 가져다 쓰므로, **디자인을 바꿔도 채점기를 다시 빌드할 필요가 없고 백엔드 파일도 바뀌지 않습니다.**
+* 연산 칸의 비교·계산 블록과 변수 값 블록은 Blockly가 기본 제공하는 블록이라 Blockly 기본 색을 씁니다. 바꾸려면 `theme.js`의 `blockStyles`에 `logic_blocks` / `math_blocks` / `variable_blocks`를 추가하세요.
+
+---
+
 ## Dream Builders
 
 코코딩 플랫폼을 개발한 **Dream Builders**입니다. 아이들이 쉽고 즐겁게 코딩을 배울 수 있는 교육 환경을 만드는 것을 목표로 하고 있습니다.

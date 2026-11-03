@@ -111,25 +111,12 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .brand-name {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-h);
   letter-spacing: -0.3px;
   line-height: 1.25;
-}
-
-.brand-sub {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  line-height: 1.2;
-  letter-spacing: 0;
 }
 
 /* ── Actions ── */
@@ -277,46 +264,9 @@
 /* ════════════════════════════════════════════════
    Main layout
    ════════════════════════════════════════════════ */
-.app-main {
-  flex: 1 1 auto;
-  display: flex;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ── Editor panel (Blockly) ── */
-.editor-panel {
-  flex: 1 1 auto;
-  min-width: 0;
-  position: relative;
-}
-
 .blockly-canvas {
   position: absolute;
   inset: 0;
-}
-
-/* ════════════════════════════════════════════════
-   Side panel
-   ════════════════════════════════════════════════ */
-.side-panel {
-  width: 380px;
-  flex: 0 0 380px;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid var(--border);
-  background: var(--panel-bg);
-  overflow: hidden;
-}
-
-/* ── Tabs ── */
-.panel-tabs {
-  display: flex;
-  gap: 0;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border);
-  flex: 0 0 auto;
-  background: var(--tabs-bg);
 }
 
 .tab-btn {
@@ -347,31 +297,6 @@
   border-bottom-color: var(--accent);
 }
 
-.tab-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-left: 1px;
-}
-
-.dot-success {
-  background: #22c55e;
-}
-
-.dot-error {
-  background: #ef4444;
-}
-
-/* ── Panel body ── */
-.panel-body {
-  flex: 1 1 auto;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 /* ════════════════════════════════════════════════
    Code view
    ════════════════════════════════════════════════ */
@@ -396,37 +321,7 @@
   opacity: 0.5;
 }
 
-/* ════════════════════════════════════════════════
-   Output view
-   ════════════════════════════════════════════════ */
-.output-view {
-  flex: 1;
-  padding: 16px 18px;
-  background: var(--output-bg);
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-height: 0;
-}
-
-.output-view.is-empty {
-  align-items: center;
-  justify-content: center;
-}
-
-.output-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 0.8667rem;
-  line-height: 1.6;
-  color: var(--output-text);
-  word-break: break-all;
-  animation: fade-in 0.15s ease;
-}
-
+/* 모달·토스트 등에서 함께 쓰는 등장 애니메이션 */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -438,56 +333,10 @@
   }
 }
 
-.output-prompt {
-  color: var(--output-prompt);
-  flex-shrink: 0;
-  margin-top: 1px;
-  user-select: none;
-  font-size: 0.8rem;
-}
-
-.output-view.is-error .output-line {
-  color: #f87171;
-}
-
-.output-view.is-error .output-prompt {
-  color: rgba(248, 113, 113, 0.5);
-}
-
-.output-no-result {
-  font-family: var(--mono);
-  font-size: 0.8333rem;
-  color: var(--text-muted);
-  opacity: 0.55;
-  font-style: italic;
-}
-
-.output-hint {
-  font-family: var(--mono);
-  font-size: 0.8333rem;
-  color: var(--text-muted);
-  opacity: 0.5;
-  text-align: center;
-}
-
 /* ════════════════════════════════════════════════
    Responsive
    ════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .app-main {
-    flex-direction: column;
-  }
-
-  .side-panel {
-    width: 100%;
-    flex: 0 0 260px;
-    border-left: none;
-    border-top: 1px solid var(--border);
-  }
-
-  .brand-sub {
-    display: none;
-  }
 
   .shortcut-hint {
     display: none;

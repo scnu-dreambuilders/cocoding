@@ -999,7 +999,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			}
 			return Math.max(e, Math.min(t, n));
 		}, gr = function() {
-			document.querySelector(".blocklyDropDownDiv") || (U = document.createElement("div"), U.className = "blocklyDropDownDiv", U.tabIndex = -1, (tt() || document.body).appendChild(U), Kd = document.createElement("div"), Kd.className = "blocklyDropDownContent", U.appendChild(Kd), Qd = h(Kd, "keydown", null, ct), qd = document.createElement("div"), qd.className = "blocklyDropDownArrow", U.appendChild(qd), U.style.opacity = "0", U.style.transition = "transform " + Vd + "s, opacity " + Vd + "s");
+			document.querySelector(".blocklyDropDownDiv") || (Gd = document.createElement("div"), Gd.className = "blocklyDropDownDiv", Gd.tabIndex = -1, (tt() || document.body).appendChild(Gd), Kd = document.createElement("div"), Kd.className = "blocklyDropDownContent", Gd.appendChild(Kd), Qd = h(Kd, "keydown", null, ct), qd = document.createElement("div"), qd.className = "blocklyDropDownArrow", Gd.appendChild(qd), Gd.style.opacity = "0", Gd.style.transition = "transform " + Vd + "s, opacity " + Vd + "s");
 		}, _r = function(e) {
 			Jd = e;
 		}, vr = function() {
@@ -1007,9 +1007,9 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		}, yr = function() {
 			return Kd;
 		}, br = function() {
-			Qd &&= (_(Qd), null), U.remove(), gr();
+			Qd &&= (_(Qd), null), Gd.remove(), gr();
 		}, xr = function(e, t) {
-			U.style.backgroundColor = e, U.style.borderColor = t;
+			Gd.style.backgroundColor = e, Gd.style.borderColor = t;
 		}, Sr = function(e, t, n, r, i = !0) {
 			return Er(wr(t), e, i, n, r);
 		}, Cr = function(e, t, n, r = !0) {
@@ -1027,7 +1027,7 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 			for (; s.options.parentWorkspace;) s = s.options.parentWorkspace;
 			return _r(s.getParentSvg().parentNode), Dr(t, i.RTL, a, o, a, e, n, r);
 		}, Dr = function(t, n, r, i, a, o, s, c) {
-			return Yd = t, Ud = c || null, U.style.direction = n ? "rtl" : "ltr", t = Xe(), Wd = t.getRenderer().getClassName(), Gd = t.getTheme().getClassName(), A(U, Wd), A(U, Gd), r = Ir(r, i, a, o), s && (Zd = e.getFocusManager$$module$build$src$core$focus_manager().takeEphemeralFocus(U)), r;
+			return Yd = t, U = c || null, Gd.style.direction = n ? "rtl" : "ltr", t = Xe(), Ud = t.getRenderer().getClassName(), Wd = t.getTheme().getClassName(), A(Gd, Ud), A(Gd, Wd), r = Ir(r, i, a, o), s && (Zd = e.getFocusManager$$module$build$src$core$focus_manager().takeEphemeralFocus(Gd)), r;
 		}, Or = function(e, t, n, r) {
 			return e = jr(e, n.left, n.right, r.width), {
 				initialX: e.divX,
@@ -1071,15 +1071,15 @@ var e = Object.create, t = Object.defineProperty, n = Object.getOwnPropertyDescr
 		}, Nr = function(e, t) {
 			return Yd === e ? (t ? Fr() : Pr(), !0) : !1;
 		}, Pr = function() {
-			U.style.transform = "translate(0, 0)", U.style.opacity = "0", Hd = setTimeout(function() {
+			Gd.style.transform = "translate(0, 0)", Gd.style.opacity = "0", Hd = setTimeout(function() {
 				Fr();
-			}, Vd * 1e3), Ud &&= (Ud(), null);
+			}, Vd * 1e3), U &&= (U(), null);
 		}, Fr = function() {
-			Mr() && (Hd && clearTimeout(Hd), Ud &&= (Ud(), null), br(), Yd = null, Xe().markFocused(), Zd &&= (Zd(), null));
+			Mr() && (Hd && clearTimeout(Hd), U &&= (U(), null), br(), Yd = null, Xe().markFocused(), Zd &&= (Zd(), null));
 		}, Ir = function(e, t, n, r) {
 			e = $d.getPositionMetrics(e, t, n, r), e.arrowVisible ? (t = e.arrowX, n = e.arrowY, r = e.arrowAtTop ? 45 : 225, qd.style.display = "", qd.style.transform = `translate(${t}px, ${n}px) rotate(${r}deg)`, qd.setAttribute("class", "blocklyDropDownArrow")) : qd.style.display = "none", t = Math.floor(e.initialX), n = Math.floor(e.initialY), r = Math.floor(e.finalX);
 			let i = Math.floor(e.finalY);
-			return U.style.left = t + "px", U.style.top = n + "px", U.style.display = "block", U.style.opacity = "1", U.style.transform = "translate(" + (r - t) + "px," + (i - n) + "px)", !!e.arrowAtTop;
+			return Gd.style.left = t + "px", Gd.style.top = n + "px", Gd.style.display = "block", Gd.style.opacity = "1", Gd.style.transform = "translate(" + (r - t) + "px," + (i - n) + "px)", !!e.arrowAtTop;
 		}, Lr = function() {
 			if (Yd) {
 				var e = Yd.getSourceBlock();
@@ -4465,7 +4465,7 @@ ${t} to its parent, because: ${e}`), this.childBlock = n, this.childState = r;
 		Fd.BlockChange = Pd;
 		var Id = {};
 		Id.clamp = hr, Id.toDegrees = mr, Id.toRadians = pr;
-		var Ld = 16, Rd = 1, zd = 12, Bd = 16, Vd = .25, Hd = null, Ud = null, Wd = "", Gd = "", U, Kd, qd, Jd = null, Yd = null, Xd = null, Zd = null, Qd = null, $d = {
+		var Ld = 16, Rd = 1, zd = 12, Bd = 16, Vd = .25, Hd = null, U = null, Ud = "", Wd = "", Gd, Kd, qd, Jd = null, Yd = null, Xd = null, Zd = null, Qd = null, $d = {
 			getBoundsInfo: function() {
 				let e = gt(Jd), t = ft(Jd);
 				return {
@@ -4478,7 +4478,7 @@ ${t} to its parent, because: ${e}`), this.childBlock = n, this.childState = r;
 				};
 			},
 			getPositionMetrics: function(e, t, n, r) {
-				let i = $d.getBoundsInfo(), a = ft(U);
+				let i = $d.getBoundsInfo(), a = ft(Gd);
 				return t + a.height < i.bottom ? Or(e, t, i, a) : r - a.height > i.top ? kr(n, r, i, a) : t + a.height < document.documentElement.clientHeight ? Or(e, t, i, a) : r - a.height > document.documentElement.clientTop ? kr(n, r, i, a) : Ar(e, i, a);
 			}
 		}, ef = {
@@ -23345,47 +23345,6 @@ function ${t.FUNCTION_NAME_PLACEHOLDER_}(haystack, needle, replacement) {
 }), { LOGIC_HUE: Er, LOOPS_HUE: Dr, MATH_HUE: Or, TEXTS_HUE: kr, LISTS_HUE: Ar, COLOUR_HUE: jr, VARIABLES_HUE: Mr, VARIABLES_DYNAMIC_HUE: Nr, PROCEDURES_HUE: Pr, VARIABLES_DEFAULT_NAME: Fr, UNNAMED_KEY: Ir, TODAY: Lr, DUPLICATE_BLOCK: Rr, ADD_COMMENT: zr, REMOVE_COMMENT: Br, DUPLICATE_COMMENT: Vr, EXTERNAL_INPUTS: Hr, INLINE_INPUTS: Ur, DELETE_BLOCK: Wr, DELETE_X_BLOCKS: Gr, DELETE_ALL_BLOCKS: Kr, CLEAN_UP: qr, CLOSE: Jr, COLLAPSE_BLOCK: Yr, COLLAPSE_ALL: Xr, EXPAND_BLOCK: Zr, EXPAND_ALL: Qr, DISABLE_BLOCK: $r, ENABLE_BLOCK: ei, HELP: ti, UNDO: ni, REDO: ri, CHANGE_VALUE_TITLE: ii, RENAME_VARIABLE: ai, RENAME_VARIABLE_TITLE: oi, NEW_VARIABLE: si, NEW_STRING_VARIABLE: ci, NEW_NUMBER_VARIABLE: li, NEW_COLOUR_VARIABLE: ui, NEW_VARIABLE_TYPE_TITLE: di, NEW_VARIABLE_TITLE: fi, VARIABLE_ALREADY_EXISTS: pi, VARIABLE_ALREADY_EXISTS_FOR_ANOTHER_TYPE: mi, VARIABLE_ALREADY_EXISTS_FOR_A_PARAMETER: hi, DELETE_VARIABLE_CONFIRMATION: gi, CANNOT_DELETE_VARIABLE_PROCEDURE: _i, DELETE_VARIABLE: vi, COLOUR_PICKER_HELPURL: yi, COLOUR_PICKER_TOOLTIP: bi, COLOUR_RANDOM_HELPURL: xi, COLOUR_RANDOM_TITLE: Si, COLOUR_RANDOM_TOOLTIP: Ci, COLOUR_RGB_HELPURL: wi, COLOUR_RGB_TITLE: Ti, COLOUR_RGB_RED: Ei, COLOUR_RGB_GREEN: Di, COLOUR_RGB_BLUE: Oi, COLOUR_RGB_TOOLTIP: ki, COLOUR_BLEND_HELPURL: Ai, COLOUR_BLEND_TITLE: ji, COLOUR_BLEND_COLOUR1: Mi, COLOUR_BLEND_COLOUR2: Ni, COLOUR_BLEND_RATIO: Pi, COLOUR_BLEND_TOOLTIP: Fi, CONTROLS_REPEAT_HELPURL: Ii, CONTROLS_REPEAT_TITLE: Li, CONTROLS_REPEAT_INPUT_DO: Ri, CONTROLS_REPEAT_TOOLTIP: zi, CONTROLS_WHILEUNTIL_HELPURL: Bi, CONTROLS_WHILEUNTIL_INPUT_DO: Vi, CONTROLS_WHILEUNTIL_OPERATOR_WHILE: Hi, CONTROLS_WHILEUNTIL_OPERATOR_UNTIL: Ui, CONTROLS_WHILEUNTIL_TOOLTIP_WHILE: Wi, CONTROLS_WHILEUNTIL_TOOLTIP_UNTIL: Gi, CONTROLS_FOR_HELPURL: Ki, CONTROLS_FOR_TOOLTIP: qi, CONTROLS_FOR_TITLE: Ji, CONTROLS_FOR_INPUT_DO: Yi, CONTROLS_FOREACH_HELPURL: Xi, CONTROLS_FOREACH_TITLE: Zi, CONTROLS_FOREACH_INPUT_DO: Qi, CONTROLS_FOREACH_TOOLTIP: $i, CONTROLS_FLOW_STATEMENTS_HELPURL: ea, CONTROLS_FLOW_STATEMENTS_OPERATOR_BREAK: ta, CONTROLS_FLOW_STATEMENTS_OPERATOR_CONTINUE: na, CONTROLS_FLOW_STATEMENTS_TOOLTIP_BREAK: ra, CONTROLS_FLOW_STATEMENTS_TOOLTIP_CONTINUE: ia, CONTROLS_FLOW_STATEMENTS_WARNING: aa, CONTROLS_IF_HELPURL: oa, CONTROLS_IF_TOOLTIP_1: sa, CONTROLS_IF_TOOLTIP_2: ca, CONTROLS_IF_TOOLTIP_3: la, CONTROLS_IF_TOOLTIP_4: ua, CONTROLS_IF_MSG_IF: da, CONTROLS_IF_MSG_ELSEIF: fa, CONTROLS_IF_MSG_ELSE: pa, CONTROLS_IF_MSG_THEN: ma, CONTROLS_IF_IF_TITLE_IF: ha, CONTROLS_IF_IF_TOOLTIP: ga, CONTROLS_IF_ELSEIF_TITLE_ELSEIF: _a, CONTROLS_IF_ELSEIF_TOOLTIP: va, CONTROLS_IF_ELSE_TITLE_ELSE: ya, CONTROLS_IF_ELSE_TOOLTIP: ba, LOGIC_COMPARE_HELPURL: xa, LOGIC_COMPARE_TOOLTIP_EQ: Sa, LOGIC_COMPARE_TOOLTIP_NEQ: Ca, LOGIC_COMPARE_TOOLTIP_LT: wa, LOGIC_COMPARE_TOOLTIP_LTE: Ta, LOGIC_COMPARE_TOOLTIP_GT: Ea, LOGIC_COMPARE_TOOLTIP_GTE: Da, LOGIC_OPERATION_HELPURL: Oa, LOGIC_OPERATION_TOOLTIP_AND: ka, LOGIC_OPERATION_AND: Aa, LOGIC_OPERATION_TOOLTIP_OR: ja, LOGIC_OPERATION_OR: Ma, LOGIC_NEGATE_HELPURL: Na, LOGIC_NEGATE_TITLE: Pa, LOGIC_NEGATE_TOOLTIP: Fa, LOGIC_BOOLEAN_HELPURL: Ia, LOGIC_BOOLEAN_TRUE: La, LOGIC_BOOLEAN_FALSE: Ra, LOGIC_BOOLEAN_TOOLTIP: za, LOGIC_NULL_HELPURL: Ba, LOGIC_NULL: Va, LOGIC_NULL_TOOLTIP: Ha, LOGIC_TERNARY_HELPURL: Ua, LOGIC_TERNARY_CONDITION: N, LOGIC_TERNARY_IF_TRUE: Wa, LOGIC_TERNARY_IF_FALSE: Ga, LOGIC_TERNARY_TOOLTIP: Ka, MATH_NUMBER_HELPURL: qa, MATH_NUMBER_TOOLTIP: Ja, MATH_ADDITION_SYMBOL: P, MATH_SUBTRACTION_SYMBOL: Ya, MATH_DIVISION_SYMBOL: Xa, MATH_MULTIPLICATION_SYMBOL: Za, MATH_POWER_SYMBOL: Qa, MATH_TRIG_SIN: $a, MATH_TRIG_COS: eo, MATH_TRIG_TAN: to, MATH_TRIG_ASIN: no, MATH_TRIG_ACOS: ro, MATH_TRIG_ATAN: io, MATH_ARITHMETIC_HELPURL: ao, MATH_ARITHMETIC_TOOLTIP_ADD: oo, MATH_ARITHMETIC_TOOLTIP_MINUS: so, MATH_ARITHMETIC_TOOLTIP_MULTIPLY: co, MATH_ARITHMETIC_TOOLTIP_DIVIDE: lo, MATH_ARITHMETIC_TOOLTIP_POWER: uo, MATH_SINGLE_HELPURL: fo, MATH_SINGLE_OP_ROOT: po, MATH_SINGLE_TOOLTIP_ROOT: mo, MATH_SINGLE_OP_ABSOLUTE: ho, MATH_SINGLE_TOOLTIP_ABS: go, MATH_SINGLE_TOOLTIP_NEG: _o, MATH_SINGLE_TOOLTIP_LN: vo, MATH_SINGLE_TOOLTIP_LOG10: yo, MATH_SINGLE_TOOLTIP_EXP: bo, MATH_SINGLE_TOOLTIP_POW10: xo, MATH_TRIG_HELPURL: So, MATH_TRIG_TOOLTIP_SIN: Co, MATH_TRIG_TOOLTIP_COS: wo, MATH_TRIG_TOOLTIP_TAN: To, MATH_TRIG_TOOLTIP_ASIN: Eo, MATH_TRIG_TOOLTIP_ACOS: Do, MATH_TRIG_TOOLTIP_ATAN: Oo, MATH_CONSTANT_HELPURL: ko, MATH_CONSTANT_TOOLTIP: Ao, MATH_IS_EVEN: jo, MATH_IS_ODD: Mo, MATH_IS_PRIME: No, MATH_IS_WHOLE: Po, MATH_IS_POSITIVE: Fo, MATH_IS_NEGATIVE: Io, MATH_IS_DIVISIBLE_BY: Lo, MATH_IS_TOOLTIP: Ro, MATH_CHANGE_HELPURL: zo, MATH_CHANGE_TITLE: Bo, MATH_CHANGE_TITLE_ITEM: Vo, MATH_CHANGE_TOOLTIP: Ho, MATH_ROUND_HELPURL: Uo, MATH_ROUND_TOOLTIP: Wo, MATH_ROUND_OPERATOR_ROUND: Go, MATH_ROUND_OPERATOR_ROUNDUP: Ko, MATH_ROUND_OPERATOR_ROUNDDOWN: qo, MATH_ONLIST_HELPURL: Jo, MATH_ONLIST_OPERATOR_SUM: Yo, MATH_ONLIST_TOOLTIP_SUM: Xo, MATH_ONLIST_OPERATOR_MIN: Zo, MATH_ONLIST_TOOLTIP_MIN: Qo, MATH_ONLIST_OPERATOR_MAX: $o, MATH_ONLIST_TOOLTIP_MAX: es, MATH_ONLIST_OPERATOR_AVERAGE: ts, MATH_ONLIST_TOOLTIP_AVERAGE: ns, MATH_ONLIST_OPERATOR_MEDIAN: rs, MATH_ONLIST_TOOLTIP_MEDIAN: is, MATH_ONLIST_OPERATOR_MODE: as, MATH_ONLIST_TOOLTIP_MODE: os, MATH_ONLIST_OPERATOR_STD_DEV: ss, MATH_ONLIST_TOOLTIP_STD_DEV: cs, MATH_ONLIST_OPERATOR_RANDOM: ls, MATH_ONLIST_TOOLTIP_RANDOM: us, MATH_MODULO_HELPURL: ds, MATH_MODULO_TITLE: fs, MATH_MODULO_TOOLTIP: ps, MATH_CONSTRAIN_HELPURL: ms, MATH_CONSTRAIN_TITLE: hs, MATH_CONSTRAIN_TOOLTIP: gs, MATH_RANDOM_INT_HELPURL: _s, MATH_RANDOM_INT_TITLE: vs, MATH_RANDOM_INT_TOOLTIP: ys, MATH_RANDOM_FLOAT_HELPURL: bs, MATH_RANDOM_FLOAT_TITLE_RANDOM: xs, MATH_RANDOM_FLOAT_TOOLTIP: Ss, MATH_ATAN2_HELPURL: Cs, MATH_ATAN2_TITLE: ws, MATH_ATAN2_TOOLTIP: Ts, TEXT_TEXT_HELPURL: Es, TEXT_TEXT_TOOLTIP: Ds, TEXT_JOIN_HELPURL: Os, TEXT_JOIN_TITLE_CREATEWITH: ks, TEXT_JOIN_TOOLTIP: As, TEXT_CREATE_JOIN_TITLE_JOIN: js, TEXT_CREATE_JOIN_TOOLTIP: Ms, TEXT_CREATE_JOIN_ITEM_TITLE_ITEM: Ns, TEXT_CREATE_JOIN_ITEM_TOOLTIP: Ps, TEXT_APPEND_HELPURL: Fs, TEXT_APPEND_TITLE: Is, TEXT_APPEND_VARIABLE: Ls, TEXT_APPEND_TOOLTIP: Rs, TEXT_LENGTH_HELPURL: zs, TEXT_LENGTH_TITLE: Bs, TEXT_LENGTH_TOOLTIP: Vs, TEXT_ISEMPTY_HELPURL: Hs, TEXT_ISEMPTY_TITLE: Us, TEXT_ISEMPTY_TOOLTIP: Ws, TEXT_INDEXOF_HELPURL: Gs, TEXT_INDEXOF_TOOLTIP: Ks, TEXT_INDEXOF_TITLE: qs, TEXT_INDEXOF_OPERATOR_FIRST: Js, TEXT_INDEXOF_OPERATOR_LAST: Ys, TEXT_CHARAT_HELPURL: Xs, TEXT_CHARAT_TITLE: Zs, TEXT_CHARAT_FROM_START: Qs, TEXT_CHARAT_FROM_END: $s, TEXT_CHARAT_FIRST: ec, TEXT_CHARAT_LAST: tc, TEXT_CHARAT_RANDOM: nc, TEXT_CHARAT_TAIL: rc, TEXT_CHARAT_TOOLTIP: ic, TEXT_GET_SUBSTRING_TOOLTIP: F, TEXT_GET_SUBSTRING_HELPURL: ac, TEXT_GET_SUBSTRING_INPUT_IN_TEXT: oc, TEXT_GET_SUBSTRING_START_FROM_START: sc, TEXT_GET_SUBSTRING_START_FROM_END: cc, TEXT_GET_SUBSTRING_START_FIRST: I, TEXT_GET_SUBSTRING_END_FROM_START: lc, TEXT_GET_SUBSTRING_END_FROM_END: uc, TEXT_GET_SUBSTRING_END_LAST: dc, TEXT_GET_SUBSTRING_TAIL: fc, TEXT_CHANGECASE_HELPURL: pc, TEXT_CHANGECASE_TOOLTIP: mc, TEXT_CHANGECASE_OPERATOR_UPPERCASE: hc, TEXT_CHANGECASE_OPERATOR_LOWERCASE: gc, TEXT_CHANGECASE_OPERATOR_TITLECASE: _c, TEXT_TRIM_HELPURL: vc, TEXT_TRIM_TOOLTIP: yc, TEXT_TRIM_OPERATOR_BOTH: bc, TEXT_TRIM_OPERATOR_LEFT: xc, TEXT_TRIM_OPERATOR_RIGHT: Sc, TEXT_PRINT_HELPURL: Cc, TEXT_PRINT_TITLE: wc, TEXT_PRINT_TOOLTIP: Tc, TEXT_PROMPT_HELPURL: Ec, TEXT_PROMPT_TYPE_TEXT: Dc, TEXT_PROMPT_TYPE_NUMBER: Oc, TEXT_PROMPT_TOOLTIP_NUMBER: kc, TEXT_PROMPT_TOOLTIP_TEXT: Ac, TEXT_COUNT_MESSAGE0: jc, TEXT_COUNT_HELPURL: Mc, TEXT_COUNT_TOOLTIP: Nc, TEXT_REPLACE_MESSAGE0: Pc, TEXT_REPLACE_HELPURL: Fc, TEXT_REPLACE_TOOLTIP: Ic, TEXT_REVERSE_MESSAGE0: Lc, TEXT_REVERSE_HELPURL: Rc, TEXT_REVERSE_TOOLTIP: L, LISTS_CREATE_EMPTY_HELPURL: zc, LISTS_CREATE_EMPTY_TITLE: Bc, LISTS_CREATE_EMPTY_TOOLTIP: Vc, LISTS_CREATE_WITH_HELPURL: Hc, LISTS_CREATE_WITH_TOOLTIP: Uc, LISTS_CREATE_WITH_INPUT_WITH: Wc, LISTS_CREATE_WITH_CONTAINER_TITLE_ADD: Gc, LISTS_CREATE_WITH_CONTAINER_TOOLTIP: Kc, LISTS_CREATE_WITH_ITEM_TITLE: qc, LISTS_CREATE_WITH_ITEM_TOOLTIP: Jc, LISTS_REPEAT_HELPURL: Yc, LISTS_REPEAT_TOOLTIP: Xc, LISTS_REPEAT_TITLE: Zc, LISTS_LENGTH_HELPURL: Qc, LISTS_LENGTH_TITLE: $c, LISTS_LENGTH_TOOLTIP: el, LISTS_ISEMPTY_HELPURL: tl, LISTS_ISEMPTY_TITLE: nl, LISTS_ISEMPTY_TOOLTIP: rl, LISTS_INLIST: il, LISTS_INDEX_OF_HELPURL: al, LISTS_INDEX_OF_INPUT_IN_LIST: ol, LISTS_INDEX_OF_FIRST: sl, LISTS_INDEX_OF_LAST: cl, LISTS_INDEX_OF_TOOLTIP: ll, LISTS_GET_INDEX_HELPURL: ul, LISTS_GET_INDEX_GET: dl, LISTS_GET_INDEX_GET_REMOVE: fl, LISTS_GET_INDEX_REMOVE: pl, LISTS_GET_INDEX_FROM_START: ml, LISTS_GET_INDEX_FROM_END: hl, LISTS_GET_INDEX_FIRST: gl, LISTS_GET_INDEX_LAST: _l, LISTS_GET_INDEX_RANDOM: vl, LISTS_GET_INDEX_TAIL: yl, LISTS_GET_INDEX_INPUT_IN_LIST: bl, LISTS_INDEX_FROM_START_TOOLTIP: xl, LISTS_INDEX_FROM_END_TOOLTIP: Sl, LISTS_GET_INDEX_TOOLTIP_GET_FROM: Cl, LISTS_GET_INDEX_TOOLTIP_GET_FIRST: wl, LISTS_GET_INDEX_TOOLTIP_GET_LAST: Tl, LISTS_GET_INDEX_TOOLTIP_GET_RANDOM: El, LISTS_GET_INDEX_TOOLTIP_GET_REMOVE_FROM: Dl, LISTS_GET_INDEX_TOOLTIP_GET_REMOVE_FIRST: Ol, LISTS_GET_INDEX_TOOLTIP_GET_REMOVE_LAST: kl, LISTS_GET_INDEX_TOOLTIP_GET_REMOVE_RANDOM: Al, LISTS_GET_INDEX_TOOLTIP_REMOVE_FROM: jl, LISTS_GET_INDEX_TOOLTIP_REMOVE_FIRST: Ml, LISTS_GET_INDEX_TOOLTIP_REMOVE_LAST: Nl, LISTS_GET_INDEX_TOOLTIP_REMOVE_RANDOM: Pl, LISTS_SET_INDEX_HELPURL: Fl, LISTS_SET_INDEX_INPUT_IN_LIST: Il, LISTS_SET_INDEX_SET: Ll, LISTS_SET_INDEX_INSERT: R, LISTS_SET_INDEX_INPUT_TO: Rl, LISTS_SET_INDEX_TOOLTIP_SET_FROM: z, LISTS_SET_INDEX_TOOLTIP_SET_FIRST: zl, LISTS_SET_INDEX_TOOLTIP_SET_LAST: B, LISTS_SET_INDEX_TOOLTIP_SET_RANDOM: Bl, LISTS_SET_INDEX_TOOLTIP_INSERT_FROM: V, LISTS_SET_INDEX_TOOLTIP_INSERT_FIRST: Vl, LISTS_SET_INDEX_TOOLTIP_INSERT_LAST: Hl, LISTS_SET_INDEX_TOOLTIP_INSERT_RANDOM: Ul, LISTS_GET_SUBLIST_HELPURL: Wl, LISTS_GET_SUBLIST_INPUT_IN_LIST: Gl, LISTS_GET_SUBLIST_START_FROM_START: Kl, LISTS_GET_SUBLIST_START_FROM_END: ql, LISTS_GET_SUBLIST_START_FIRST: Jl, LISTS_GET_SUBLIST_END_FROM_START: Yl, LISTS_GET_SUBLIST_END_FROM_END: Xl, LISTS_GET_SUBLIST_END_LAST: Zl, LISTS_GET_SUBLIST_TAIL: Ql, LISTS_GET_SUBLIST_TOOLTIP: $l, LISTS_SORT_HELPURL: eu, LISTS_SORT_TITLE: tu, LISTS_SORT_TOOLTIP: nu, LISTS_SORT_ORDER_ASCENDING: ru, LISTS_SORT_ORDER_DESCENDING: iu, LISTS_SORT_TYPE_NUMERIC: H, LISTS_SORT_TYPE_TEXT: au, LISTS_SORT_TYPE_IGNORECASE: ou, LISTS_SPLIT_HELPURL: su, LISTS_SPLIT_LIST_FROM_TEXT: cu, LISTS_SPLIT_TEXT_FROM_LIST: lu, LISTS_SPLIT_WITH_DELIMITER: uu, LISTS_SPLIT_TOOLTIP_SPLIT: du, LISTS_SPLIT_TOOLTIP_JOIN: fu, LISTS_REVERSE_HELPURL: pu, LISTS_REVERSE_MESSAGE0: mu, LISTS_REVERSE_TOOLTIP: hu, ORDINAL_NUMBER_SUFFIX: gu, VARIABLES_GET_HELPURL: _u, VARIABLES_GET_TOOLTIP: vu, VARIABLES_GET_CREATE_SET: yu, VARIABLES_SET_HELPURL: bu, VARIABLES_SET: xu, VARIABLES_SET_TOOLTIP: Su, VARIABLES_SET_CREATE_GET: Cu, PROCEDURES_DEFNORETURN_HELPURL: wu, PROCEDURES_DEFNORETURN_TITLE: Tu, PROCEDURES_DEFNORETURN_PROCEDURE: Eu, PROCEDURES_BEFORE_PARAMS: Du, PROCEDURES_CALL_BEFORE_PARAMS: Ou, PROCEDURES_CALL_DISABLED_DEF_WARNING: ku, PROCEDURES_DEFNORETURN_DO: Au, PROCEDURES_DEFNORETURN_TOOLTIP: ju, PROCEDURES_DEFNORETURN_COMMENT: Mu, PROCEDURES_DEFRETURN_HELPURL: Nu, PROCEDURES_DEFRETURN_TITLE: Pu, PROCEDURES_DEFRETURN_PROCEDURE: Fu, PROCEDURES_DEFRETURN_DO: Iu, PROCEDURES_DEFRETURN_COMMENT: Lu, PROCEDURES_DEFRETURN_RETURN: Ru, PROCEDURES_DEFRETURN_TOOLTIP: zu, PROCEDURES_ALLOW_STATEMENTS: Bu, PROCEDURES_DEF_DUPLICATE_WARNING: Vu, PROCEDURES_CALLNORETURN_HELPURL: Hu, PROCEDURES_CALLNORETURN_TOOLTIP: Uu, PROCEDURES_CALLRETURN_HELPURL: Wu, PROCEDURES_CALLRETURN_TOOLTIP: Gu, PROCEDURES_MUTATORCONTAINER_TITLE: Ku, PROCEDURES_MUTATORCONTAINER_TOOLTIP: qu, PROCEDURES_MUTATORARG_TITLE: Ju, PROCEDURES_MUTATORARG_TOOLTIP: Yu, PROCEDURES_HIGHLIGHT_DEF: Xu, PROCEDURES_CREATE_DO: Zu, PROCEDURES_IFRETURN_TOOLTIP: Qu, PROCEDURES_IFRETURN_HELPURL: $u, PROCEDURES_IFRETURN_WARNING: ed, WORKSPACE_COMMENT_DEFAULT_TEXT: td, WORKSPACE_ARIA_LABEL: nd, COLLAPSED_WARNINGS_WARNING: rd, DIALOG_OK: id, DIALOG_CANCEL: ad, EDIT_BLOCK_CONTENTS: od, MOVE_BLOCK: sd, WINDOWS: cd, MAC_OS: ld, CHROME_OS: ud, LINUX: dd, UNKNOWN: fd, CONTROL_KEY: pd, COMMAND_KEY: md, OPTION_KEY: hd, ALT_KEY: gd, CUT_SHORTCUT: _d, COPY_SHORTCUT: vd, PASTE_SHORTCUT: yd, HELP_PROMPT: bd, SHORTCUTS_GENERAL: xd, SHORTCUTS_EDITING: Sd, SHORTCUTS_CODE_NAVIGATION: Cd, KEYBOARD_NAV_UNCONSTRAINED_MOVE_HINT: wd, KEYBOARD_NAV_CONSTRAINED_MOVE_HINT: Td, KEYBOARD_NAV_COPIED_HINT: Ed, KEYBOARD_NAV_CUT_HINT: Dd } = (/* @__PURE__ */ l(wr(), 1)).default;
 En(Tr), Ue.MATH_RANDOM_INT_TITLE = "%1 부터 %2 사이의 무작위 수", Ue.VARIABLES_DEFAULT_NAME = "점수", Ue.NEW_VARIABLE = "＋ 변수 만들기", Ue.NEW_VARIABLE_TITLE = "새 변수 이름 (예: 점수, 목숨)";
 var Od = {
-	event: {
-		name: "이벤트",
-		colour: "#F5A623"
-	},
-	motion: {
-		name: "이동",
-		colour: "#4C97FF"
-	},
-	looks: {
-		name: "모양",
-		colour: "#9966FF"
-	},
-	sound: {
-		name: "소리",
-		colour: "#CF63CF"
-	},
-	loop: {
-		name: "반복",
-		colour: "#2FB871"
-	},
-	cond: {
-		name: "조건",
-		colour: "#0FA8C9"
-	},
-	sensing: {
-		name: "감지",
-		colour: "#5CB1D6"
-	},
-	op: {
-		name: "연산",
-		colour: "#59C059"
-	},
-	variable: {
-		name: "변수",
-		colour: "#FF8C1A"
-	},
-	message: {
-		name: "메시지·장면",
-		colour: "#E6A700"
-	}
-}, kd = {
 	when_start: {
 		cat: "event",
 		name: "시작 버튼을 눌렀을 때",
@@ -23638,17 +23597,17 @@ var Od = {
 		tooltip: "조건을 반대로 바꿔요",
 		desc: "참은 거짓으로, 거짓은 참으로 바꿔. 칸에 조건을 끼워줘."
 	}
-}, Ad = new Set([
+}, kd = new Set([
 	"when_start",
 	"when_key",
 	"when_clicked",
 	"when_receive",
 	"when_scene_start"
-]), jd = {
+]), Ad = {
 	sprites: [],
 	scenes: [],
 	sounds: []
-}, Md = [
+}, jd = [
 	["점프", "sfx:jump"],
 	["동전", "sfx:coin"],
 	["충돌", "sfx:hit"],
@@ -23658,25 +23617,25 @@ var Od = {
 	["클릭", "sfx:click"],
 	["마법", "sfx:magic"]
 ];
-function Nd({ sprites: e, scenes: t, sounds: n }) {
-	jd.sprites = e ?? [], jd.scenes = t ?? [], jd.sounds = n ?? [];
+function Md({ sprites: e, scenes: t, sounds: n }) {
+	Ad.sprites = e ?? [], Ad.scenes = t ?? [], Ad.sounds = n ?? [];
 }
-function Pd(e) {
+function Nd(e) {
 	return `${e.emoji ?? "🖼️"} ${e.name}`;
 }
+function Pd() {
+	return Ad.sprites.length ? Ad.sprites.map((e) => [Nd(e), e.id]) : [["(캐릭터 없음)", "__none__"]];
+}
 function Fd() {
-	return jd.sprites.length ? jd.sprites.map((e) => [Pd(e), e.id]) : [["(캐릭터 없음)", "__none__"]];
+	return [["🧱 벽", "__wall__"], ...Ad.sprites.map((e) => [Nd(e), e.id])];
 }
 function Id() {
-	return [["🧱 벽", "__wall__"], ...jd.sprites.map((e) => [Pd(e), e.id])];
+	return Ad.scenes.length ? Ad.scenes.map((e) => [e.name, e.id]) : [["장면 1", "scene1"]];
 }
 function Ld() {
-	return jd.scenes.length ? jd.scenes.map((e) => [e.name, e.id]) : [["장면 1", "scene1"]];
+	return [...jd.map(([e, t]) => [`🔔 ${e}`, t]), ...Ad.sounds.map((e) => [`🎤 ${e.name}`, e.id])];
 }
-function Rd() {
-	return [...Md.map(([e, t]) => [`🔔 ${e}`, t]), ...jd.sounds.map((e) => [`🎤 ${e.name}`, e.id])];
-}
-var zd = [
+var Rd = [
 	["→ 오른쪽 화살표", "ArrowRight"],
 	["← 왼쪽 화살표", "ArrowLeft"],
 	["↑ 위쪽 화살표", "ArrowUp"],
@@ -23685,94 +23644,93 @@ var zd = [
 	["아무 키", "any"],
 	..."abcdefghijklmnopqrstuvwxyz".split("").map((e) => [e.toUpperCase(), e])
 ];
-Object.fromEntries(zd.map(([e, t]) => [t, e]));
-function Bd(e) {
-	let t = kd[e];
+function zd(e) {
+	let t = Od[e];
 	return t ? `${t.name} — ${t.tooltip}` : "";
 }
-function Vd(e) {
-	return Od[kd[e].cat].colour;
+function Bd(e) {
+	return `${Od[e].cat}_style`;
 }
-function Hd(e, t) {
+function Vd(e, t) {
 	g[e] = { init() {
 		let n = this.appendDummyInput();
-		n.appendField(new _e(Fd), "SPRITE"), t(n, this), this.setNextStatement(!0), this.setColour(Vd(e)), this.setTooltip(Bd(e));
+		n.appendField(new _e(Pd), "SPRITE"), t(n, this), this.setNextStatement(!0), this.setStyle(Bd(e)), this.setTooltip(zd(e));
 	} };
 }
-Hd("when_start", (e) => e.appendField("▶ 시작 버튼을 눌렀을 때")), Hd("when_key", (e) => e.appendField(new _e(zd), "KEY").appendField("키를 눌렀을 때")), Hd("when_clicked", (e) => e.appendField("캐릭터를 클릭했을 때")), Hd("when_receive", (e) => e.appendField(new Se("신호"), "MSG").appendField("메시지를 받았을 때")), Hd("when_scene_start", (e) => e.appendField(new _e(Ld), "SCENE").appendField("장면이 시작될 때")), g.touching = { init() {
-	this.appendDummyInput().appendField(new _e(Id), "TARGET").appendField("에 닿았는가?"), this.setOutput(!0, "Boolean"), this.setColour(Vd("touching")), this.setTooltip(Bd("touching"));
+Vd("when_start", (e) => e.appendField("▶ 시작 버튼을 눌렀을 때")), Vd("when_key", (e) => e.appendField(new _e(Rd), "KEY").appendField("키를 눌렀을 때")), Vd("when_clicked", (e) => e.appendField("캐릭터를 클릭했을 때")), Vd("when_receive", (e) => e.appendField(new Se("신호"), "MSG").appendField("메시지를 받았을 때")), Vd("when_scene_start", (e) => e.appendField(new _e(Id), "SCENE").appendField("장면이 시작될 때")), g.touching = { init() {
+	this.appendDummyInput().appendField(new _e(Fd), "TARGET").appendField("에 닿았는가?"), this.setOutput(!0, "Boolean"), this.setStyle(Bd("touching")), this.setTooltip(zd("touching"));
 } }, g.key_pressed = { init() {
-	this.appendDummyInput().appendField(new _e(zd.filter(([, e]) => e !== "any")), "KEY").appendField("키를 눌렀는가?"), this.setOutput(!0, "Boolean"), this.setColour(Vd("key_pressed")), this.setTooltip(Bd("key_pressed"));
+	this.appendDummyInput().appendField(new _e(Rd.filter(([, e]) => e !== "any")), "KEY").appendField("키를 눌렀는가?"), this.setOutput(!0, "Boolean"), this.setStyle(Bd("key_pressed")), this.setTooltip(zd("key_pressed"));
 } }, g.switch_scene = { init() {
-	this.appendDummyInput().appendField(new _e(Ld), "SCENE").appendField("장면 시작하기"), this.setPreviousStatement(!0), this.setNextStatement(!0), this.setColour(Vd("switch_scene")), this.setTooltip(Bd("switch_scene"));
+	this.appendDummyInput().appendField(new _e(Id), "SCENE").appendField("장면 시작하기"), this.setPreviousStatement(!0), this.setNextStatement(!0), this.setStyle(Bd("switch_scene")), this.setTooltip(zd("switch_scene"));
 } }, g.play_sound = { init() {
-	this.appendDummyInput().appendField(new _e(Rd), "SOUND").appendField("소리 재생하기"), this.setPreviousStatement(!0), this.setNextStatement(!0), this.setColour(Vd("play_sound")), this.setTooltip(Bd("play_sound"));
+	this.appendDummyInput().appendField(new _e(Ld), "SOUND").appendField("소리 재생하기"), this.setPreviousStatement(!0), this.setNextStatement(!0), this.setStyle(Bd("play_sound")), this.setTooltip(zd("play_sound"));
 } };
-var Ud = (e) => ({
+var Hd = (e) => ({
 	type: "input_value",
 	name: e,
 	check: "Number"
-}), Wd = (e, t, n = [], r = {}) => ({
+}), U = (e, t, n = [], r = {}) => ({
 	type: e,
 	message0: t,
 	args0: n,
 	previousStatement: null,
 	nextStatement: null,
 	inputsInline: !0,
-	colour: Vd(e),
-	tooltip: Bd(e),
+	style: Bd(e),
+	tooltip: zd(e),
 	...r
 });
 Jt([
-	Wd("move_x", "x 좌표를 %1 만큼 바꾸기", [Ud("DX")]),
-	Wd("move_y", "y 좌표를 %1 만큼 바꾸기", [Ud("DY")]),
-	Wd("set_dir", "%1 도 방향 보기", [Ud("DIR")]),
-	Wd("move_steps", "%1 만큼 움직이기", [Ud("STEPS")]),
-	Wd("turn_around", "방향 반대로 바꾸기"),
-	Wd("goto_xy", "x: %1 y: %2 위치로 이동하기", [Ud("X"), Ud("Y")]),
-	Wd("goto_random", "무작위 위치로 이동하기"),
-	Wd("turn_right", "오른쪽으로 %1 도 돌기", [Ud("DEG")]),
+	U("move_x", "x 좌표를 %1 만큼 바꾸기", [Hd("DX")]),
+	U("move_y", "y 좌표를 %1 만큼 바꾸기", [Hd("DY")]),
+	U("set_dir", "%1 도 방향 보기", [Hd("DIR")]),
+	U("move_steps", "%1 만큼 움직이기", [Hd("STEPS")]),
+	U("turn_around", "방향 반대로 바꾸기"),
+	U("goto_xy", "x: %1 y: %2 위치로 이동하기", [Hd("X"), Hd("Y")]),
+	U("goto_random", "무작위 위치로 이동하기"),
+	U("turn_right", "오른쪽으로 %1 도 돌기", [Hd("DEG")]),
 	{
 		type: "get_x",
 		message0: "x 좌표",
 		output: "Number",
-		colour: Vd("get_x"),
-		tooltip: Bd("get_x")
+		style: Bd("get_x"),
+		tooltip: zd("get_x")
 	},
 	{
 		type: "get_y",
 		message0: "y 좌표",
 		output: "Number",
-		colour: Vd("get_y"),
-		tooltip: Bd("get_y")
+		style: Bd("get_y"),
+		tooltip: zd("get_y")
 	},
-	Wd("say", "%1 말하기", [{
+	U("say", "%1 말하기", [{
 		type: "input_value",
 		name: "TEXT"
 	}]),
-	Wd("say_secs", "%1 을(를) %2 초 동안 말하기", [{
+	U("say_secs", "%1 을(를) %2 초 동안 말하기", [{
 		type: "input_value",
 		name: "TEXT"
-	}, Ud("SECS")]),
-	Wd("show", "보이기"),
-	Wd("hide", "숨기기"),
-	Wd("change_size", "크기를 %1 만큼 바꾸기", [Ud("DS")]),
-	Wd("set_size", "크기를 %1 % 로 정하기", [Ud("SIZE")]),
-	Wd("repeat_n", "%1 번 반복하기 %2 %3", [
-		Ud("TIMES"),
+	}, Hd("SECS")]),
+	U("show", "보이기"),
+	U("hide", "숨기기"),
+	U("change_size", "크기를 %1 만큼 바꾸기", [Hd("DS")]),
+	U("set_size", "크기를 %1 % 로 정하기", [Hd("SIZE")]),
+	U("repeat_n", "%1 번 반복하기 %2 %3", [
+		Hd("TIMES"),
 		{ type: "input_dummy" },
 		{
 			type: "input_statement",
 			name: "DO"
 		}
 	]),
-	Wd("forever", "무한 반복하기 %1 %2", [{ type: "input_dummy" }, {
+	U("forever", "무한 반복하기 %1 %2", [{ type: "input_dummy" }, {
 		type: "input_statement",
 		name: "DO"
 	}], { nextStatement: void 0 }),
-	Wd("wait", "%1 초 기다리기", [Ud("SECS")]),
-	Wd("stop_all", "모두 멈추기", [], { nextStatement: void 0 }),
-	Wd("if_then", "만약 %1 라면 %2 %3", [
+	U("wait", "%1 초 기다리기", [Hd("SECS")]),
+	U("stop_all", "모두 멈추기", [], { nextStatement: void 0 }),
+	U("if_then", "만약 %1 라면 %2 %3", [
 		{
 			type: "input_value",
 			name: "COND",
@@ -23784,7 +23742,7 @@ Jt([
 			name: "DO"
 		}
 	]),
-	Wd("if_else", "만약 %1 라면 %2 %3 아니면 %4 %5", [
+	U("if_else", "만약 %1 라면 %2 %3 아니면 %4 %5", [
 		{
 			type: "input_value",
 			name: "COND",
@@ -23801,7 +23759,7 @@ Jt([
 			name: "ELSE"
 		}
 	]),
-	Wd("var_set", "%1 을(를) %2 (으)로 정하기", [{
+	U("var_set", "%1 을(를) %2 (으)로 정하기", [{
 		type: "field_variable",
 		name: "VAR",
 		variable: "점수"
@@ -23809,87 +23767,87 @@ Jt([
 		type: "input_value",
 		name: "VALUE"
 	}]),
-	Wd("var_change", "%1 을(를) %2 만큼 바꾸기", [{
+	U("var_change", "%1 을(를) %2 만큼 바꾸기", [{
 		type: "field_variable",
 		name: "VAR",
 		variable: "점수"
-	}, Ud("DELTA")]),
-	Wd("var_show", "변수 %1 보이기", [{
-		type: "field_variable",
-		name: "VAR",
-		variable: "점수"
-	}]),
-	Wd("var_hide", "변수 %1 숨기기", [{
+	}, Hd("DELTA")]),
+	U("var_show", "변수 %1 보이기", [{
 		type: "field_variable",
 		name: "VAR",
 		variable: "점수"
 	}]),
-	Wd("broadcast", "%1 메시지 보내기", [{
+	U("var_hide", "변수 %1 숨기기", [{
+		type: "field_variable",
+		name: "VAR",
+		variable: "점수"
+	}]),
+	U("broadcast", "%1 메시지 보내기", [{
 		type: "field_input",
 		name: "MSG",
 		text: "신호"
 	}])
 ]);
-var Gd = Cr, U = (e, t, n = "0") => Gd.valueToCode(e, t, Sr.NONE) || n, Kd = (e, t) => Gd.statementToCode(e, t), qd = (e) => `'${String(e).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`, Jd = (e) => e.workspace.getVariableMap().getVariableById(e.getFieldValue("VAR"))?.getName() ?? "변수", Yd = (e) => jd.sprites.find((t) => t.id === e.getFieldValue("SPRITE"))?.name ?? "캐릭터", Xd = (e) => jd.scenes.find((t) => t.id === e.getFieldValue("SCENE"))?.name ?? "장면";
-function Zd(e) {
+var Ud = Cr, Wd = (e, t, n = "0") => Ud.valueToCode(e, t, Sr.NONE) || n, Gd = (e, t) => Ud.statementToCode(e, t), Kd = (e) => `'${String(e).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`, qd = (e) => e.workspace.getVariableMap().getVariableById(e.getFieldValue("VAR"))?.getName() ?? "변수", Jd = (e) => Ad.sprites.find((t) => t.id === e.getFieldValue("SPRITE"))?.name ?? "캐릭터", Yd = (e) => Ad.scenes.find((t) => t.id === e.getFieldValue("SCENE"))?.name ?? "장면";
+function Xd(e) {
 	return (t) => {
-		let n = t.getNextBlock(), r = n ? Gd.prefixLines(Gd.blockToCode(n), Gd.INDENT) : "";
-		return `// ${Yd(t)}\n${e(t)} => {\n${r}});\n`;
+		let n = t.getNextBlock(), r = n ? Ud.prefixLines(Ud.blockToCode(n), Ud.INDENT) : "";
+		return `// ${Jd(t)}\n${e(t)} => {\n${r}});\n`;
 	};
 }
-Gd.forBlock.when_start = Zd(() => "onStart(()"), Gd.forBlock.when_key = Zd((e) => `onKeyPress(${qd(e.getFieldValue("KEY"))}, ()`), Gd.forBlock.when_clicked = Zd(() => "onClick(()"), Gd.forBlock.when_receive = Zd((e) => `onMessage(${qd(e.getFieldValue("MSG"))}, ()`), Gd.forBlock.when_scene_start = Zd((e) => `onSceneStart(${qd(Xd(e))}, ()`);
-var Qd = Gd.scrub_.bind(Gd);
-Gd.scrub_ = function(e, t, n) {
-	return Ad.has(e.type) ? Qd(e, t, !0) : (!e.getParent() && !e.outputConnection && (t = `// ⚠ 이벤트 블록에 연결되지 않아서 실행되지 않아요\n${t}`), Qd(e, t, n));
-}, Object.assign(Gd.forBlock, {
-	move_x: (e) => `x += ${U(e, "DX")};\n`,
-	move_y: (e) => `y += ${U(e, "DY")};\n`,
-	set_dir: (e) => `direction = ${U(e, "DIR", "90")};\n`,
-	move_steps: (e) => `move(${U(e, "STEPS")});\n`,
+Ud.forBlock.when_start = Xd(() => "onStart(()"), Ud.forBlock.when_key = Xd((e) => `onKeyPress(${Kd(e.getFieldValue("KEY"))}, ()`), Ud.forBlock.when_clicked = Xd(() => "onClick(()"), Ud.forBlock.when_receive = Xd((e) => `onMessage(${Kd(e.getFieldValue("MSG"))}, ()`), Ud.forBlock.when_scene_start = Xd((e) => `onSceneStart(${Kd(Yd(e))}, ()`);
+var Zd = Ud.scrub_.bind(Ud);
+Ud.scrub_ = function(e, t, n) {
+	return kd.has(e.type) ? Zd(e, t, !0) : (!e.getParent() && !e.outputConnection && (t = `// ⚠ 이벤트 블록에 연결되지 않아서 실행되지 않아요\n${t}`), Zd(e, t, n));
+}, Object.assign(Ud.forBlock, {
+	move_x: (e) => `x += ${Wd(e, "DX")};\n`,
+	move_y: (e) => `y += ${Wd(e, "DY")};\n`,
+	set_dir: (e) => `direction = ${Wd(e, "DIR", "90")};\n`,
+	move_steps: (e) => `move(${Wd(e, "STEPS")});\n`,
 	turn_around: () => "direction += 180;\n",
-	goto_xy: (e) => `x = ${U(e, "X")};\ny = ${U(e, "Y")};\n`,
+	goto_xy: (e) => `x = ${Wd(e, "X")};\ny = ${Wd(e, "Y")};\n`,
 	goto_random: () => "x = random(-240, 240);\ny = random(-180, 180);\n",
-	turn_right: (e) => `direction += ${U(e, "DEG")};\n`,
+	turn_right: (e) => `direction += ${Wd(e, "DEG")};\n`,
 	get_x: () => ["x", Sr.ATOMIC],
 	get_y: () => ["y", Sr.ATOMIC],
-	say: (e) => `say(${U(e, "TEXT", "''")});\n`,
-	say_secs: (e) => `say(${U(e, "TEXT", "''")});\nwait(${U(e, "SECS")});\nsay('');\n`,
+	say: (e) => `say(${Wd(e, "TEXT", "''")});\n`,
+	say_secs: (e) => `say(${Wd(e, "TEXT", "''")});\nwait(${Wd(e, "SECS")});\nsay('');\n`,
 	show: () => "show();\n",
 	hide: () => "hide();\n",
-	change_size: (e) => `size += ${U(e, "DS")};\n`,
-	set_size: (e) => `size = ${U(e, "SIZE", "100")};\n`,
+	change_size: (e) => `size += ${Wd(e, "DS")};\n`,
+	set_size: (e) => `size = ${Wd(e, "SIZE", "100")};\n`,
 	play_sound: (e) => {
 		let t = e.getFieldValue("SOUND");
-		return `playSound(${qd(Md.find(([, e]) => e === t)?.[0] ?? jd.sounds.find((e) => e.id === t)?.name ?? t)});\n`;
+		return `playSound(${Kd(jd.find(([, e]) => e === t)?.[0] ?? Ad.sounds.find((e) => e.id === t)?.name ?? t)});\n`;
 	},
-	repeat_n: (e) => `for (let i = 0; i < ${U(e, "TIMES")}; i++) {\n${Kd(e, "DO")}}\n`,
-	forever: (e) => `while (true) {\n${Kd(e, "DO")}}\n`,
-	wait: (e) => `wait(${U(e, "SECS")});\n`,
+	repeat_n: (e) => `for (let i = 0; i < ${Wd(e, "TIMES")}; i++) {\n${Gd(e, "DO")}}\n`,
+	forever: (e) => `while (true) {\n${Gd(e, "DO")}}\n`,
+	wait: (e) => `wait(${Wd(e, "SECS")});\n`,
 	stop_all: () => "stopAll();\n",
-	if_then: (e) => `if (${U(e, "COND", "false")}) {\n${Kd(e, "DO")}}\n`,
-	if_else: (e) => `if (${U(e, "COND", "false")}) {\n${Kd(e, "DO")}} else {\n${Kd(e, "ELSE")}}\n`,
+	if_then: (e) => `if (${Wd(e, "COND", "false")}) {\n${Gd(e, "DO")}}\n`,
+	if_else: (e) => `if (${Wd(e, "COND", "false")}) {\n${Gd(e, "DO")}} else {\n${Gd(e, "ELSE")}}\n`,
 	touching: (e) => {
 		let t = e.getFieldValue("TARGET");
-		return [`touching(${qd(t === "__wall__" ? "wall" : jd.sprites.find((e) => e.id === t)?.name ?? t)})`, Sr.FUNCTION_CALL];
+		return [`touching(${Kd(t === "__wall__" ? "wall" : Ad.sprites.find((e) => e.id === t)?.name ?? t)})`, Sr.FUNCTION_CALL];
 	},
-	key_pressed: (e) => [`isKeyPressed(${qd(e.getFieldValue("KEY"))})`, Sr.FUNCTION_CALL],
-	var_set: (e) => `${Jd(e)} = ${U(e, "VALUE")};\n`,
-	var_change: (e) => `${Jd(e)} += ${U(e, "DELTA")};\n`,
-	var_show: (e) => `showVariable(${qd(Jd(e))});\n`,
-	var_hide: (e) => `hideVariable(${qd(Jd(e))});\n`,
-	variables_get: (e) => [Jd(e), Sr.ATOMIC],
-	broadcast: (e) => `broadcast(${qd(e.getFieldValue("MSG"))});\n`,
-	switch_scene: (e) => `startScene(${qd(Xd(e))});\n`,
-	text_print: (e) => `say(${U(e, "TEXT", "''")});\n`
+	key_pressed: (e) => [`isKeyPressed(${Kd(e.getFieldValue("KEY"))})`, Sr.FUNCTION_CALL],
+	var_set: (e) => `${qd(e)} = ${Wd(e, "VALUE")};\n`,
+	var_change: (e) => `${qd(e)} += ${Wd(e, "DELTA")};\n`,
+	var_show: (e) => `showVariable(${Kd(qd(e))});\n`,
+	var_hide: (e) => `hideVariable(${Kd(qd(e))});\n`,
+	variables_get: (e) => [qd(e), Sr.ATOMIC],
+	broadcast: (e) => `broadcast(${Kd(e.getFieldValue("MSG"))});\n`,
+	switch_scene: (e) => `startScene(${Kd(Yd(e))});\n`,
+	text_print: (e) => `say(${Wd(e, "TEXT", "''")});\n`
 });
 //#endregion
 //#region src/engine/grader.js
-var $d = 1e3 / 60, ef = {
+var Qd = 1e3 / 60, $d = {
 	mission: 70,
 	blocks: 20,
 	clean: 10
 };
-function tf() {
+function ef() {
 	let e = new MessageChannel(), t = null;
 	return e.port1.onmessage = () => t?.(), {
 		next: () => new Promise((n) => {
@@ -23898,7 +23856,7 @@ function tf() {
 		close: () => e.port1.close()
 	};
 }
-function nf(e) {
+function tf(e) {
 	let t = e >>> 0;
 	return () => {
 		t = t + 1831565813 >>> 0;
@@ -23906,7 +23864,7 @@ function nf(e) {
 		return e = Math.imul(e ^ e >>> 15, e | 1), e ^= e + Math.imul(e ^ e >>> 7, e | 61), ((e ^ e >>> 14) >>> 0) / 4294967296;
 	};
 }
-function rf(e) {
+function nf(e) {
 	let t = /* @__PURE__ */ new Set(), n = /* @__PURE__ */ new Set();
 	return {
 		sprite: (t) => e.sprites.find((e) => e.id === t),
@@ -23931,22 +23889,22 @@ function rf(e) {
 		}
 	};
 }
-async function af({ workspace: e, project: t, judge: n, grading: r, onProgress: i }) {
+async function rf({ workspace: e, project: t, judge: n, grading: r, onProgress: i }) {
 	let a = 0, o = [], s = null, c = new er({
 		workspace: e,
 		project: t,
 		requestFrame: (e) => o.push(e),
 		now: () => a,
-		random: nf(20260917),
+		random: tf(20260917),
 		onTrace: (e) => n.onEvent(e),
 		onError: (e) => {
 			s = e;
 		}
-	}), l = rf(c), u = Math.round(r.seconds * 60), d = tf();
+	}), l = nf(c), u = Math.round(r.seconds * 60), d = ef();
 	try {
 		c.start(), await d.next();
 		for (let e = 0; e < u && c.running; e++) {
-			l.beginFrame(), r.drive?.(l, e), a += $d;
+			l.beginFrame(), r.drive?.(l, e), a += Qd;
 			let t = o;
 			o = [];
 			for (let e of t) e();
@@ -23961,20 +23919,20 @@ async function af({ workspace: e, project: t, judge: n, grading: r, onProgress: 
 		seconds: Math.round(a / 100) / 10
 	};
 }
-function of(e, t) {
+function af(e, t) {
 	let n = Math.floor(e / t);
 	return Array.from({ length: t }, (r, i) => n + +(i < e - n * t));
 }
-function sf(e) {
+function of(e) {
 	return e >= 100 ? 3 : e >= 80 ? 2 : +(e >= 50);
 }
-async function cf({ chapter: e, workspace: t, project: n, liveDone: r = [], onProgress: i }) {
+async function sf({ chapter: e, workspace: t, project: n, liveDone: r = [], onProgress: i }) {
 	let a = e.grading, o = $n(t, n).find((e) => e.level === "error"), s = e.makeJudge(t), c = o ? {
 		blockId: o.blockId,
 		message: o.message
 	} : null, l = 0;
 	if (!o) {
-		let e = await af({
+		let e = await rf({
 			workspace: t,
 			project: n,
 			judge: s,
@@ -23986,7 +23944,7 @@ async function cf({ chapter: e, workspace: t, project: n, liveDone: r = [], onPr
 			message: e.error.message
 		}), l = e.seconds;
 	}
-	let u = new Set(r), d = s.checks(), f = of(ef.mission, d.length), p = d.map((e, t) => {
+	let u = new Set(r), d = s.checks(), f = af($d.mission, d.length), p = d.map((e, t) => {
 		let n = !e.done && u.has(t), r = e.done || n;
 		return {
 			group: "mission",
@@ -24001,16 +23959,16 @@ async function cf({ chapter: e, workspace: t, project: n, liveDone: r = [], onPr
 	p.push({
 		group: "blocks",
 		label: "이번 챕터에서 배운 블록 사용하기",
-		max: ef.blocks,
-		earned: Math.round(ef.blocks * h / e.required.length),
+		max: $d.blocks,
+		earned: Math.round($d.blocks * h / e.required.length),
 		done: !ee.length,
-		tip: ee.length ? `${ee.map((e) => `'${kd[e]?.name ?? e}'`).join(", ")} 블록을 써보자!` : null,
+		tip: ee.length ? `${ee.map((e) => `'${Od[e]?.name ?? e}'`).join(", ")} 블록을 써보자!` : null,
 		missing: ee
 	}), p.push({
 		group: "clean",
 		label: "오류 없이 실행하기",
-		max: ef.clean,
-		earned: c ? 0 : ef.clean,
+		max: $d.clean,
+		earned: c ? 0 : $d.clean,
 		done: !c,
 		tip: c ? c.message : null
 	});
@@ -24018,7 +23976,7 @@ async function cf({ chapter: e, workspace: t, project: n, liveDone: r = [], onPr
 	return {
 		score: g,
 		passed: _,
-		stars: _ ? sf(g) : 0,
+		stars: _ ? of(g) : 0,
 		items: p,
 		error: c,
 		howto: a.howto,
@@ -24032,8 +23990,8 @@ jn.xml.injectDependencies({
 	DOMParser: Rn.DOMParser,
 	XMLSerializer: Rn.XMLSerializer
 });
-var lf = (e, t, n) => Math.min(n, Math.max(t, e));
-function uf(e, t) {
+var cf = (e, t, n) => Math.min(n, Math.max(t, e));
+function lf(e, t) {
 	let n = ar({
 		sprites: e.sprites(),
 		scenes: e.scenes?.()
@@ -24042,16 +24000,16 @@ function uf(e, t) {
 		let t = r.find((t) => t && t.id === e.id);
 		return !t || !Number.isFinite(t.x) || !Number.isFinite(t.y) ? e : {
 			...e,
-			x: lf(Math.round(t.x), -240, 240),
-			y: lf(Math.round(t.y), -180, 180)
+			x: cf(Math.round(t.x), -240, 240),
+			y: cf(Math.round(t.y), -180, 180)
 		};
 	}), n;
 }
-async function df(e) {
+async function uf(e) {
 	let t = br[e?.chapter];
 	if (!t) return { error: "unknown chapter" };
-	let n = e.blocks_data, r = uf(t, n);
-	Nd(r);
+	let n = e.blocks_data, r = lf(t, n);
+	Md(r);
 	let i = new jt();
 	try {
 		let e = n?.workspace;
@@ -24063,7 +24021,7 @@ async function df(e) {
 			detail: String(e?.message ?? e).slice(0, 200)
 		};
 	}
-	let a = await cf({
+	let a = await sf({
 		chapter: t,
 		workspace: i,
 		project: r
@@ -24073,16 +24031,16 @@ async function df(e) {
 		passed: a.passed
 	};
 }
-var { process: ff } = globalThis, pf = "";
-ff.stdin.setEncoding("utf8"), ff.stdin.on("data", (e) => {
-	pf += e;
-}), ff.stdin.on("end", async () => {
+var { process: df } = globalThis, ff = "";
+df.stdin.setEncoding("utf8"), df.stdin.on("data", (e) => {
+	ff += e;
+}), df.stdin.on("end", async () => {
 	let e;
 	try {
-		e = await df(JSON.parse(pf));
+		e = await uf(JSON.parse(ff));
 	} catch (t) {
 		e = { error: String(t?.message ?? t) };
 	}
-	ff.stdout.write(JSON.stringify(e)), ff.exit(0);
+	df.stdout.write(JSON.stringify(e)), df.exit(0);
 });
 //#endregion

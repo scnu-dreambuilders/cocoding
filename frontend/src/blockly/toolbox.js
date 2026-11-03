@@ -112,7 +112,7 @@ export function buildToolbox({ allowed, newBlocks = [] }) {
   const newSet = new Set(newBlocks)
 
   const contents = [{
-    kind: 'category', name: '🔍 찾기', colour: '#94a3b8',
+    kind: 'category', name: '🔍 찾기', categorystyle: 'search_category',
     toolboxitemid: 'cat_search', custom: 'COCO_SEARCH',
   }]
 
@@ -123,7 +123,7 @@ export function buildToolbox({ allowed, newBlocks = [] }) {
     const base = {
       kind: 'category',
       name: CATEGORIES[cat].name,
-      colour: CATEGORIES[cat].colour,
+      categorystyle: `${cat}_category`,
       toolboxitemid: `cat_${cat}`,
       ...(hasNew && { cssconfig: { container: 'blocklyToolboxCategoryContainer coco-cat-new' } }),
     }
