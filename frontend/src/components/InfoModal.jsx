@@ -123,7 +123,7 @@ export default function InfoModal({ section = 'faq', onClose }) {
           {tab === 'contact' && (
             <section className="info-block">
               <h4>코코딩</h4>
-              <p>초등학생을 위한 블록 코딩 학습 서비스입니다. {CONTACT.team}이 졸업작품으로 만들었습니다.</p>
+              <p>초등학생을 위한 블록 코딩 학습 서비스입니다. {CONTACT.team}가 졸업작품으로 만들었습니다.</p>
               <dl className="info-contact">
                 <div><dt>만든 팀</dt><dd>{CONTACT.team}</dd></div>
                 <div><dt>문의</dt><dd><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a></dd></div>
