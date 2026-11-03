@@ -105,7 +105,8 @@ $values = array_merge($env, [
     'DB_HOST' => $host, 'DB_PORT' => $port, 'DB_NAME' => $dbname, 'DB_USER' => $user, 'DB_PASS' => $pass,
 ]);
 if (empty($values['JWT_SECRET'])) $values['JWT_SECRET'] = bin2hex(random_bytes(32));
-if (empty($values['ALLOWED_ORIGINS'])) $values['ALLOWED_ORIGINS'] = 'http://localhost:5173';
+// 개발 서버가 5173을 못 잡으면 5174·5175로 밀려나므로 셋 다 넣어둔다
+if (empty($values['ALLOWED_ORIGINS'])) $values['ALLOWED_ORIGINS'] = 'http://localhost:5173,http://localhost:5174,http://localhost:5175';
 $lines = [];
 foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS', 'JWT_SECRET', 'ALLOWED_ORIGINS'] as $key) {
     $v = (string)$values[$key];

@@ -22,5 +22,8 @@ const securityHeaders = {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // 포트가 밀려나면 backend/.env의 ALLOWED_ORIGINS에 없는 주소가 되어 가입·로그인이 전부 막힌다.
+  // 조용히 5174로 옮겨가지 말고 그 자리에서 멈추게 해서, 먼저 뜬 개발 서버를 끄고 다시 켜도록 한다.
+  server: { port: 5173, strictPort: true },
   preview: { headers: securityHeaders },
 })
