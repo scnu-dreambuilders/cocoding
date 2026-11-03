@@ -716,7 +716,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         <div className="header-brand">
           <button type="button" className="btn btn-ghost editor-back" onClick={handleBack} title="뒤로 가기">
             <IconBack />
-            {user ? '대시보드' : '홈'}
+            <span className="editor-back-label">{user ? '대시보드' : '홈'}</span>
           </button>
           <span className="header-sep" aria-hidden="true">/</span>
           {editTitle && !isChapter ? (

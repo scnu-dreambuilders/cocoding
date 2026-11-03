@@ -15,13 +15,15 @@ class UserModel {
     // 본인에게만 돌려주는 정보 (로그인·내 정보). consent_code는 동의 전 학생 본인만 봄
     // tags: NULL이면 설문 전(null), 건너뛰었으면 빈 배열
     public function findById($id) {
-        $stmt = $this->db->prepare("SELECT id, username, email, role, birth_year, consent_status, consent_code, affiliation, level, tags, created_at
+        $stmt = $this->db->prepare("SELECT id, username, email, role, birth_year, consent_status, consent_code, affiliation, level, tags, coins, xp, bio, profile_visibility, created_at
                                     FROM users WHERE id = ?");
         $stmt->execute([$id]);
         $user = $stmt->fetch();
         if ($user) {
             $user['id'] = (int)$user['id'];
             $user['level'] = (int)$user['level'];
+            $user['coins'] = (int)$user['coins'];
+            $user['xp'] = (int)$user['xp'];
             $user['birth_year'] = $user['birth_year'] === null ? null : (int)$user['birth_year'];
             $user['tags'] = $user['tags'] === null ? null : (json_decode($user['tags'], true) ?? []);
             if ($user['consent_status'] !== 'pending') $user['consent_code'] = null;

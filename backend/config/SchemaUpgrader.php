@@ -4,7 +4,7 @@
 // migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-09-30';
+    const VERSION = '2026-11-04b';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -146,6 +146,168 @@ class SchemaUpgrader {
         $db->exec("UPDATE user_items SET item_type = 'hat' WHERE item_name = '빨간 모자'");
         $db->exec("UPDATE user_items SET item_type = 'glasses' WHERE item_name = '반짝이는 안경'");
         $db->exec("UPDATE user_items SET item_type = 'background' WHERE item_name IN ('푸른 숲 배경', '우주선 배경')");
+
+        /* ── 2026-11-03 출석·코인·상점 ── */
+        if (self::column($db, 'users', 'coins') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN coins INT NOT NULL DEFAULT 0");
+        }
+        $db->exec("CREATE TABLE IF NOT EXISTS attendance (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            attended_on DATE NOT NULL,
+            reward_coins SMALLINT NOT NULL DEFAULT 0,
+            streak SMALLINT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_day (user_id, attended_on),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        // 코인 입출금 내역 (중복 지급 방지 + 아이들에게 보여줄 기록)
+        $db->exec("CREATE TABLE IF NOT EXISTS coin_log (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            amount INT NOT NULL,
+            reason VARCHAR(40) NOT NULL,
+            ref VARCHAR(60) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_ref (user_id, reason, ref),
+            INDEX idx_user_time (user_id, created_at),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // 비밀번호 재설정 링크 (토큰은 해시로만 저장)
+        $db->exec("CREATE TABLE IF NOT EXISTS password_resets (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            token_hash CHAR(64) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            used_at DATETIME NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_token (token_hash),
+            INDEX idx_user (user_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // 선생님이 반에 내주는 과제 (챕터 하나 + 마감일)
+        $db->exec("CREATE TABLE IF NOT EXISTS class_assignments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            class_id INT NOT NULL,
+            chapter_id INT NOT NULL,
+            note VARCHAR(200) NULL,
+            due_on DATE NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_assignment (class_id, chapter_id),
+            FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+            FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        /* ── 2026-11-04 좋아요·친구·프로필·경험치·업적·토론 ── */
+        foreach ([
+            'bio' => "ALTER TABLE users ADD COLUMN bio VARCHAR(50) NULL",                       // 자기소개 (학생만)
+            'xp' => "ALTER TABLE users ADD COLUMN xp INT NOT NULL DEFAULT 0",                   // 경험치
+            'profile_visibility' => "ALTER TABLE users ADD COLUMN profile_visibility ENUM('public','friends','private') NOT NULL DEFAULT 'public'",
+        ] as $column => $sql) {
+            if (self::column($db, 'users', $column) === null) $db->exec($sql);
+        }
+
+        $db->exec("CREATE TABLE IF NOT EXISTS project_likes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            project_id INT NOT NULL,
+            user_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_like (project_id, user_id),
+            INDEX idx_project (project_id),
+            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // 팔로우. 서로 팔로우하면 친구로 본다
+        $db->exec("CREATE TABLE IF NOT EXISTS follows (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            follower_id INT NOT NULL,
+            following_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_follow (follower_id, following_id),
+            INDEX idx_following (following_id),
+            FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // 업적 (한 번 받으면 계속 남는다)
+        $db->exec("CREATE TABLE IF NOT EXISTS user_achievements (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            code VARCHAR(40) NOT NULL,
+            earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_achievement (user_id, code),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // 토론 게시판 (Q&A와는 별개 메뉴)
+        $db->exec("CREATE TABLE IF NOT EXISTS board_posts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            title VARCHAR(80) NOT NULL,
+            body TEXT NOT NULL,
+            hidden TINYINT(1) NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_created (hidden, created_at),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $db->exec("CREATE TABLE IF NOT EXISTS board_comments (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            user_id INT NOT NULL,
+            body VARCHAR(500) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_post (post_id, created_at),
+            FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $db->exec("CREATE TABLE IF NOT EXISTS board_reports (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT NOT NULL,
+            user_id INT NOT NULL,
+            reason VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_board_report (post_id, user_id),
+            FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // 과제: 챕터 배정 외에 선생님이 직접 쓰는 과제도 허용
+        if (self::column($db, 'class_assignments', 'title') === null) {
+            $db->exec("ALTER TABLE class_assignments
+                ADD COLUMN title VARCHAR(80) NULL AFTER chapter_id,
+                ADD COLUMN reward_coins SMALLINT NOT NULL DEFAULT 0 AFTER note");
+        }
+        // 직접 쓰는 과제는 챕터가 없으므로 NULL 허용 + (class_id, chapter_id) 유니크 키 제거.
+        // 유니크 키를 외래키가 쓰고 있으므로 class_id 인덱스를 먼저 만들어야 지울 수 있다.
+        if (self::column($db, 'class_assignments', 'chapter_id') !== null) {
+            if (!self::hasIndex($db, 'class_assignments', 'idx_class')) {
+                $db->exec("ALTER TABLE class_assignments ADD INDEX idx_class (class_id)");
+            }
+            if (self::hasIndex($db, 'class_assignments', 'uniq_assignment')) {
+                $db->exec("ALTER TABLE class_assignments DROP INDEX uniq_assignment");
+            }
+            $stmt = $db->prepare("SELECT IS_NULLABLE FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'class_assignments' AND COLUMN_NAME = 'chapter_id'");
+            $stmt->execute();
+            if ($stmt->fetchColumn() === 'NO') {
+                $db->exec("ALTER TABLE class_assignments MODIFY chapter_id INT NULL");
+            }
+        }
+        // 학생이 과제를 끝냈다고 표시한 기록 (직접 쓴 과제는 챕터 진도로 알 수 없으므로)
+        $db->exec("CREATE TABLE IF NOT EXISTS assignment_done (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            assignment_id INT NOT NULL,
+            student_id INT NOT NULL,
+            note VARCHAR(200) NULL,
+            done_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_done (assignment_id, student_id),
+            FOREIGN KEY (assignment_id) REFERENCES class_assignments(id) ON DELETE CASCADE,
+            FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         /* ── 2026-09-30 교사 소속 정보 ── */
         if (self::column($db, 'users', 'affiliation') === null) {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { CHAPTERS } from '../data/chapters'
 import { formatCode } from '../lib/validators'
+import { TeacherAssignments } from './Assignments'
 import './RolePanels.css'
 
 /* ════════════════════════════════════════════════
@@ -340,6 +341,8 @@ export function TeacherPanel({ showToast }) {
               <button type="button" className="role-btn danger" onClick={removeClass}>반 삭제</button>
             </div>
           </div>
+
+          <TeacherAssignments classId={detail.id} showToast={showToast} />
 
           {students.length === 0 ? (
             <div className="role-empty">

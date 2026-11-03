@@ -14,6 +14,7 @@ const MENU = [
   { key: 'study', label: '단계별 학습', icon: '📘' },
   { key: 'free', label: '자유창작', icon: '🎨' },
   { key: 'qna', label: 'Q&A 게시판', icon: '💬' },
+  { key: 'board', label: '토론 게시판', icon: '🗣️' },
   { key: 'game', label: '게임존', icon: '🎮' },
 ]
 

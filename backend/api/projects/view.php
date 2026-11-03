@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
+require_once __DIR__ . '/../../models/ProgressModel.php';
 
 $payload = Auth::requireRole(['student']);
 
@@ -58,7 +59,10 @@ if ($method === 'PUT') {
     }
 
     $projectModel->update($id, $fields);
-    Response::success(["message" => "프로젝트 수정 완료"]);
+    Response::success([
+        "message" => "프로젝트 수정 완료",
+        "newAchievements" => (new ProgressModel())->checkAll($payload['id']),
+    ]);
 }
 
 if ($method === 'DELETE') {

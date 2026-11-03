@@ -15,7 +15,8 @@ class ProjectModel {
 
     // 목록에서는 무거운 blocks_data를 빼고 보낸다
     const LIST_COLUMNS = "p.id, p.user_id, p.chapter_id, p.title, p.track, p.is_public, p.allow_remake, p.report_hidden, p.thumbnail_url, p.created_at, p.updated_at,
-        (SELECT COUNT(*) FROM remakes r WHERE r.original_project_id = p.id) AS remake_count";
+        (SELECT COUNT(*) FROM remakes r WHERE r.original_project_id = p.id) AS remake_count,
+        (SELECT COUNT(*) FROM project_likes l WHERE l.project_id = p.id) AS like_count";
 
     private $db;
 
@@ -108,18 +109,35 @@ class ProjectModel {
     }
 
     // 친구 작품 탭 (최신순, 페이지 단위)
-    public function findPublic($page = 1) {
+    // $sort: 'recent' 최신순 | 'popular' 좋아요 많은 순 (인기 작품)
+    public function findPublic($page = 1, $sort = 'recent', $viewer_id = null) {
         $limit = self::PUBLIC_PAGE_SIZE + 1; // 하나 더 가져와서 다음 페이지 유무 판단
         $offset = max(0, ($page - 1) * self::PUBLIC_PAGE_SIZE);
-        $stmt = $this->db->prepare("SELECT " . self::LIST_COLUMNS . ", u.username
+        $order = $sort === 'popular'
+            ? "like_count DESC, remake_count DESC, p.updated_at DESC"
+            : "p.updated_at DESC";
+        $stmt = $this->db->prepare("SELECT " . self::LIST_COLUMNS . ", u.username,
+                EXISTS(SELECT 1 FROM project_likes l WHERE l.project_id = p.id AND l.user_id = ?) AS liked_by_me
             FROM projects p JOIN users u ON p.user_id = u.id
-            WHERE p.is_public = 1 AND p.report_hidden = 0 ORDER BY p.updated_at DESC LIMIT ? OFFSET ?");
-        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
-        $stmt->bindValue(2, $offset, PDO::PARAM_INT);
+            WHERE p.is_public = 1 AND p.report_hidden = 0 ORDER BY $order LIMIT ? OFFSET ?");
+        $stmt->bindValue(1, (int)$viewer_id, PDO::PARAM_INT);
+        $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+        $stmt->bindValue(3, $offset, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll();
         $hasMore = count($rows) > self::PUBLIC_PAGE_SIZE;
-        return ['projects' => array_slice($rows, 0, self::PUBLIC_PAGE_SIZE), 'hasMore' => $hasMore];
+        return ['projects' => array_slice($rows, 0, self::PUBLIC_PAGE_SIZE), 'hasMore' => $hasMore, 'sort' => $sort];
+    }
+
+    // 다른 사람이 만든 공개 작품 목록 (프로필 열람용)
+    public function findPublicByUser($user_id, $limit = 6) {
+        $stmt = $this->db->prepare("SELECT " . self::LIST_COLUMNS . "
+            FROM projects p WHERE p.user_id = ? AND p.is_public = 1 AND p.report_hidden = 0
+            ORDER BY p.updated_at DESC LIMIT ?");
+        $stmt->bindValue(1, $user_id, PDO::PARAM_INT);
+        $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 
     public function countByUser($user_id) {

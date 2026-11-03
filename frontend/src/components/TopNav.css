@@ -133,8 +133,19 @@
   .topnav-menu-btn { min-height: 44px; }
 }
 
-/* 360px대 작은 폰: 여백을 더 줄여 메뉴 5개 + 계정 영역이 겹치지 않게 */
-@media (max-width: 380px) {
-  .topnav { padding: 0 10px; gap: 6px; }
-  .topnav-left { gap: 8px; }
+/* 좁은 화면: 메뉴가 계정 영역 위로 포개지지 않게.
+   메뉴 줄만 가로로 밀어서 보게 하고(스크롤바는 숨김), 오른쪽 영역은 줄어들지 않게 고정한다. */
+@media (max-width: 860px) {
+  .topnav { padding: 0 12px; gap: 8px; }
+  .topnav-left { flex: 1 1 auto; gap: 10px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .topnav-left::-webkit-scrollbar { display: none; }
+  .topnav-brand,
+  .topnav-menu { flex: 0 0 auto; }
+  .topnav-right { flex: 0 0 auto; }
+}
+
+/* 더 좁은 폰: 닉네임 글자는 접고 아이콘·버튼만 남긴다 */
+@media (max-width: 520px) {
+  .topnav { padding: 0 10px; }
+  .topnav-username { display: none; }
 }

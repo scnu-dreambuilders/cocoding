@@ -66,6 +66,31 @@ class ItemModel {
         return $name;
     }
 
+    // 상점 목록: 코인으로 살 수 있는 아이템 + 내가 가졌는지
+    public function shopCatalog($user_id) {
+        $owned = array_column($this->findByUser($user_id), 'item_name');
+        $list = [];
+        foreach (self::catalog()['items'] as $name => $info) {
+            if (!isset($info['price'])) continue; // 챕터 보상 전용은 상점에 없음
+            $list[] = [
+                'item_name' => $name,
+                'item_type' => $info['type'],
+                'emoji' => $info['emoji'],
+                'price' => (int)$info['price'],
+                'owned' => in_array($name, $owned, true),
+            ];
+        }
+        usort($list, function ($a, $b) {
+            return [$a['item_type'], $a['price']] <=> [$b['item_type'], $b['price']];
+        });
+        return $list;
+    }
+
+    public static function price($name) {
+        $info = self::catalog()['items'][$name] ?? null;
+        return isset($info['price']) ? (int)$info['price'] : null;
+    }
+
     // 같은 종류(모자/안경/배경/소품)는 하나만 장착
     public function setEquipped($user_id, $item_id, $equipped) {
         $stmt = $this->db->prepare("SELECT item_type FROM user_items WHERE id = ? AND user_id = ?");

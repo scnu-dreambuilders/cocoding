@@ -1,7 +1,7 @@
 <?php
 // backend/api/projects/index.php
 // GET               내 작품 목록 (포트폴리오)
-// GET ?public=1     친구 작품 목록 — 로그인한 사용자만 (아이들 작품·목소리 보호), 보호자 동의 전이면 403
+// GET ?public=1[&sort=popular]  친구 작품 / 인기 작품 목록 — 로그인한 사용자만 (아이들 작품·목소리 보호), 보호자 동의 전이면 403
 // POST              자유 창작 작품 저장 (첫 저장 시 꾸미기 아이템 보상)
 // POST {remake_of}  공개 작품 리메이크 (복사 후 내 작품으로) — 작가가 리메이크를 허용한 작품만
 require_once __DIR__ . '/../../config/Bootstrap.php';
@@ -9,6 +9,8 @@ require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
+require_once __DIR__ . '/../../models/CoinModel.php';
+require_once __DIR__ . '/../../models/ProgressModel.php';
 
 $payload = Auth::requireRole(['student']);
 $userId = $payload['id'];
@@ -18,7 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!empty($_GET['public'])) {
         Auth::requireSharing($payload);
         $page = min(100, max(1, (int)($_GET['page'] ?? 1)));
-        Response::success($projectModel->findPublic($page));
+        // sort=popular 이면 좋아요 많은 순 (인기 작품)
+        $sort = ($_GET['sort'] ?? '') === 'popular' ? 'popular' : 'recent';
+        Response::success($projectModel->findPublic($page, $sort, $userId));
     }
     Response::success($projectModel->findByUser($userId));
 }
@@ -72,11 +76,16 @@ if ($validationError) {
 
 $projectId = $projectModel->create($userId, $title, $blocksData, 'free', null, $thumbnail);
 
-// 자유 창작 보상: 저장 → 포트폴리오 등록 → 꾸미기 아이템 1개 (하루 제한)
+// 자유 창작 보상: 저장 → 포트폴리오 등록 → 꾸미기 아이템 1개 + 코인 (둘 다 하루 제한)
 $reward = (new ItemModel())->grantRandomFreeReward($userId);
+$coinsEarned = (new CoinModel())->grant($userId, CoinModel::REWARD['project'], 'project', (string)$projectId);
+$progressModel = new ProgressModel();
+if ($coinsEarned > 0) $progressModel->addXp($userId, ProgressModel::XP['project']);
 
 Response::success([
     "id" => $projectId,
     "rewardItem" => $reward,
     "rewardEmoji" => $reward ? ItemModel::info($reward)['emoji'] : null,
+    "coinsEarned" => $coinsEarned,
+    "newAchievements" => $progressModel->checkAll($userId),
 ], 201);

@@ -113,8 +113,8 @@
 .class-chip small { color: var(--text-muted); font-weight: 400; }
 .class-chip button,
 .row-remove {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border: none;
   border-radius: 50%;
   background: var(--btn-hover);

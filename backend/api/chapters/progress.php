@@ -10,6 +10,8 @@ require_once __DIR__ . '/../../config/Grader.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ChapterModel.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
+require_once __DIR__ . '/../../models/CoinModel.php';
+require_once __DIR__ . '/../../models/ProgressModel.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
 
 $payload = Auth::requireRole(['student']);
@@ -77,6 +79,10 @@ try {
     $chapterModel->updateProgress($userId, $chapterId, 'completed');
 
     $rewardGranted = $itemModel->grant($userId, $chapter['reward_item']);
+    // 챕터를 처음 통과했을 때만 코인 지급 (coin_log의 ref로 중복 방지)
+    $coinsEarned = (new CoinModel())->grant($userId, CoinModel::REWARD['chapter'], 'chapter', (string)$chapterId);
+    $progressModel = new ProgressModel();
+    if ($coinsEarned > 0) $progressModel->addXp($userId, ProgressModel::XP['chapter']); // 처음 통과했을 때만
 
     // 다음 챕터 잠금 해제 (이미 완료한 챕터를 되돌리지 않음)
     $nextChapter = $chapterModel->findByOrder($chapter['order_num'] + 1);
@@ -109,6 +115,9 @@ Response::success([
     "rewardItem" => $chapter['reward_item'],
     "rewardEmoji" => ItemModel::info($chapter['reward_item'])['emoji'],
     "rewardGranted" => (bool)$rewardGranted,
+    "coinsEarned" => $coinsEarned,
+    "newAchievements" => $progressModel->checkAll($userId),
+    "level" => ProgressModel::levelInfo($progressModel->xp($userId)),
     "alreadyCompleted" => $alreadyCompleted,
     "nextChapterId" => $nextChapter ? (int)$nextChapter['id'] : null,
     "portfolioId" => $portfolioId,

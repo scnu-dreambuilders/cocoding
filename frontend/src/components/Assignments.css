@@ -1,0 +1,314 @@
+/* ════════════════════════════════════════════════
+   선생님 과제 — 학생 카드 / 선생님 관리
+   · 챕터 과제는 따뜻한 색(--warn), 자유 과제는 보라색(--accent)으로 구분
+   ════════════════════════════════════════════════ */
+.assign-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* 다른 카드(.chapter-card · .project-card · .board-row)와 같은 틀:
+   1px 테두리 + 패널 바탕 + 둥근 모서리. 과제 종류는 테두리 색과 배지로 알린다.
+   (바탕을 칠하지 않는 이유: 글씨 대비가 4.5:1 아래로 떨어진다) */
+.assign-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--warn);
+  border-radius: 12px;
+  background: var(--panel-bg);
+  font: inherit;
+  text-align: left;
+  word-break: keep-all;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.assign-card:hover { box-shadow: 0 4px 16px var(--accent-light); transform: translateY(-1px); }
+.assign-card.is-done { border-color: var(--border); }
+
+/* 자유 과제 카드: 누르는 카드가 아니라 안에 버튼이 들어간 상자 */
+.assign-card.is-free-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  border-color: var(--accent);
+  cursor: default;
+}
+.assign-card.is-free-card.is-done { border-color: var(--border); }
+.assign-card.is-free-card:hover { box-shadow: none; transform: none; }
+.assign-card-top { display: flex; align-items: center; gap: 12px; }
+
+.assign-chapter {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 0.7667rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.assign-chapter.is-free { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+
+.assign-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; word-break: keep-all; }
+.assign-body b { font-size: 0.9333rem; color: var(--text-h); }
+.assign-body small { font-size: 0.8rem; color: var(--text); }
+/* 반 이름은 보조 정보라 조금 작게 (색은 본문과 같게 두어 또렷하게 보이도록) */
+.assign-class { font-size: 0.7667rem; }
+
+.assign-right { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.assign-state { font-size: 0.8333rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+.assign-state.is-ok { color: var(--ok); }
+.assign-state.is-soon { color: var(--warn); }
+.assign-state.is-today { color: var(--danger); }
+.assign-state.is-late { color: var(--danger); font-weight: 700; }
+
+/* 보상 코인 */
+.assign-coin {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 0.7667rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 자유 과제: 끝냈어요 + 메모 */
+.assign-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.assign-done-box { display: flex; flex-direction: column; gap: 6px; }
+.assign-note-label { font-size: 0.8rem; color: var(--text); word-break: keep-all; }
+.assign-note-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8667rem;
+  line-height: 1.5;
+  word-break: keep-all;
+  resize: vertical;
+}
+.assign-note-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.assign-note-count { margin-right: auto; font-size: 0.7667rem; color: var(--text); }
+.assign-done-msg {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--ok-bg);
+  color: var(--text-h);
+  font-size: 0.8333rem;
+  font-weight: 600;
+  word-break: keep-all;
+}
+.assign-group-title { margin: 8px 0 0; font-size: 0.8333rem; font-weight: 700; color: var(--text-h); }
+
+/* 작은 버튼 (최소 높이 28px 유지) */
+.assign-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 5px 11px;
+  font-size: 0.8rem;
+}
+
+/* ── 선생님 쪽 ── */
+.assign-teacher {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.assign-teacher-title { margin: 0; font-size: 0.9rem; color: var(--text-h); }
+
+.assign-form { display: flex; flex-direction: column; gap: 7px; }
+.assign-form-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-end; }
+.assign-form select,
+.assign-form input,
+.assign-edit-form input {
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8667rem;
+  min-height: 28px;
+}
+.assign-form select { flex: 0 1 260px; }
+.assign-form-row > input { flex: 1 1 220px; }
+.assign-form select:focus,
+.assign-form input:focus,
+.assign-edit-form input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.assign-submit { min-height: 32px; }
+
+/* 챕터 과제 / 자유 과제 고르기 */
+.assign-kind { display: flex; gap: 6px; flex-wrap: wrap; }
+.assign-kind-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  color: var(--text-h);
+  font-size: 0.8333rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.assign-kind-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.assign-kind-opt.on { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+.assign-kind-opt:has(input:focus-visible) { box-shadow: 0 0 0 3px var(--accent-light); }
+.assign-kind-hint { margin: 0; }
+
+/* 입력 칸 이름 */
+.assign-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 0 0 auto;
+  font-size: 0.7667rem;
+  font-weight: 600;
+  color: var(--text);
+  word-break: keep-all;
+}
+.assign-field input[type='number'] { width: 92px; }
+.assign-field-wide { flex: 1 1 200px; }
+
+/* 낸 과제 목록 */
+.assign-teacher-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.assign-teacher-list li {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  font-size: 0.8333rem;
+}
+.assign-teacher-list li.is-editing { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.assign-teacher-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.assign-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 0.7667rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.assign-badge.is-free { background: var(--accent-light); color: var(--accent); }
+.assign-teacher-name {
+  flex: 1 1 140px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-h);
+  font-weight: 600;
+}
+.assign-teacher-due { color: var(--text); font-size: 0.7667rem; white-space: nowrap; }
+.assign-teacher-count { color: var(--text); font-weight: 600; white-space: nowrap; }
+.assign-row-actions { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
+.assign-teacher-list .row-remove { width: 28px; height: 28px; flex: 0 0 auto; }
+
+/* 과제 고치기 */
+.assign-edit-form {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px dashed var(--border-strong);
+}
+.assign-edit-actions { display: flex; gap: 5px; align-items: center; }
+
+/* ── 자세히 보기 창 ── */
+.assign-detail-modal { width: 540px; }
+.assign-detail-modal .modal-x { min-width: 28px; min-height: 28px; color: var(--text); }
+.assign-detail-sum { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.assign-detail-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 0.7667rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.assign-detail-chip.is-count { background: var(--ok-bg); }
+.assign-detail-note-teacher {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 0.8333rem;
+  word-break: keep-all;
+}
+.assign-detail-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 46vh;
+  overflow: auto;
+}
+.assign-detail-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+}
+.assign-detail-list li.is-done { border-color: var(--ok); }
+.assign-detail-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.assign-detail-name { color: var(--text-h); font-size: 0.8667rem; font-weight: 700; word-break: keep-all; }
+.assign-detail-state { font-size: 0.8rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+.assign-detail-state.is-ok { color: var(--ok); }
+.assign-detail-meta { font-size: 0.7667rem; color: var(--text); word-break: keep-all; }
+.assign-detail-memo {
+  margin: 2px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--accent-light);
+  color: var(--text-h);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+@media (max-width: 640px) {
+  .assign-form select,
+  .assign-form-row > input { flex-basis: 100%; }
+  .assign-field { flex: 1 1 128px; }
+  .assign-field input[type='number'] { width: 100%; }
+  .assign-submit { flex: 1 1 100%; }
+  /* 좁은 화면에서는 제목이 한 글자씩 끊기지 않도록 상태 줄을 아래로 내린다 */
+  .assign-card,
+  .assign-card-top { flex-wrap: wrap; gap: 6px 10px; }
+  .assign-right { width: 100%; justify-content: flex-end; }
+  .assign-row-actions { width: 100%; justify-content: flex-end; }
+  .assign-teacher-name { flex-basis: 100%; white-space: normal; word-break: keep-all; }
+  .assign-detail-list { max-height: 54vh; }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* 어두운 바탕에서는 카드가 바닥과 붙어 보이지 않도록 테두리를 조금 더 또렷하게 */
+  .assign-card.is-done,
+  .assign-teacher-list li,
+  .assign-detail-list li { border-color: var(--border-strong); }
+  .assign-detail-list li.is-done { border-color: var(--ok); }
+  .assign-card:hover { box-shadow: none; }
+  .assign-detail-chip { background: var(--btn-hover); }
+}

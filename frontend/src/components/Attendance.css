@@ -1,0 +1,202 @@
+/* ════════════════════════════════════════════════
+   출석 카드 · 코코 상점
+   (.dash-section, .section-header, .skeleton-card 는 StudentHomePage.css)
+   ════════════════════════════════════════════════ */
+.attend-skeleton { height: 160px; }
+
+.attend-card {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+}
+
+.attend-left {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  /* 달력이 카드 높이를 정하므로, 왼쪽 글은 가운데에 맞춰 빈 자리를 줄인다 */
+  justify-content: center;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.attend-streak {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--text);
+}
+.attend-streak b {
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--accent);
+}
+.attend-streak span { font-size: 0.9rem; font-weight: 600; }
+
+.attend-note { margin: 0; font-size: 0.8667rem; color: var(--text); }
+
+.attend-btn {
+  min-height: 38px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 10px;
+  /* 보상 버튼 — 환영 배너의 노란 CTA(.welcome-cta)와 같은 색 짝.
+     흰 글씨를 노랑 위에 올리면 2.8:1밖에 안 나와서, 진한 갈색 글씨로 9:1을 낸다 */
+  background: linear-gradient(145deg, #fde047, #facc15);
+  color: #422006;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(250, 204, 21, 0.3);
+}
+.attend-btn:hover:not(:disabled) { filter: brightness(1.05); }
+/* 오늘 몫을 받은 상태 — 꺼진 버튼이 아니라 '완료' 표시로 읽히게 */
+.attend-btn:disabled {
+  background: var(--ok-bg);
+  color: var(--ok);
+  box-shadow: none;
+  cursor: default;
+}
+
+.attend-total { font-size: 0.8rem; color: var(--text); }
+
+/* 섹션 머리말 힌트는 카드 밖(페이지 바탕) 위에 놓여 한 단계 진하게 */
+.attend-section .dash-hint,
+.shop-section .dash-hint { color: var(--text-h); }
+/* 누를 수 있는 글자 버튼도 28px은 되게 */
+.shop-section .section-action { min-height: 28px; }
+
+.attend-calendar {
+  flex: 0 1 320px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.attend-weekday {
+  text-align: center;
+  font-size: 0.7667rem;
+  font-weight: 600;
+  color: var(--text);
+  padding-bottom: 2px;
+}
+.attend-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.7667rem;
+  /* 옅은 바탕 위 날짜 — var(--text)는 4.5:1에 못 미쳐서 한 단계 진하게 */
+  color: var(--text-h);
+}
+.attend-day.is-blank { background: none; }
+.attend-day.is-done { background: var(--warn-bg); font-size: 1rem; }
+.attend-day.is-today { outline: 2px solid var(--accent); outline-offset: -2px; color: var(--text-h); font-weight: 700; }
+
+/* ── 상점 ── */
+.coin-badge {
+  font-size: 0.8667rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  /* 반투명 노랑을 페이지 바탕이 아니라 흰 카드 위에 얹어야 글자가 4.5:1을 넘는다 */
+  background: linear-gradient(var(--warn-bg), var(--warn-bg)), var(--panel-bg);
+  color: var(--warn);
+  white-space: nowrap;
+}
+
+.coin-history {
+  margin: 0;
+  padding: 10px 14px;
+  list-style: none;
+  border-radius: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.8333rem;
+}
+.coin-history li { display: flex; align-items: center; gap: 10px; }
+.coin-history-empty { color: var(--text); }
+.coin-plus { color: var(--ok); font-weight: 700; min-width: 42px; }
+.coin-minus { color: var(--danger); font-weight: 700; min-width: 42px; }
+.coin-reason { flex: 1; color: var(--text-h); }
+.coin-date { color: var(--text); font-size: 0.7667rem; }
+
+.shop-wrap { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+
+.shop-preview {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.shop-groups { flex: 1 1 420px; display: flex; flex-direction: column; gap: 14px; }
+.shop-group-title { margin: 0 0 6px; font-size: 0.8667rem; color: var(--text-h); font-weight: 600; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-bg);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.shop-item:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-2px); }
+.shop-emoji { font-size: 1.7rem; line-height: 1.1; }
+.shop-name { font-size: 0.8rem; color: var(--text-h); text-align: center; }
+.shop-price { font-size: 0.7667rem; font-weight: 700; color: var(--warn); }
+
+.shop-item.is-owned { background: var(--accent-light); border-color: var(--accent); cursor: default; }
+.shop-item.is-owned .shop-price { color: var(--accent); }
+/* 아직 못 사는 아이템 — 통째로 흐리게 하면 값이 안 읽혀서,
+   바탕·테두리만 죽이고 글자는 그대로 둔다 (값을 보고 목표를 세우는 자리라서) */
+.shop-item.is-locked {
+  background: var(--bg);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+.shop-item.is-locked .shop-emoji { opacity: 0.6; }
+.shop-item.is-locked .shop-name,
+.shop-item.is-locked .shop-price { color: var(--text-h); }
+.shop-item:disabled { transform: none; }
+
+@media (max-width: 640px) {
+  .attend-card { padding: 14px; gap: 14px; }
+  .attend-calendar { flex-basis: 100%; }
+  .attend-btn { width: 100%; }
+  .shop-preview { margin: 0 auto; }
+  /* 390px에서도 한 줄에 세 칸은 들어가게 */
+  .shop-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+  .coin-history li { gap: 8px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* 어두운 바탕에서 노랑이 너무 튀지 않게 한 단계 낮춘다 (글자 대비는 6.8:1) */
+  .attend-btn {
+    background: linear-gradient(145deg, #fbbf24, #f59e0b);
+    box-shadow: none;
+  }
+}

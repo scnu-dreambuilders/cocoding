@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api/client'
 import { BrandIcon } from '../components/icons'
 import { ROLES, birthYearOptions, needsGuardianConsent, passwordError, usernameError } from '../lib/validators'
+import InfoModal from '../components/InfoModal'
 import heroImg from '../assets/hero.png'
 import './AuthPage.css'
 
@@ -31,17 +32,19 @@ function StepIndicator({ step }) {
   )
 }
 
+// 약관별로 어떤 문서를 열어줄지 (detail은 요약, doc은 전문)
 const TERMS_INFO = {
-  service: { label: '서비스 이용약관 동의', required: true,
+  service: { label: '서비스 이용약관 동의', required: true, doc: 'terms',
     detail: '코코딩을 안전하고 즐겁게 이용하기 위한 기본 규칙이에요. 다른 친구를 존중하고, 서비스를 목적에 맞게 사용해주세요.' },
-  privacy: { label: '개인정보 수집 및 이용 동의', required: true,
+  privacy: { label: '개인정보 수집 및 이용 동의', required: true, doc: 'privacy',
     detail: '회원가입·서비스 제공에 필요한 최소한의 정보(닉네임, 이메일, 태어난 해 등)만 수집하고 안전하게 보관해요.' },
   marketing: { label: '서비스 소식 및 안내 수신 동의', required: false,
     detail: '새로운 기능이나 이벤트 소식을 이메일로 가끔 받아볼 수 있어요. 나중에 언제든 설정에서 바꿀 수 있어요.' },
 }
 
-export default function AuthPage({ onLogin, onGuest }) {
+export default function AuthPage({ onLogin, onGuest, onForgotPassword }) {
   const [mode, setMode] = useState('login') // 'login' | 'register'
+  const [docOpen, setDocOpen] = useState(null) // 약관·개인정보처리방침 전문 창
   const [step, setStep] = useState(1) // register 전용: 1 유형선택 → 2 약관동의 → 3 정보입력
   const [form, setForm] = useState({ username: '', email: '', password: '', role: 'student', birthYear: '', adult: false, affiliation: '' })
   const [terms, setTerms] = useState({ service: false, privacy: false, marketing: false }) // UI 동의만 — 서버 저장·API 전송 없음
@@ -185,6 +188,9 @@ export default function AuthPage({ onLogin, onGuest }) {
             <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? '처리 중...' : '로그인'}
             </button>
+            <button type="button" className="auth-forgot" onClick={onForgotPassword}>
+              비밀번호를 잊으셨나요?
+            </button>
           </form>
         )}
 
@@ -235,7 +241,16 @@ export default function AuthPage({ onLogin, onGuest }) {
                           {termsOpen === key ? '접기' : '보기'}
                         </button>
                       </label>
-                      {termsOpen === key && <p className="term-detail">{t.detail}</p>}
+                      {termsOpen === key && (
+                        <p className="term-detail">
+                          {t.detail}
+                          {t.doc && (
+                            <button type="button" className="term-full" onClick={() => setDocOpen(t.doc)}>
+                              전문 보기
+                            </button>
+                          )}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -349,6 +364,8 @@ export default function AuthPage({ onLogin, onGuest }) {
           </svg>
         </button>
       </div>
+
+      {docOpen && <InfoModal section={docOpen} onClose={() => setDocOpen(null)} />}
     </div>
   )
 }

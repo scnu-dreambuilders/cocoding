@@ -155,8 +155,9 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 10px;
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
+  /* 틴트를 페이지 바탕이 아니라 불투명 카드색 위에 얹어야 글자 대비가 나온다 */
+  background: linear-gradient(var(--ok-bg), var(--ok-bg)), var(--panel-bg);
+  color: var(--ok);
 }
 
 .section-action {
@@ -442,7 +443,7 @@
 
 .empty-icon   { width: 96px; height: 96px; }
 .empty-text   { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
-.empty-msg    { font-size: 0.8667rem; color: var(--text-muted); padding: 12px; }
+.empty-msg    { font-size: 0.8667rem; color: var(--text-h); padding: 12px; }
 
 /* ════════════════════════════════════════════════
    Recommendations grid
@@ -664,7 +665,7 @@
   font-size: 0.8667rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
-.dash-hint { margin: 0 0 10px; font-size: 0.8333rem; color: var(--text); }
+.dash-hint { margin: 0 0 10px; font-size: 0.8333rem; color: var(--text-h); }
 .link-btn { border: none; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
 .section-header { margin-bottom: 12px; }
 .section-title span { margin-right: 6px; }
@@ -842,3 +843,32 @@
 .report-box .report-cancel { text-align: center; color: var(--text-muted); }
 .project-hidden { font-size: 0.8rem; padding: 1px 6px; border-radius: 4px; background: rgba(239, 68, 68, 0.12); color: #dc2626; font-weight: 600; }
 .remake-btn.view-only { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+
+/* 전체 검색 줄 */
+.dash-search-section { flex-direction: row; justify-content: flex-end; }
+@media (max-width: 640px) { .dash-search-section { justify-content: stretch; } }
+
+/* 친구 작품: 작가 프로필 열기 · 좋아요 */
+.project-author-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.project-author-btn:hover { color: var(--accent); text-decoration: underline; }
+
+.like-btn,
+.project-likes {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.like-btn { cursor: pointer; }
+.like-btn:hover { color: #7c3aed; }
+.like-btn.on { color: #7c3aed; font-weight: 600; }
