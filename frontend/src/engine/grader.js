@@ -6,7 +6,7 @@
    ════════════════════════════════════════════════ */
 import { Runtime, validateWorkspace } from './runtime'
 import { usedTypes } from '../data/chapters'
-import { BLOCK_INFO } from '../blockly/blocks'
+import { BLOCK_INFO } from '../blockly/blockInfo'
 
 const FRAME_MS = 1000 / 60
 const POINTS = { mission: 70, blocks: 20, clean: 10 }

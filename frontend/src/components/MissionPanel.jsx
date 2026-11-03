@@ -1,4 +1,4 @@
-import { BLOCK_INFO } from '../blockly/blocks'
+import { BLOCK_INFO } from '../blockly/blockInfo'
 import { CATEGORY_COLOURS } from '../blockly/theme'
 import { BlockPreview } from './BlocklyEditor'
 

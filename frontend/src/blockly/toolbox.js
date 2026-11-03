@@ -4,7 +4,7 @@
    - 자유 창작: 코딩 수준(1/2/3)에 따라 블록 수 제한 + 완료한 챕터 블록
    - 맨 위 '🔍 찾기' 카테고리: 블록 검색 결과
    ════════════════════════════════════════════════ */
-import { BLOCK_INFO, CATEGORIES } from './blocks'
+import { BLOCK_INFO, CATEGORIES } from './blockInfo'
 
 const numShadow = (n) => ({ shadow: { type: 'math_number', fields: { NUM: n } } })
 const textShadow = (t) => ({ shadow: { type: 'text', fields: { TEXT: t } } })

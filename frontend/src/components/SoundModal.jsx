@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BUILTIN_SOUNDS } from '../blockly/blocks'
+import { BUILTIN_SOUNDS } from '../blockly/blockInfo'
 import { playSound, startRecording } from '../lib/sounds'
 import { newId } from '../lib/project'
 
