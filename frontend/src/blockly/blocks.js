@@ -117,7 +117,6 @@ export const KEY_OPTIONS = [
   ['스페이스', 'Space'], ['아무 키', 'any'],
   ...'abcdefghijklmnopqrstuvwxyz'.split('').map((c) => [c.toUpperCase(), c]),
 ]
-export const KEY_LABEL = Object.fromEntries(KEY_OPTIONS.map(([l, v]) => [v, l]))
 
 /* ── 블록 정의 도우미 ─────────────────────────── */
 function tip(type) {

@@ -15,14 +15,6 @@ export function BrandIcon() {
   )
 }
 
-export function IconPlay() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-      <path d="M3 2L10.5 6.5 3 11V2Z" fill="currentColor" />
-    </svg>
-  )
-}
-
 export function IconSpinner() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="spin" aria-hidden="true">
@@ -45,14 +37,6 @@ export function IconCheck() {
   return (
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
       <path d="M2 6.5L5 9.5L11 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-export function IconTrash() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-      <path d="M1.5 3.5h10M5 1.5h3M2.8 3.5l.65 7.5A1 1 0 004.45 12h4.1a1 1 0 001-.95L10.2 3.5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -82,12 +66,3 @@ export function IconCode() {
   )
 }
 
-export function IconTerminal() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-      <rect x="1" y="1.5" width="11" height="10" rx="2" stroke="currentColor" strokeWidth="1.25" />
-      <path d="M3.5 5L5.5 6.5 3.5 8" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6.5 8h3" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-    </svg>
-  )
-}

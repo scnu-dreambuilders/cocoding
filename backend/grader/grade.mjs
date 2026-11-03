@@ -23685,7 +23685,6 @@ var zd = [
 	["아무 키", "any"],
 	..."abcdefghijklmnopqrstuvwxyz".split("").map((e) => [e.toUpperCase(), e])
 ];
-Object.fromEntries(zd.map(([e, t]) => [t, e]));
 function Bd(e) {
 	let t = kd[e];
 	return t ? `${t.name} — ${t.tooltip}` : "";
