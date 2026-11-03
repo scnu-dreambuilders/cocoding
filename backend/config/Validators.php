@@ -18,6 +18,15 @@ class Validators {
         return null;
     }
 
+    // 교사 소속(학교/학원 등) — 선택 입력, 길이만 제한 (괄호·숫자 등은 학교명에 흔히 쓰이므로 허용)
+    public static function affiliation($affiliation) {
+        if ($affiliation === null || $affiliation === '') return null;
+        if (!is_string($affiliation) || mb_strlen($affiliation) > 50) {
+            return "소속은 50자 이하로 써주세요.";
+        }
+        return null;
+    }
+
     public static function password($password) {
         if (!is_string($password) || strlen($password) < 8 || strlen($password) > 72
             || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password)) {

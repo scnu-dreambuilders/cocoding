@@ -46,9 +46,11 @@ export default function App() {
   }, [])
 
   // 로그아웃 버튼: 서버에서도 토큰을 무효화
+  // (토큰 만료처럼 자동으로 세션이 지워질 때는 clearSession만 써서 로그인 화면으로 보낸다)
   const logout = useCallback(() => {
     api.logout().catch(() => {})
     clearSession()
+    setPage('home')
   }, [clearSession])
 
   /* 어떤 요청이든 401(토큰 만료·다른 곳에서 로그아웃)이 오면 로그인 화면으로 */
@@ -113,6 +115,18 @@ export default function App() {
     openEditor({ mode: 'free', template: 'mygame', completedChapters: Array.from({ length: CHAPTER_COUNT }, (_, i) => i + 1) })
   }, [openEditor])
 
+  // 메인 홈에서 로그인한 학생이 자유창작으로 들어갈 때: 학생 홈과 같이 배운 챕터 정보를 함께 넘긴다
+  const openFreeFromHome = useCallback(async () => {
+    let completedChapters = []
+    try {
+      const list = await api.chapters()
+      completedChapters = list.filter((c) => c.status === 'completed').map((c) => Number(c.order_num))
+    } catch {
+      // 챕터 정보를 못 불러와도 기본 블록으로 자유창작은 열어준다
+    }
+    openEditor({ mode: 'free', completedChapters })
+  }, [openEditor])
+
   const goDashboard = () => {
     setLaunch(null)
     setPage(user ? 'dashboard' : 'home')
@@ -166,6 +180,11 @@ export default function App() {
         onAuth={() => setPage('auth')}
         onGuest={() => openEditor({ mode: 'free' })}
         onGoDashboard={() => setPage('dashboard')}
+        onOpenFree={openFreeFromHome}
+        onLogout={logout}
+        onUserChange={saveUser}
+        onAccountDeleted={clearSession}
+        onEditSurvey={() => setPage('survey-edit')}
       />
     )
   }

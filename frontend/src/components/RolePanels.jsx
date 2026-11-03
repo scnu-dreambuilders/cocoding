@@ -151,6 +151,12 @@ export function TeacherPanel({ showToast }) {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [reload, setReload] = useState(0)
+  const [moveTargets, setMoveTargets] = useState({})
+  // 이름을 수정 중인 반의 id (반 탭을 누르면 비우고, 선택된 반과 다르면 수정 중으로 보지 않는다)
+  const [editingNameFor, setEditingNameFor] = useState(null)
+  const editingName = editingNameFor !== null && editingNameFor === selected
+  const [nameDraft, setNameDraft] = useState('')
+  const [savingName, setSavingName] = useState(false)
 
   useEffect(() => {
     api.classes()
@@ -191,6 +197,30 @@ export function TeacherPanel({ showToast }) {
     }
   }
 
+  const startEditName = () => {
+    setNameDraft(detail?.name ?? '')
+    setEditingNameFor(selected)
+  }
+
+  const cancelEditName = () => setEditingNameFor(null)
+
+  const saveName = async (e) => {
+    e.preventDefault()
+    const trimmed = nameDraft.trim()
+    if (!trimmed) return
+    setSavingName(true)
+    try {
+      const c = await api.updateClass(detail.id, { name: trimmed })
+      setDetail((d) => ({ ...d, name: c.name }))
+      setClasses((l) => l.map((x) => (x.id === c.id ? { ...x, name: c.name } : x)))
+      setEditingNameFor(null)
+    } catch (err) {
+      showToast(err.message)
+    } finally {
+      setSavingName(false)
+    }
+  }
+
   const regenerate = async () => {
     if (!window.confirm('참여 코드를 새로 만들까요? 예전 코드로는 더 이상 들어올 수 없어요. (이미 들어온 학생은 그대로예요)')) return
     try {
@@ -225,6 +255,29 @@ export function TeacherPanel({ showToast }) {
     }
   }
 
+  // 이 반이 아닌, 내가 가진 다른 반 (이동 대상 후보)
+  const otherClasses = (classes ?? []).filter((c) => c.id !== detail?.id)
+
+  const moveStudent = async (s) => {
+    const toClassId = Number(moveTargets[s.id])
+    if (!toClassId) return
+    const toClass = otherClasses.find((c) => c.id === toClassId)
+    if (!window.confirm(`${s.username} 학생을 '${toClass?.name ?? ''}' 반으로 옮길까요?`)) return
+    try {
+      await api.moveStudent(detail.id, s.id, toClassId)
+      setDetail((d) => ({ ...d, students: d.students.filter((x) => x.id !== s.id) }))
+      setClasses((l) => l.map((x) => {
+        if (x.id === detail.id) return { ...x, member_count: x.member_count - 1 }
+        if (x.id === toClassId) return { ...x, member_count: x.member_count + 1 }
+        return x
+      }))
+      setMoveTargets((m) => { const next = { ...m }; delete next[s.id]; return next })
+      showToast(`${s.username} 학생을 '${toClass?.name ?? ''}' 반으로 옮겼어요.`)
+    } catch (err) {
+      showToast(err.message)
+    }
+  }
+
   const students = detail?.students ?? []
   const avg = students.length ? (students.reduce((n, s) => n + s.completed, 0) / students.length).toFixed(1) : '-'
   const chapterCount = students[0]?.chapter_count ?? Object.keys(CHAPTERS).length
@@ -234,7 +287,7 @@ export function TeacherPanel({ showToast }) {
       <div className="class-tabs" role="tablist" aria-label="반 목록">
         {(classes ?? []).map((c) => (
           <button key={c.id} type="button" role="tab" aria-selected={selected === c.id}
-            className={`class-tab ${selected === c.id ? 'on' : ''}`} onClick={() => setSelected(c.id)}>
+            className={`class-tab ${selected === c.id ? 'on' : ''}`} onClick={() => { setSelected(c.id); setEditingNameFor(null) }}>
             {c.name} <small>{c.member_count}명</small>
           </button>
         ))}
@@ -256,6 +309,19 @@ export function TeacherPanel({ showToast }) {
       {detail && detail.id === selected && (
         <div className="class-detail">
           <div className="class-summary">
+            {editingName ? (
+              <form className="code-form class-name-box" onSubmit={saveName}>
+                <input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} maxLength={40}
+                  aria-label="반 이름 수정" autoFocus />
+                <button type="submit" className="role-btn" disabled={savingName || !nameDraft.trim()}>저장</button>
+                <button type="button" className="role-btn ghost" onClick={cancelEditName} disabled={savingName}>취소</button>
+              </form>
+            ) : (
+              <div className="class-name-box">
+                <b className="class-name-current">{detail.name}</b>
+                <button type="button" className="role-btn ghost" onClick={startEditName}>✏️ 수정</button>
+              </div>
+            )}
             <div className="join-code-box">
               <span className="consent-code-label">참여 코드</span>
               <span className="consent-code">{detail.join_code}</span>
@@ -290,6 +356,7 @@ export function TeacherPanel({ showToast }) {
                     <th scope="col">완료</th>
                     <th scope="col">작품</th>
                     <th scope="col">최근 활동</th>
+                    {otherClasses.length > 0 && <th scope="col">다른 반으로 이동</th>}
                     <th scope="col"><span className="sr-only">관리</span></th>
                   </tr>
                 </thead>
@@ -304,6 +371,18 @@ export function TeacherPanel({ showToast }) {
                       <td><b>{s.completed}</b>/{s.chapter_count}</td>
                       <td>{s.projects}{s.shared_projects > 0 && <small> (공개 {s.shared_projects})</small>}</td>
                       <td>{daysAgo(s.last_active)}</td>
+                      {otherClasses.length > 0 && (
+                        <td>
+                          <div className="move-student-row">
+                            <select value={moveTargets[s.id] ?? ''} onChange={(e) => setMoveTargets((m) => ({ ...m, [s.id]: e.target.value }))}
+                              aria-label={`${s.username} 학생을 옮길 반 선택`}>
+                              <option value="">반 선택</option>
+                              {otherClasses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                            <button type="button" className="role-btn ghost" disabled={!moveTargets[s.id]} onClick={() => moveStudent(s)}>이동</button>
+                          </div>
+                        </td>
+                      )}
                       <td><button type="button" className="row-remove" onClick={() => removeStudent(s)} aria-label={`${s.username} 반에서 빼기`} title="반에서 빼기">×</button></td>
                     </tr>
                   ))}
@@ -443,6 +522,27 @@ export function GuardianPanel({ showToast }) {
               <span>📁 작품 {c.projects}개</span>
               <span>🌟 공개 {c.shared_projects}개</span>
             </div>
+            {c.projects_list?.length ? (
+              <ul className="child-projects-list">
+                {c.projects_list.map((p) => (
+                  <li key={p.id} className="child-project-row">
+                    <div className="project-thumb" aria-hidden="true">
+                      {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" /> : <span>{p.track === 'chapter' ? '🏆' : '🧩'}</span>}
+                    </div>
+                    <div className="project-info">
+                      <div className="project-title">{p.title}</div>
+                      <div className="project-meta">
+                        <span className={`project-track track-${p.track}`}>{p.track === 'chapter' ? '챕터' : '자유 창작'}</span>
+                        {Number(p.is_public) ? <span className="project-public">공개</span> : <span className="project-private">비공개</span>}
+                        <span className="project-date">{daysAgo(p.updated_at)}</span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-msg child-projects-empty">아직 만든 프로젝트가 없어요.</p>
+            )}
             <button type="button" className="role-btn ghost danger-text" onClick={() => unlink(c)}>연결 끊기</button>
           </article>
         ))}

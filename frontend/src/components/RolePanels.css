@@ -153,6 +153,8 @@
   border: 1px solid var(--border);
 }
 .class-summary { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.class-name-box { display: flex; align-items: center; gap: 8px; }
+.class-name-current { font-size: 1.0667rem; color: var(--text-h); }
 .join-code-actions { display: flex; gap: 6px; }
 .class-stats { display: flex; gap: 20px; flex: 1 1 auto; }
 .class-stats div { display: flex; flex-direction: column; }
@@ -166,6 +168,16 @@
 .progress-table thead th { font-size: 0.7667rem; font-weight: 600; color: var(--text-muted); }
 .progress-table tbody th { text-align: left; color: var(--text-h); font-weight: 600; }
 .progress-table td b { color: var(--text-h); }
+.move-student-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.move-student-row select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8rem;
+}
 .consent-pill {
   margin-left: 6px;
   padding: 1px 6px;
@@ -235,6 +247,10 @@
 .child-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #16a34a); }
 .child-chapters { display: flex; gap: 4px; flex-wrap: wrap; }
 .child-meta { display: flex; gap: 12px; color: var(--text); }
+.child-projects-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.child-project-row { display: flex; align-items: center; gap: 10px; }
+.child-project-row .project-info { flex: 1; min-width: 0; }
+.child-projects-empty { padding: 4px 0; }
 .child-card .role-btn { align-self: flex-start; }
 
 /* ── 내 정보 창 ── */

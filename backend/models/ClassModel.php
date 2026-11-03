@@ -5,7 +5,7 @@ require_once __DIR__ . '/../config/Validators.php';
 
 class ClassModel {
     const MAX_CLASSES_PER_TEACHER = 10;
-    const MAX_MEMBERS = 40;
+    const MAX_MEMBERS = 100;
     const MAX_NAME_LENGTH = 40;
     const CODE_LENGTH = 6;
 
@@ -120,6 +120,13 @@ class ClassModel {
     public function removeMember($classId, $studentId) {
         $stmt = $this->db->prepare("DELETE FROM class_members WHERE class_id = ? AND student_id = ?");
         $stmt->execute([$classId, $studentId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    // 같은 선생님의 다른 반으로 이동 — class_id만 바꾸므로 joined_at(가입 시점)은 그대로 유지됨
+    public function moveMember($fromClassId, $toClassId, $studentId) {
+        $stmt = $this->db->prepare("UPDATE class_members SET class_id = ? WHERE class_id = ? AND student_id = ?");
+        $stmt->execute([$toClassId, $fromClassId, $studentId]);
         return $stmt->rowCount() > 0;
     }
 }

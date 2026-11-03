@@ -7,6 +7,18 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  /* 전역 --text-muted(#94a3b8)는 흰 배경에서 명암비 2.6:1이라 읽기 어렵다 → 홈 화면은 4.5:1 이상으로 */
+  --home-muted: #5b6676;
+}
+@media (prefers-color-scheme: dark) {
+  .home-root { --home-muted: #9aa7b8; }
+}
+
+/* 한글은 기본값이면 글자 단위로 줄이 바뀌어 단어가 잘린다 → 띄어쓰기 단위로만 줄바꿈 (긴 단어만 예외) */
+.home-main,
+.home-footer {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .home-main {
@@ -162,7 +174,9 @@
   box-shadow: 0 8px 20px rgba(124, 58, 237, 0.14);
 }
 .home-char-card b { font-size: 0.9333rem; color: var(--text-h); }
-.home-char-card span { font-size: 0.7733rem; color: var(--text-muted); text-align: center; }
+.home-char-card span { font-size: 0.8267rem; color: var(--home-muted); text-align: center; }
+/* 위 span 규칙이 이모지 크기를 덮어써서 13px로 줄어들던 문제 방지 (선택자를 더 구체적으로) */
+.home-char-card .home-char-emoji { font-size: 2.2rem; color: inherit; }
 
 .home-char-emoji {
   font-size: 2.2rem;
@@ -207,13 +221,31 @@
 .home-news-date {
   flex-shrink: 0;
   font-size: 0.7733rem;
-  color: var(--text-muted);
+  color: var(--home-muted);
 }
 
 .home-news-title {
   font-size: 0.8933rem;
   color: var(--text-h);
   font-weight: 500;
+}
+
+/* 클릭하면 상세 보기가 열리는 카드 (button) — 기본 모양은 위 .home-news-card 그대로 */
+.home-news-card-btn {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.home-news-card-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.12);
+}
+.home-news-card-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @media (max-width: 560px) {
@@ -223,7 +255,8 @@
 /* ── 추천 프로젝트 ── */
 .home-proj-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  /* auto-fill: 작품이 1~3개여도 카드 한 장이 가로로 늘어나지 않고 4개일 때와 같은 크기를 유지 */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
   gap: 14px;
 }
 
@@ -250,8 +283,41 @@
   flex-direction: column;
   gap: 2px;
 }
-.home-proj-info b { font-size: 0.8667rem; color: var(--text-h); }
-.home-proj-info span { font-size: 0.76rem; color: var(--text-muted); }
+/* 제목은 두 줄까지, 닉네임은 한 줄까지만 보여주고 넘치면 …로 줄인다 (카드 레이아웃 보호) */
+.home-proj-card { min-width: 0; }
+/* 눌러서 친구 작품으로 이동하는 카드 */
+.home-proj-card-btn {
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.home-proj-card-btn:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.14);
+}
+.home-proj-card-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.home-proj-info { min-width: 0; }
+.home-proj-info b {
+  font-size: 0.8667rem;
+  color: var(--text-h);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.home-proj-info span {
+  font-size: 0.76rem;
+  color: var(--home-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-proj-more { display: flex; justify-content: center; margin-top: 18px; }
 
 .home-proj-skeleton {
   aspect-ratio: 4 / 3;
@@ -277,8 +343,39 @@
 .home-empty p {
   margin: 0;
   font-size: 0.8667rem;
-  color: var(--text-muted);
+  color: var(--home-muted);
   max-width: 420px;
+}
+
+/* ── 보호자 동의 안내 ── */
+.home-safety-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--header-bg);
+}
+.home-safety-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.home-safety-body { flex: 1; min-width: 0; }
+.home-safety-body b { display: block; font-size: 0.9333rem; color: var(--text-h); margin-bottom: 4px; }
+.home-safety-body p { margin: 0; font-size: 0.8267rem; color: var(--home-muted); line-height: 1.6; }
+.home-safety-cta { flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .home-safety-card { flex-direction: column; align-items: flex-start; text-align: left; }
+  .home-safety-cta { width: 100%; }
 }
 
 /* ════════════════════════════════════════════════
@@ -298,11 +395,24 @@
 .home-modal-panel {
   position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 540px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   background: var(--header-bg);
   border-radius: 16px;
-  padding: 28px 26px 24px;
+  padding: 34px 34px 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  /* 한글은 기본값이면 글자 단위로 줄이 바뀌어 읽기 어렵다 → 띄어쓰기 단위로만 줄바꿈 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+/* 줄 끝에 한두 글자만 덩그러니 남지 않도록 줄 길이를 고르게 맞춘다 */
+.home-modal-panel h3,
+.home-modal-panel p { text-wrap: balance; }
+
+@media (max-width: 480px) {
+  .home-modal-panel { padding: 28px 22px 22px; }
 }
 
 .home-modal-close {
@@ -313,7 +423,7 @@
   height: 28px;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--home-muted);
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
@@ -322,15 +432,16 @@
 .home-modal-close:hover { background: var(--btn-hover); }
 
 .home-modal-title {
-  font-size: 1.1333rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: var(--text-h);
-  margin: 0 0 18px;
+  line-height: 1.4;
+  margin: 0 0 22px;
 }
 
 .home-modal-cta {
   width: 100%;
-  margin-top: 20px;
+  margin-top: 26px;
 }
 
 /* 사용법 안내 스텝 */
@@ -340,45 +451,151 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
+  text-align: left; /* 번호 배지와 문장이 한 쌍이라 목록은 왼쪽 정렬 유지 */
 }
 .home-guide-steps li {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
 }
 .home-guide-num {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(145deg, #6d28d9, #9333ea);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.9333rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.home-guide-steps b { font-size: 0.8933rem; color: var(--text-h); }
-.home-guide-steps p { margin: 2px 0 0; font-size: 0.8267rem; color: var(--text-muted); line-height: 1.5; }
+.home-guide-steps b { font-size: 1.0667rem; color: var(--text-h); line-height: 1.4; }
+.home-guide-steps p { margin: 4px 0 0; font-size: 0.9333rem; color: var(--text-h); line-height: 1.7; }
+
+/* 새 소식 상세 모달 */
+.home-news-modal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.home-news-modal-meta .home-news-tag { font-size: 0.8rem; padding: 4px 11px; }
+.home-news-modal-meta .home-news-date { font-size: 0.8667rem; }
+.home-news-modal-title { margin-bottom: 18px; }
+.home-news-modal-body {
+  margin: 0 0 12px;
+  font-size: 0.9667rem;
+  color: var(--text-h);
+  line-height: 1.75;
+}
 
 /* 캐릭터 소개 모달 */
 .home-char-modal-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   margin-bottom: 6px;
 }
 .home-char-modal-head .home-modal-title { margin: 0 0 4px; }
 .home-char-role {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--accent);
   font-weight: 600;
 }
 .home-char-desc {
+  font-size: 0.9667rem;
+  color: var(--text-h);
+  line-height: 1.75;
+  margin: 14px 0 0;
+}
+
+/* ════════════════════════════════════════════════
+   2차 사용성 보완 — 새 소식 › 표시, 푸터, 모바일 추천 작품 2열
+   ════════════════════════════════════════════════ */
+/* 새 소식: 눌러서 볼 수 있다는 표시 (마우스가 없는 모바일에서도 보이게) */
+.home-news-more {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--home-muted);
+}
+.home-news-card-btn:hover .home-news-more { color: var(--accent); }
+
+/* 푸터 */
+.home-footer {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--accent-light), transparent 140%), var(--header-bg);
+}
+.home-footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 30px 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.home-footer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+}
+.home-footer-brand { display: flex; align-items: center; gap: 12px; }
+.home-footer-brand > div { display: flex; flex-direction: column; gap: 2px; }
+.home-footer-brand b { font-size: 1.0667rem; font-weight: 800; color: var(--text-h); letter-spacing: -0.3px; }
+.home-footer-brand span { font-size: 0.8667rem; color: var(--home-muted); }
+
+/* 바로가기: 눌러 볼 수 있는 둥근 칩 */
+.home-footer-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-footer-links button {
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--header-bg);
+  font-family: inherit;
   font-size: 0.8667rem;
-  color: var(--text);
-  line-height: 1.6;
-  margin: 10px 0 0;
+  font-weight: 600;
+  color: var(--text-h);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, transform 0.12s;
+}
+.home-footer-links button:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.home-footer-links button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.home-footer-bottom {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 24px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-strong);
+}
+.home-footer-note {
+  flex: 1 1 360px;
+  margin: 0;
+  font-size: 0.8267rem;
+  line-height: 1.65;
+  color: var(--home-muted);
+  word-break: keep-all;
+}
+.home-footer small { font-size: 0.78rem; color: var(--home-muted); white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .home-footer-inner { padding: 24px 16px 22px; }
+  .home-footer-links { width: 100%; }
+  .home-footer-links button { flex: 1 1 auto; text-align: center; }
+}
+
+/* 모바일: 추천 작품 4개가 1열로 길게 이어지지 않도록 2열로 */
+@media (max-width: 560px) {
+  .home-proj-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

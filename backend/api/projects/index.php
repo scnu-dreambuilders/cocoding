@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
 
-$payload = Auth::requireUser();
+$payload = Auth::requireRole(['student']);
 $userId = $payload['id'];
 $projectModel = new ProjectModel();
 

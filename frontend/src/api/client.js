@@ -51,10 +51,10 @@ export const api = {
 
   // role: 'student' | 'teacher' | 'guardian'
   // 학생은 birth_year (만 14세 미만이면 보호자 동의 코드 발급), 선생님·보호자는 adult: true
-  register: ({ username, email, password, role, birth_year, adult }) =>
+  register: ({ username, email, password, role, birth_year, adult, affiliation }) =>
     request('/auth/register.php', {
       method: 'POST',
-      body: JSON.stringify({ username, email, password, role, birth_year, adult }),
+      body: JSON.stringify({ username, email, password, role, birth_year, adult, affiliation }),
     }),
 
   me: () => request('/auth/me.php'),
@@ -71,6 +71,10 @@ export const api = {
   /* ── 내 정보 ──────────────────────────────── */
   changeUsername: (username) =>
     request('/auth/account.php', { method: 'PATCH', body: JSON.stringify({ username }) }),
+
+  // 선생님 전용: 소속(학교/학원 등) 바꾸기
+  changeAffiliation: (affiliation) =>
+    request('/auth/account.php', { method: 'PATCH', body: JSON.stringify({ affiliation }) }),
 
   // 성공하면 다른 기기 로그인은 끊기고 새 토큰을 받음
   changePassword: (current_password, new_password) =>
@@ -99,6 +103,13 @@ export const api = {
 
   removeStudent: (classId, studentId) =>
     request(`/classes/view.php?id=${encodeURIComponent(classId)}&student_id=${encodeURIComponent(studentId)}`, { method: 'DELETE' }),
+
+  // 선생님: 학생을 본인의 다른 반으로 이동
+  moveStudent: (fromClassId, studentId, toClassId) =>
+    request(`/classes/view.php?id=${encodeURIComponent(fromClassId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ move_student_id: studentId, move_to_class_id: toClassId }),
+    }),
 
   /* ── 보호자 ────────────────────────────────── */
   children: () => request('/guardian/children.php'),

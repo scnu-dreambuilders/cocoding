@@ -1,0 +1,14 @@
+/* UserMenu — 좁은 화면에서 TopNav 메뉴와 겹치지 않게 꼭 필요한 것만 남긴다 */
+@media (max-width: 860px) {
+  .usermenu { gap: 4px; }
+  .usermenu .text-size { display: none; }
+  .usermenu .user-name,
+  .usermenu .user-level-tag { display: none; }
+  .usermenu .user-chip { gap: 0; padding: 2px; }
+  .usermenu .btn-icon { width: 26px; height: 26px; }
+}
+
+/* 아주 좁은 화면: 설정(⚙️)은 학생 홈에서도 쓸 수 있어 여기서는 숨긴다 */
+@media (max-width: 420px) {
+  .usermenu .usermenu-settings { display: none; }
+}
