@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import HomePage      from './pages/HomePage'
 import AuthPage      from './pages/AuthPage'
 import SurveyPage    from './pages/SurveyPage'
 import StudentHomePage from './pages/StudentHomePage'
-import EditorPage    from './pages/EditorPage'
+// 블록 편집기는 blockly 라이브러리까지 같이 받아와야 해서 무겁다.
+// 홈·대시보드에서는 필요 없으므로 편집기를 열 때 그때 내려받는다.
+const EditorPage = lazy(() => import('./pages/EditorPage'))
+import PasswordResetPage from './pages/PasswordResetPage'
+import BoardPage from './pages/BoardPage'
 import { api } from './api/client'
 import { CHAPTER_COUNT } from './data/chapters'
 
@@ -25,9 +29,16 @@ function readCachedUser() {
 // 설문을 한 번도 하지 않은 학생 (건너뛰면 빈 배열로 저장됨). 선생님·보호자는 설문 없음
 const needsSurvey = (u) => u && (u.role ?? 'student') === 'student' && (u.tags === null || u.tags === undefined)
 
+// 비밀번호 재설정 메일 링크(?reset=토큰)로 들어왔는지
+function readResetToken() {
+  const token = new URLSearchParams(window.location.search).get('reset')
+  return token && /^[a-f0-9]{64}$/.test(token) ? token : null
+}
+
 export default function App() {
   const [user,      setUser]      = useState(readCachedUser)
-  const [page,      setPage]      = useState(() => (readCachedUser() ? 'dashboard' : 'home'))
+  const [resetToken, setResetToken] = useState(readResetToken)
+  const [page,      setPage]      = useState(() => (readResetToken() ? 'reset' : readCachedUser() ? 'dashboard' : 'home'))
   const [launch,    setLaunch]    = useState(null)
   const [editorKey, setEditorKey] = useState(0)
 
@@ -135,15 +146,17 @@ export default function App() {
   /* ── Render ───────────────────────────────────── */
   if (page === 'editor' && launch) {
     return (
-      <EditorPage
-        key={editorKey}
-        user={user}
-        launch={launch}
-        onBack={goDashboard}
-        onUserUpdate={refreshUser}
-        onOpenChapter={openChapterById}
-        onOpenMyGame={openMyGame}
-      />
+      <Suspense fallback={<div className="app-loading" role="status">블록 편집기를 준비하고 있어요…</div>}>
+        <EditorPage
+          key={editorKey}
+          user={user}
+          launch={launch}
+          onBack={goDashboard}
+          onUserUpdate={refreshUser}
+          onOpenChapter={openChapterById}
+          onOpenMyGame={openMyGame}
+        />
+      </Suspense>
     )
   }
 
@@ -169,6 +182,7 @@ export default function App() {
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
         onGoHome={() => setPage('home')}
+        onOpenBoard={() => setPage('board')}
       />
     )
   }
@@ -189,5 +203,36 @@ export default function App() {
     )
   }
 
-  return <AuthPage onLogin={handleLogin} onGuest={() => openEditor({ mode: 'free' })} />
+  if (page === 'board' && user) {
+    return (
+      <BoardPage
+        user={user}
+        onLogout={logout}
+        onGoHome={() => setPage('home')}
+        onNavigate={(key) => (key === 'board' ? setPage('board') : key === 'home' ? setPage('dashboard') : setPage('dashboard'))}
+      />
+    )
+  }
+
+  if (page === 'reset') {
+    return (
+      <PasswordResetPage
+        token={resetToken}
+        onDone={() => {
+          // 주소창의 토큰을 지워서 새로고침해도 다시 열리지 않게
+          window.history.replaceState(null, '', window.location.pathname)
+          setResetToken(null)
+          setPage('auth')
+        }}
+      />
+    )
+  }
+
+  return (
+    <AuthPage
+      onLogin={handleLogin}
+      onGuest={() => openEditor({ mode: 'free' })}
+      onForgotPassword={() => setPage('reset')}
+    />
+  )
 }

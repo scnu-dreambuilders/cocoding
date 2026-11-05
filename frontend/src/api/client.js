@@ -20,7 +20,14 @@ async function request(path, options = {}) {
       signal: controller.signal,
     })
   } catch (err) {
-    throw new Error(err.name === 'AbortError' ? '서버 응답이 너무 오래 걸립니다' : '서버에 연결할 수 없습니다', { cause: err })
+    if (err.name === 'AbortError') throw new Error('서버 응답이 너무 오래 걸립니다', { cause: err })
+    // 개발 중에는 서버가 멀쩡해도 브라우저가 막아서 여기로 오는 경우가 있다 (페이지 주소가
+    // backend/.env의 ALLOWED_ORIGINS에 없을 때). 원인을 찾느라 헤매지 않게 주소를 알려준다
+    const crossOrigin = /^https?:\/\//.test(BASE) && !BASE.startsWith(window.location.origin)
+    const hint = import.meta.env.DEV && crossOrigin
+      ? ` (${BASE} 호출 실패 — 백엔드가 켜져 있는지, ALLOWED_ORIGINS에 ${window.location.origin} 주소가 있는지 확인해주세요)`
+      : ''
+    throw new Error('서버에 연결할 수 없습니다' + hint, { cause: err })
   } finally {
     clearTimeout(timeoutId)
   }
@@ -165,6 +172,79 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ id, reason }),
     }),
+
+  // 비밀번호 찾기: 메일로 재설정 링크 받기 → 링크의 토큰으로 새 비밀번호 설정
+  requestPasswordReset: (email) =>
+    request('/auth/password_reset.php', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  resetPassword: (token, new_password) =>
+    request('/auth/password_reset.php', { method: 'POST', body: JSON.stringify({ token, new_password }) }),
+
+  /* ── 전체 검색 ─────────────────────────────── */
+  search: (q) => request(`/search/index.php?q=${encodeURIComponent(q)}`),
+
+  /* ── 과제 (선생님이 반에 내주는 챕터) ───────── */
+  assignments: (classId) =>
+    request(`/classes/assignments.php${classId ? `?class_id=${encodeURIComponent(classId)}` : ''}`),
+
+  createAssignment: (data) =>
+    request('/classes/assignments.php', { method: 'POST', body: JSON.stringify(data) }),
+
+  deleteAssignment: (id) =>
+    request(`/classes/assignments.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  /* ── 좋아요 · 인기 작품 ─────────────────────── */
+  likeProject: (id) => request('/projects/like.php', { method: 'POST', body: JSON.stringify({ id }) }),
+
+  popularProjects: (page = 1) => request(`/projects/index.php?public=1&sort=popular&page=${page}`),
+
+  /* ── 프로필 · 팔로우 · 랭킹 ─────────────────── */
+  profile: (id) => request(`/social/profile.php${id ? `?id=${encodeURIComponent(id)}` : ''}`),
+
+  updateProfile: (data) => request('/social/profile.php', { method: 'PATCH', body: JSON.stringify(data) }),
+
+  followUser: (id) => request('/social/profile.php', { method: 'POST', body: JSON.stringify({ follow: id }) }),
+
+  unfollowUser: (id) => request('/social/profile.php', { method: 'POST', body: JSON.stringify({ unfollow: id }) }),
+
+  ranking: (scope = 'all') => request(`/social/ranking.php?scope=${encodeURIComponent(scope)}`),
+
+  /* ── 토론 게시판 ────────────────────────────── */
+  boardList: (page = 1) => request(`/board/index.php?page=${page}`),
+
+  boardPost: (id) => request(`/board/index.php?id=${encodeURIComponent(id)}`),
+
+  createBoardPost: (title, body) => request('/board/index.php', { method: 'POST', body: JSON.stringify({ title, body }) }),
+
+  updateBoardPost: (id, title, body) =>
+    request(`/board/index.php?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ title, body }) }),
+
+  deleteBoardPost: (id) => request(`/board/index.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  addBoardComment: (post_id, body) => request('/board/index.php', { method: 'POST', body: JSON.stringify({ post_id, body }) }),
+
+  deleteBoardComment: (id) => request(`/board/index.php?comment_id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  reportBoardPost: (report_id, reason) => request('/board/index.php', { method: 'POST', body: JSON.stringify({ report_id, reason }) }),
+
+  /* ── 과제 (추가) ───────────────────────────── */
+  assignmentDetail: (id) => request(`/classes/assignments.php?id=${encodeURIComponent(id)}`),
+
+  updateAssignment: (id, data) =>
+    request(`/classes/assignments.php?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  markAssignmentDone: (done_id, note) =>
+    request('/classes/assignments.php', { method: 'POST', body: JSON.stringify({ done_id, note }) }),
+
+  /* ── 출석 ──────────────────────────────────── */
+  attendance: () => request('/attendance/index.php'),
+
+  checkIn: () => request('/attendance/index.php', { method: 'POST' }),
+
+  /* ── 상점 ──────────────────────────────────── */
+  shop: () => request('/shop/index.php'),
+
+  buyItem: (item) => request('/shop/index.php', { method: 'POST', body: JSON.stringify({ item }) }),
 
   /* ── Items (코코 꾸미기) ───────────────────── */
   items: () => request('/items/index.php'),

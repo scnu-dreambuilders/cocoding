@@ -351,3 +351,15 @@
     padding: 5px 13px;
   }
 }
+
+/* 블록 편집기를 내려받는 동안 (App.jsx의 Suspense) */
+.app-loading {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 1rem;
+}

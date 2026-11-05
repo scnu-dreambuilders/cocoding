@@ -606,3 +606,15 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* ── 좁은 화면 에디터 헤더: 글자가 겹치지 않게 ── */
+@media (max-width: 640px) {
+  .app-header { gap: 8px; padding: 0 10px; }
+  .header-brand { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+  .header-sep { display: none; }
+  .editor-back-label { display: none; }
+  .editor-title-btn, .editor-title-input { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .header-actions { flex: 0 0 auto; gap: 4px; }
+  .save-msg { display: none; }
+  .text-size-btn { padding: 2px 5px; }
+}

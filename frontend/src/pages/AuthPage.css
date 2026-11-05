@@ -551,3 +551,30 @@
   line-height: 1.5;
   color: var(--text-muted);
 }
+
+/* 비밀번호 찾기 링크 */
+.auth-forgot {
+  align-self: center;
+  margin-top: 2px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8333rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.auth-forgot:hover { color: var(--accent); }
+
+/* 약관 전문 보기 */
+.term-full {
+  margin-left: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}

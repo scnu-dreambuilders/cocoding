@@ -31,6 +31,17 @@
   /* ── Accent ─────────────────────────────────── */
   --accent: #7c3aed;
   --accent-light: rgba(124, 58, 237, 0.1);
+  /* 연한 보라 바탕 위의 글자용 — --accent는 그 위에서 4.5:1이 안 나온다 */
+  --accent-text: #6b21a8;
+
+  /* ── 상태 색 (성공·보상·위험) ────────────────
+     글자용(--ok 등)은 배경 위에서 4.5:1이 나오는 값, --*-bg는 옅은 배경용 */
+  --ok: #15803d;
+  --ok-bg: rgba(34, 197, 94, 0.12);
+  --warn: #b45309;
+  --warn-bg: rgba(245, 158, 11, 0.14);
+  --danger: #dc2626;
+  --danger-bg: rgba(239, 68, 68, 0.1);
 
   /* ── Base ───────────────────────────────────── */
   /* 모든 글자 크기는 rem(1rem = 이 값) → 글씨 크기 설정 하나로 화면 전체가 커짐 (lib/textSize.js) */
@@ -58,6 +69,14 @@
 
     --btn-hover: rgba(255, 255, 255, 0.06);
     --tab-hover: rgba(255, 255, 255, 0.04);
+    --accent-text: #d8c7ff;
+
+    --ok: #5ddc93;
+    --ok-bg: rgba(34, 197, 94, 0.18);
+    --warn: #fbbf24;
+    --warn-bg: rgba(245, 158, 11, 0.18);
+    --danger: #fca5a5;
+    --danger-bg: rgba(239, 68, 68, 0.18);
 
     --code-bg: #010409;
     --code-text: #7d8590;
@@ -114,8 +133,16 @@ body {
 }
 .text-size-btn + .text-size-btn { border-left: 1px solid var(--border); }
 .text-size-btn:hover { background: var(--btn-hover); color: var(--text-h); }
-.text-size-btn.on { background: var(--accent-light); color: var(--accent); }
+.text-size-btn.on { background: var(--accent-light); color: var(--accent-text); }
 /* 버튼 글자는 설정과 상관없이 고정 크기 — 세 단계 차이가 보이도록 */
 .ts-sm { font-size: 12px; }
 .ts-md { font-size: 15px; }
 .ts-lg { font-size: 19px; }
+
+/* 키보드로 이동할 때 지금 어디에 있는지 항상 보이게.
+   :where()라서 우선순위가 0 → 각자 정의한 포커스 스타일이 있으면 그쪽이 이긴다. */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

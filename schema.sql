@@ -17,6 +17,10 @@ CREATE TABLE users (
     affiliation VARCHAR(50) NULL,
     level TINYINT DEFAULT 1,
     tags JSON NULL,
+    coins INT NOT NULL DEFAULT 0, -- 출석·학습으로 모아서 상점에서 쓰는 재화
+    xp INT NOT NULL DEFAULT 0,    -- 경험치 (레벨 계산용)
+    bio VARCHAR(50) NULL,         -- 자기소개 (학생만)
+    profile_visibility ENUM('public','friends','private') NOT NULL DEFAULT 'public',
     token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -132,6 +136,140 @@ CREATE TABLE class_members (
     UNIQUE KEY uniq_member (class_id, student_id),
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 출석 (하루 한 번, 연속 출석이면 보너스 코인)
+CREATE TABLE attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    attended_on DATE NOT NULL,
+    reward_coins SMALLINT NOT NULL DEFAULT 0,
+    streak SMALLINT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_day (user_id, attended_on),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 코인 입출금 내역. ref로 중복 지급을 막는다 (예: 챕터 3 보상은 1회)
+CREATE TABLE coin_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    amount INT NOT NULL,
+    reason VARCHAR(40) NOT NULL,
+    ref VARCHAR(60) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_ref (user_id, reason, ref),
+    INDEX idx_user_time (user_id, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 비밀번호 재설정 링크 (토큰 원본은 메일로만 가고, DB에는 해시만)
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 선생님이 반에 내주는 과제 (챕터 하나 + 마감일)
+-- 과제: chapter_id가 있으면 챕터 과제, 없으면 선생님이 직접 쓴 과제
+CREATE TABLE class_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    chapter_id INT NULL,
+    title VARCHAR(80) NULL,
+    note VARCHAR(200) NULL,
+    reward_coins SMALLINT NOT NULL DEFAULT 0,
+    due_on DATE NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_class (class_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+);
+
+-- 학생이 직접 쓴 과제를 끝냈다고 표시한 기록
+CREATE TABLE assignment_done (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    assignment_id INT NOT NULL,
+    student_id INT NOT NULL,
+    note VARCHAR(200) NULL,
+    done_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_done (assignment_id, student_id),
+    FOREIGN KEY (assignment_id) REFERENCES class_assignments(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 작품 좋아요 (한 사람당 작품 하나에 한 번)
+CREATE TABLE project_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_like (project_id, user_id),
+    INDEX idx_project (project_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 팔로우. 서로 팔로우하면 친구
+CREATE TABLE follows (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    follower_id INT NOT NULL,
+    following_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_follow (follower_id, following_id),
+    INDEX idx_following (following_id),
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 업적
+CREATE TABLE user_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code VARCHAR(40) NOT NULL,
+    earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_achievement (user_id, code),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 토론 게시판 (Q&A와 별개)
+CREATE TABLE board_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(80) NOT NULL,
+    body TEXT NOT NULL,
+    hidden TINYINT(1) NOT NULL DEFAULT 0, -- 신고 3건이면 자동 숨김
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_created (hidden, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE board_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    body VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_post (post_id, created_at),
+    FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE board_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_board_report (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 요청 제한 기록 (로그인 실패, 작품 저장 등)

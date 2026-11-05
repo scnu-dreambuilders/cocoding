@@ -1,0 +1,245 @@
+/* ════════════════════════════════════════════════
+   내 프로필 · 업적 · 친구 · 학습 기록 그래프 · 랭킹
+   ════════════════════════════════════════════════ */
+.profile-skeleton { height: 180px; }
+
+.profile-card,
+.chart-card,
+.rank-card {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+}
+.profile-card { display: flex; flex-direction: column; gap: 16px; }
+
+.profile-main { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.profile-info { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.profile-name { font-size: 1.2rem; color: var(--text-h); }
+
+.profile-bio { margin: 0; font-size: 0.8667rem; color: var(--text); word-break: keep-all; }
+.profile-bio-empty { color: var(--text); }
+.profile-edit,
+.profile-achievements h4 small,
+.profile-friends h4 small { font-size: 0.8rem; }
+.profile-edit {
+  margin-left: 8px;
+  min-height: 28px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.profile-bio-edit { display: flex; gap: 6px; flex-wrap: wrap; }
+.profile-bio-edit input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8667rem;
+}
+.profile-bio-edit input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+
+.profile-level { display: flex; flex-direction: column; gap: 3px; }
+.profile-level-bar { height: 10px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.profile-level-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 65%, white), var(--accent));
+}
+.profile-level small { font-size: 0.8rem; color: var(--text); }
+
+.profile-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8333rem; color: var(--text); }
+.profile-stats b { color: var(--text-h); }
+
+/* 공개 범위 */
+.profile-visibility { margin: 0; padding: 0; border: none; display: flex; gap: 6px; flex-wrap: wrap; }
+.profile-visibility legend { padding: 0 0 6px; font-size: 0.8333rem; font-weight: 600; color: var(--text); }
+.profile-vis {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8333rem;
+  color: var(--text-h);
+  cursor: pointer;
+}
+/* 라디오는 칩 전체를 덮는다 — 키보드 포커스 링이 칩에 그려지도록 */
+.profile-vis { position: relative; min-height: 34px; word-break: keep-all; }
+.profile-vis input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.profile-vis:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.profile-vis.on { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
+.profile-vis span { display: flex; flex-direction: column; }
+.profile-vis small { font-size: 0.7667rem; color: var(--text-h); font-weight: 400; }
+.profile-vis.on small { color: inherit; }
+
+/* 업적 */
+.profile-achievements h4,
+.profile-friends h4 { margin: 0 0 8px; font-size: 0.9rem; color: var(--text-h); }
+.profile-achievements h4 small,
+.profile-friends h4 small { margin-left: 6px; color: var(--text); font-weight: 400; }
+.achv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.achv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border-radius: 12px;
+  background: var(--bg);
+  text-align: center;
+  word-break: keep-all;
+}
+/* 받은 업적은 흰 카드 위에 얹은 노란 바탕 (페이지 바탕 위면 글자가 4.5:1에 못 미친다) */
+.achv.on { background: linear-gradient(var(--warn-bg), var(--warn-bg)), var(--panel-bg); }
+.achv-emoji { font-size: 1.5rem; line-height: 1.2; }
+.achv-name { font-size: 0.7667rem; line-height: 1.35; color: var(--text-h); }
+.achv.on .achv-name { font-weight: 600; }
+
+/* 친구 */
+.friend-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.friend-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: var(--bg); }
+.friend-open {
+  flex: 1;
+  min-width: 0;
+  min-height: 28px;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+.friend-open b { font-size: 0.8667rem; color: var(--text-h); word-break: keep-all; }
+.friend-open small { font-size: 0.7667rem; color: var(--text-h); word-break: keep-all; }
+.friend-open:hover b { color: var(--accent); }
+.friend-tag { font-size: 0.7667rem; color: var(--ok); font-weight: 600; white-space: nowrap; }
+.friend-tag.pending { color: var(--text-h); font-weight: 400; }
+/* 지우기 단추는 최소 28px (RolePanels.css 기본값 26px보다 크게) */
+.friend-list .row-remove {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  color: var(--text);
+}
+
+/* 학습 기록 그래프
+   하루치 칸(막대 자리)을 옅은 바탕으로 깔아 두어서,
+   활동이 없던 날은 '빈 칸', 많은 날은 '꽉 찬 칸'으로 한눈에 보이게 했다. */
+.chart-card { display: flex; flex-direction: column; gap: 10px; }
+
+.chart-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--text); }
+.chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.chart-legend b { color: var(--text-h); }
+.chart-key { width: 12px; height: 12px; border-radius: 4px; flex: 0 0 auto; }
+.chart-attended { background: var(--warn); }
+.chart-chapters { background: var(--ok); }
+.chart-projects { background: var(--accent); }
+
+.chart-bars { display: flex; align-items: flex-end; gap: 4px; }
+.chart-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.chart-sum {
+  font-size: 0.7667rem;
+  line-height: 1.2;
+  min-height: 1.2em;
+  font-weight: 700;
+  color: var(--text-h);
+}
+.chart-stack {
+  width: 100%;
+  max-width: 30px;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.chart-seg { display: block; width: 100%; min-height: 6px; }
+.chart-col small { font-size: 0.7667rem; color: var(--text); }
+.chart-col.is-today small { color: var(--accent); font-weight: 700; }
+.chart-col.is-today .chart-stack { box-shadow: inset 0 0 0 2px var(--accent); }
+
+.chart-axis {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+  font-size: 0.7667rem;
+  color: var(--text);
+  word-break: keep-all;
+}
+
+/* 랭킹 */
+.rank-card { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.rank-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rank-head h4 { margin: 0; font-size: 0.9rem; color: var(--text-h); }
+.rank-scopes { display: flex; gap: 4px; }
+.rank-scopes button {
+  min-height: 28px;
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.rank-scopes button:hover:not(.on) { background: var(--btn-hover); color: var(--text-h); }
+.rank-scopes button.on { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 600; }
+
+.rank-summary { margin: 0; font-size: 0.8667rem; color: var(--text); }
+.rank-summary b { color: var(--text-h); }
+
+.rank-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.rank-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.8333rem;
+}
+.rank-list li.is-me { background: var(--accent-light); font-weight: 600; }
+.rank-no { min-width: 22px; text-align: center; color: var(--text-h); font-weight: 700; }
+.rank-list li.is-me .rank-no { color: var(--accent); }
+.rank-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-h); }
+.rank-lv { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.rank-xp { color: var(--text-h); white-space: nowrap; }
+
+/* 친구 프로필 보기 (모달) — 가로로 끝까지 늘어나지 않게
+   (.modal 의 max-width: 100% 를 이기려면 두 클래스를 함께 써야 한다) */
+.modal.profile-modal { width: 100%; max-width: 440px; }
+.profile-modal .profile-main { gap: 12px; }
+.profile-modal .role-btn { align-self: flex-start; }
+.profile-modal .modal-x { min-width: 28px; min-height: 28px; color: var(--text); }
+
+@media (max-width: 640px) {
+  .profile-card,
+  .chart-card,
+  .rank-card { padding: 14px; }
+  .chart-stack { height: 110px; max-width: 24px; }
+  .chart-bars { gap: 3px; }
+  .rank-list li { gap: 8px; padding: 7px 8px; }
+  .achv-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+  .profile-visibility { gap: 5px; }
+}

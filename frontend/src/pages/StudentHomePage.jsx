@@ -4,10 +4,18 @@ import { CocoAvatar } from '../components/Coco'
 import TopNav from '../components/TopNav'
 import { CHAPTERS, CHAPTER_COUNT } from '../data/chapters'
 import { INTEREST_EMOJI, LEVEL_LABEL, ITEM_TYPE_LABEL } from '../data/library'
-import { BLOCK_INFO } from '../blockly/blocks'
+import { BLOCK_INFO } from '../blockly/blockInfo'
 import { starsOf } from '../engine/grader'
 import TextSizeControl from '../components/TextSizeControl'
 import AccountModal from '../components/AccountModal'
+import AttendanceCard from '../components/AttendanceCard'
+import ShopPanel from '../components/ShopPanel'
+import SearchBox from '../components/SearchBox'
+import SiteFooter from '../components/SiteFooter'
+import ProfileCard from '../components/ProfileCard'
+import ProfileModal from '../components/ProfileModal'
+import ActivityChart from '../components/ActivityChart'
+import { StudentAssignments } from '../components/Assignments'
 import { ConsentBanner, GuardianPanel, StudentClasses, TeacherPanel } from '../components/RolePanels'
 import { ROLE_LABEL } from '../lib/validators'
 import emptyProjectsImg from '../assets/empty-projects.png'
@@ -44,8 +52,8 @@ function Section({ id, icon, title, badge, action, children }) {
   )
 }
 
-function fetchCommunity(page, setCommunity) {
-  return api.publicProjects(page)
+function fetchCommunity(page, setCommunity, sort = 'recent') {
+  return (sort === 'popular' ? api.popularProjects(page) : api.publicProjects(page))
     .then((res) => setCommunity((c) => ({
       list: page === 1 ? res.projects : [...c.list, ...res.projects],
       page, hasMore: res.hasMore, loading: false,
@@ -65,7 +73,7 @@ function Thumb({ src, fallback = '🧩' }) {
    StudentHomePage — 로그인한 학생이 쓰는 통합형 학생 홈
    (추천 주제·단계별 학습·자유창작 진입·포트폴리오·우리 반·친구 작품·코코 꾸미기)
    ════════════════════════════════════════════════ */
-export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome }) {
+export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome, onOpenBoard }) {
   const role = user?.role ?? 'student'
   const isStudent = role === 'student'
   // 만 14세 미만 + 보호자 동의 전: 친구 작품 보기·공유·리메이크 잠김 (챕터·작품 만들기는 가능)
@@ -82,6 +90,9 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
   const [reporting, setReporting] = useState(null)
   const [toast, setToast] = useState('')
   const [accountOpen, setAccountOpen] = useState(false)
+  const [coins, setCoins] = useState(user?.coins ?? 0)
+  const [profileId, setProfileId] = useState(null) // 친구 프로필 창
+  const [sort, setSort] = useState('recent')       // 친구 작품: 최신순 | 인기순
   const toastTimer = useRef(0)
 
   // 패널 컴포넌트의 effect 의존성에 들어가므로 항상 같은 함수
@@ -111,7 +122,27 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
 
   const loadMoreCommunity = () => {
     setCommunity((c) => ({ ...c, loading: true }))
-    fetchCommunity(community.page + 1, setCommunity)
+    fetchCommunity(community.page + 1, setCommunity, sort)
+  }
+
+  // 최신순 ↔ 인기순
+  const changeSort = (next) => {
+    setSort(next)
+    setCommunity({ list: [], page: 0, hasMore: true, loading: true })
+    fetchCommunity(1, setCommunity, next)
+  }
+
+  // 좋아요 켜고 끄기 (목록에서 바로 반영)
+  const toggleLike = async (p) => {
+    try {
+      const res = await api.likeProject(p.id)
+      setCommunity((c) => ({
+        ...c,
+        list: c.list.map((x) => (x.id === p.id ? { ...x, like_count: res.count, liked_by_me: res.liked ? 1 : 0 } : x)),
+      }))
+    } catch (e) {
+      showToast(e.message)
+    }
   }
 
   useEffect(() => {
@@ -158,6 +189,13 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
     }
     onOpenEditor({ mode: 'chapter', chapter: ch })
   }
+  // 검색 결과에서 챕터 열기 — 목록에 있는 챕터 정보를 그대로 쓴다
+  const openChapterById = (chapterId) => {
+    const ch = chapters.find((c) => Number(c.id) === Number(chapterId))
+    if (ch) openChapter(ch)
+    else showToast('챕터를 불러오는 중이에요. 잠시 후 다시 눌러주세요.')
+  }
+
   const openProject = (p) => onOpenEditor({ mode: 'free', projectId: p.id, completedChapters: completedNos })
   const openTopic = (t) => onOpenEditor({ mode: 'free', topic: t, completedChapters: completedNos })
   const openBlank = () => onOpenEditor({ mode: 'free', completedChapters: completedNos })
@@ -169,6 +207,11 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
     } else if (key === 'free') {
       if (isStudent) openBlank()
       else showToast('자유창작은 학생 계정에서만 이용할 수 있어요.')
+    } else if (key === 'board') {
+      onOpenBoard?.()
+    } else if (key === 'popular') {
+      changeSort('popular')
+      document.getElementById('community-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     } else {
       showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
     }
@@ -290,12 +333,23 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                 <div className="stat"><span className="stat-num">{load.pr ? '…' : projects.length}</span><span className="stat-label">내 작품</span></div>
                 <div className="stat-divider" />
                 <div className="stat"><span className="stat-num">{items.length}</span><span className="stat-label">아이템</span></div>
+                <div className="stat-divider" />
+                <div className="stat"><span className="stat-num">🪙 {coins}</span><span className="stat-label">코인</span></div>
               </div>
             )}
           </div>
         </section>
 
         {isStudent && consentPending && <ConsentBanner user={user} onRefresh={refreshConsent} />}
+        {isStudent && (
+          <section className="dash-section dash-search-section">
+            <SearchBox onOpenProject={openProject} onOpenChapter={(c) => openChapterById(c.id)} onRemake={remake} />
+          </section>
+        )}
+        {isStudent && (
+          <StudentAssignments onOpenChapter={openChapterById} showToast={showToast} onCoinsChange={setCoins} />
+        )}
+        {isStudent && <AttendanceCard showToast={showToast} onCoinsChange={setCoins} />}
         {role === 'teacher' && <TeacherPanel showToast={showToast} />}
         {role === 'guardian' && <GuardianPanel showToast={showToast} />}
 
@@ -422,7 +476,15 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
         {isStudent && <StudentClasses showToast={showToast} />}
 
         {/* ── 친구 작품 (학생 전용) ── */}
-        {isStudent && <Section icon="🌟" title="친구 작품" badge="리메이크해서 따라 만들어보기">
+        {isStudent && <Section id="community-section" icon="🌟" title="친구 작품"
+          action={
+            <div className="filter-tabs" role="tablist" aria-label="정렬">
+              {[['recent', '최신순'], ['popular', '인기순']].map(([v, l]) => (
+                <button key={v} type="button" role="tab" aria-selected={sort === v} className={sort === v ? 'on' : ''}
+                  onClick={() => changeSort(v)}>{l}</button>
+              ))}
+            </div>
+          }>
           {consentPending ? (
             <div className="empty-msg">🔒 보호자 동의가 끝나면 친구들의 작품을 보고 리메이크할 수 있어요.</div>
           ) : community.list.length === 0 && !community.loading ? (
@@ -435,8 +497,18 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                   <div className="project-info">
                     <div className="project-title">{p.title}</div>
                     <div className="project-meta">
-                      <span className="project-author">👤 {p.username}</span>
+                      <button type="button" className="project-author-btn" onClick={() => setProfileId(Number(p.user_id))}
+                        title={`${p.username} 프로필 보기`}>👤 {p.username}</button>
                       <span className="project-remakes" title="리메이크 수">🔁 {p.remake_count ?? 0}</span>
+                      {Number(p.user_id) === Number(user?.id)
+                        ? <span className="project-likes" title="받은 좋아요">💜 {p.like_count ?? 0}</span>
+                        : (
+                          <button type="button" className={`like-btn ${Number(p.liked_by_me) ? 'on' : ''}`}
+                            onClick={() => toggleLike(p)} aria-pressed={!!Number(p.liked_by_me)}
+                            title={Number(p.liked_by_me) ? '좋아요 취소' : '좋아요'}>
+                            {Number(p.liked_by_me) ? '💜' : '🤍'} {p.like_count ?? 0}
+                          </button>
+                        )}
                     </div>
                   </div>
                   {Number(p.user_id) === Number(user?.id)
@@ -468,10 +540,13 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
           )}
         </Section>}
 
+        {isStudent && <ProfileCard showToast={showToast} onOpenProfile={setProfileId} />}
+        {isStudent && <ActivityChart />}
+
         {/* ── 코코 꾸미기 (학생 전용) ── */}
         {isStudent && <Section icon="🎀" title="코코 꾸미기" badge={items.length ? `${items.length}개 모음` : null}>
           {items.length === 0 ? (
-            <div className="empty-msg">챕터를 완료하거나 작품을 저장하면 코코를 꾸밀 아이템을 받아요!</div>
+            <div className="empty-msg">챕터를 완료하거나 작품을 저장하면 코코를 꾸밀 아이템을 받아요. 아래 상점에서 코인으로 살 수도 있어요!</div>
           ) : (
             <div className="items-wrap">
               <div className="items-preview"><CocoAvatar size={110} emotion="happy" items={equipped} /></div>
@@ -488,7 +563,20 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
             </div>
           )}
         </Section>}
+
+        {/* ── 코코 상점 (학생 전용) ── */}
+        {isStudent && (
+          <ShopPanel showToast={showToast} equipped={equipped} onCoinsChange={setCoins}
+            onBought={() => api.items().then(setItems).catch(() => {})} />
+        )}
       </main>
+
+      <SiteFooter onNavigate={handleNavigate} />
+
+      {profileId && (
+        <ProfileModal userId={profileId} onClose={() => setProfileId(null)} showToast={showToast}
+          onOpenProject={(p) => openProject(p)} />
+      )}
 
       {accountOpen && (
         <AccountModal user={user} onClose={() => setAccountOpen(false)} onUserChange={onUserChange}

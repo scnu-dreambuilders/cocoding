@@ -49,7 +49,7 @@
   position: absolute;
   right: 96px; /* Blockly 휴지통·확대 버튼과 겹치지 않게 */
   bottom: 18px;
-  z-index: 30;
+  z-index: 80; /* Blockly 팔레트(기본 70)보다 위 — 좁은 화면에서 대화창이 가려지지 않게 */
   display: flex;
   align-items: flex-end;
   gap: 8px;
@@ -132,4 +132,6 @@
 @media (max-width: 768px) {
   .coco-dock { right: 12px; bottom: 12px; }
   .coco-bubble { max-width: 220px; font-size: 0.8333rem; }
+  /* 좁은 화면에서는 대화창을 코코 옆이 아니라 위에 둬서 화면을 넘지 않게 */
+  .coco-dock:has(.coco-chat) { left: 12px; flex-direction: column; align-items: stretch; }
 }

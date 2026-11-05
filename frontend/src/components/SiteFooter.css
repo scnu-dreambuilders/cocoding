@@ -1,0 +1,83 @@
+/* ════════════════════════════════════════════════
+   공통 푸터 (홈 · 학생 대시보드)
+   ════════════════════════════════════════════════ */
+.site-footer {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--accent-light), transparent 140%), var(--header-bg);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.site-footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.site-footer-brand { display: flex; align-items: center; gap: 12px; }
+.site-footer-brand > div { display: flex; flex-direction: column; gap: 2px; }
+.site-footer-brand b { font-size: 1.0667rem; font-weight: 800; color: var(--text-h); letter-spacing: -0.3px; }
+/* 푸터 바탕에는 보라색 그라데이션이 얹혀 있어서, var(--text)로는 대비가 4.5:1에 못 미친다 → --text-h */
+.site-footer-brand span { font-size: 0.8667rem; color: var(--text-h); }
+
+/* 사이트맵 */
+.site-footer-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px 24px;
+}
+.site-footer-col h4 {
+  margin: 0 0 8px;
+  font-size: 0.8333rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.site-footer-col ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.site-footer-col button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8333rem;
+  line-height: 1.6;
+  min-height: 28px;
+  color: var(--text-h);
+  text-align: left;
+  cursor: pointer;
+}
+.site-footer-col button:hover { color: var(--accent); text-decoration: underline; }
+.site-footer-col button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+.site-footer-bottom {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.site-footer-note { margin: 0; font-size: 0.8333rem; color: var(--text-h); }
+.site-footer-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-h);
+}
+/* 메일 주소는 글 속 링크라도 손가락으로 누를 만큼 (주변 여백은 음수 margin으로 되돌림) */
+.site-footer-meta a {
+  display: inline-block;
+  margin: -5px -4px;
+  padding: 5px 4px;
+  border-radius: 6px;
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .site-footer-inner { padding: 22px 16px 20px; }
+}

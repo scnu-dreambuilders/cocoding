@@ -50,6 +50,14 @@ class Validators {
         return (int)date('Y') - (int)$birthYear <= self::CONSENT_AGE;
     }
 
+    // 한글 받침에 맞는 조사 고르기 ("모자를", "왕관을")
+    public static function withParticle($word, $withJong = '을', $withoutJong = '를') {
+        $last = mb_substr((string)$word, -1);
+        $code = mb_ord($last, 'UTF-8');
+        $hasJong = $code >= 0xAC00 && $code <= 0xD7A3 && ($code - 0xAC00) % 28 !== 0;
+        return $word . ($hasJong ? $withJong : $withoutJong);
+    }
+
     // 헷갈리는 글자(0/O, 1/I/L)를 뺀 코드 — 아이가 보고 불러주기 쉽게
     public static function randomCode($length) {
         $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

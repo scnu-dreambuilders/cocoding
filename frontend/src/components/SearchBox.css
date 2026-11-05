@@ -1,0 +1,132 @@
+/* ════════════════════════════════════════════════
+   전체 검색 상자 (학생 홈 상단)
+   ════════════════════════════════════════════════ */
+.searchbox {
+  position: relative;
+  flex: 1 1 260px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+}
+.searchbox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+
+.searchbox-icon { font-size: 0.9rem; opacity: 0.7; }
+
+.searchbox-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8667rem;
+  outline: none;
+}
+.searchbox-input::-webkit-search-cancel-button { display: none; }
+
+.searchbox-clear {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.searchbox-clear:hover { background: var(--btn-hover); color: var(--text-h); }
+
+.searchbox-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.searchbox-msg { margin: 0; padding: 8px; font-size: 0.8333rem; color: var(--text); word-break: keep-all; }
+
+.searchbox-results h4 {
+  margin: 0 0 3px;
+  padding: 0 6px;
+  font-size: 0.7667rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.searchbox-row {
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 0.8333rem;
+  text-align: left;
+  cursor: pointer;
+}
+.searchbox-row:hover:not(:disabled) { background: var(--btn-hover); }
+/* 잠긴 챕터 — 흐리게 하면 제목이 안 읽혀서, 자물쇠 표시와 커서로만 알린다 */
+.searchbox-row:disabled { cursor: not-allowed; }
+.searchbox-row:disabled .searchbox-badge { background: var(--bg); color: var(--text-h); }
+
+.searchbox-badge {
+  flex: 0 0 auto;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: linear-gradient(var(--accent-light), var(--accent-light)), var(--panel-bg);
+  color: var(--accent);
+  font-size: 0.7667rem;
+  font-weight: 700;
+}
+.searchbox-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-h);
+}
+.searchbox-tag { flex: 0 0 auto; font-size: 0.7667rem; color: var(--text); white-space: nowrap; }
+.searchbox-tag.is-done { color: var(--ok); font-weight: 600; }
+
+@media (max-width: 640px) {
+  /* 좁은 화면에서는 결과 한 줄이 꺾이지 않도록 뱃지를 줄인다 */
+  .searchbox-results { max-height: 50vh; }
+  .searchbox-badge { max-width: 90px; }
+  .searchbox-row { gap: 6px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* 어두운 바탕에서는 그림자만으로 안 떠 보여서 테두리를 한 단계 또렷하게 */
+  .searchbox-results {
+    border-color: var(--border-strong);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  }
+}
