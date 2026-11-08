@@ -103,17 +103,17 @@
 
 ## 배포하기 (FTP)
 
-`build-deploy.bat`을 두 번 누르면 올릴 파일이 `deploy` 폴더에 모입니다.
+`build-deploy.bat`을 두 번 누르면 저장소 바깥의 `FTP업로드/public_html` 폴더가 최신 코드로 갱신됩니다. 그 안의 내용을 FTP로 서버 `public_html`에 덮어쓰면 됩니다.
 
-| 만들어지는 것 | 올릴 곳 |
+| 갱신되는 것 | 내용 |
 | --- | --- |
-| `deploy/public/` | `public_html/` (화면) |
-| `deploy/backend/` | `public_html/backend/` (서버) |
-| `deploy/schema.sql` | 처음 설치할 때 DB에 한 번만 실행 |
+| `FTP업로드/public_html/` | 화면 + `backend/` (서버에 올릴 것) |
+| `FTP업로드/2-처음설치용-DB.sql` | `schema.sql` 복사본 |
+| `FTP업로드/3-기존DB-업그레이드.sql` | `migrations/*.sql`을 이어붙인 것 |
 
 화면이 서버를 `/backend/api`로 부르도록 빌드됩니다. 이 주소는 `frontend/.env.production.local`에 있습니다.
 
-실제 설정 파일(`.env`), 관리용 스크립트(`tools/`), 로그는 빠집니다. 올린 뒤 서버에서 `.env.example`을 복사해 `backend/.env`를 만들고 DB 정보, `JWT_SECRET`, `OPENROUTER_KEY`를 채우세요.
+서버 설정(`public_html/backend/.env`)과 웹 루트 설정(`public_html/.htaccess`)은 건드리지 않습니다. 지우고 다시 만든 뒤 원래 파일을 되돌려 놓습니다. 관리용 스크립트(`tools/`)와 로그는 빠집니다.
 
 서버 재채점(`backend/grader/grade.mjs`)은 Node.js가 있어야 돕니다. 호스팅에 없거나 경로가 다르면 `.env`의 `NODE_BIN`에 적어주세요. Node가 없으면 채점만 멈추고 나머지 기능은 그대로 돕니다.
 
