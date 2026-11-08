@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "blockly": "^12.5.1",
+    "lucide-react": "^1.61.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
