@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../config/AiChat.php';
+require_once __DIR__ . '/../../config/ReplyFilter.php';
 
 const MESSAGE_MAX = 300;
 const HISTORY_MAX = 6;      // 직전 대화 몇 개까지 기억할지 (질문+답 3번)
@@ -16,6 +17,8 @@ const HISTORY_TEXT_MAX = 500;
 const CODE_MAX = 2000;
 const REPLY_MAX = 400;
 const PER_MINUTE = 6;
+// 답이 비었거나 걸러졌을 때 대신 보여줄 말
+const FALLBACK_REPLY = '음, 그건 코코가 대답하기 어려운 이야기야. 우리 코딩 이야기 해볼까?';
 
 const SYSTEM_PROMPT = <<<'TXT'
 너는 초등학생용 블록코딩 학습 사이트 '코코딩'의 캐릭터 '코코'야. 보라색 하늘다람쥐 친구야.
@@ -127,9 +130,17 @@ RateLimiter::hit($dailyKey);
 RateLimiter::hit($globalKey);
 
 if ($reply === null) {
-    $reply = '음, 그건 코코가 대답하기 어려운 이야기야. 우리 코딩 이야기 해볼까?';
+    $reply = FALLBACK_REPLY;
 }
 $reply = preg_replace('/[*#`]+/u', '', $reply);
+
+// AI가 돌려준 답을 한 번 더 본다. 제공자에 따라 유해 내용 차단 기능이 없을 수 있어서다.
+// 걸린 답은 보여주지 않고, 이유만 서버 로그에 남긴다 (답 내용은 남기지 않는다)
+$blocked = ReplyFilter::check($reply);
+if ($blocked !== null) {
+    error_log('코코 답변 차단: ' . $blocked . ' (provider: ' . (AiChat::provider() ?? '없음') . ')');
+    $reply = FALLBACK_REPLY;
+}
 if (mb_strlen($reply) > REPLY_MAX) $reply = mb_substr($reply, 0, REPLY_MAX) . '…';
 
 Response::success([
