@@ -101,6 +101,22 @@
 
 ---
 
+## 배포하기 (FTP)
+
+`build-deploy.bat`을 두 번 누르면 올릴 파일이 `deploy` 폴더에 모입니다.
+
+| 만들어지는 것 | 올릴 곳 |
+| --- | --- |
+| `deploy/public/` | `public_html/` (화면) |
+| `deploy/backend/` | `public_html/backend/` (서버) |
+| `deploy/schema.sql` | 처음 설치할 때 DB에 한 번만 실행 |
+
+화면이 서버를 `/backend/api`로 부르도록 빌드됩니다. 이 주소는 `frontend/.env.production.local`에 있습니다.
+
+실제 설정 파일(`.env`), 관리용 스크립트(`tools/`), 로그는 빠집니다. 올린 뒤 서버에서 `.env.example`을 복사해 `backend/.env`를 만들고 DB 정보, `JWT_SECRET`, `OPENROUTER_KEY`를 채우세요.
+
+서버 재채점(`backend/grader/grade.mjs`)은 Node.js가 있어야 돕니다. 호스팅에 없거나 경로가 다르면 `.env`의 `NODE_BIN`에 적어주세요. Node가 없으면 채점만 멈추고 나머지 기능은 그대로 돕니다.
+
 ## Dream Builders
 
 코코딩 플랫폼을 개발한 **Dream Builders**입니다. 아이들이 쉽고 즐겁게 코딩을 배울 수 있는 교육 환경을 만드는 것을 목표로 하고 있습니다.
