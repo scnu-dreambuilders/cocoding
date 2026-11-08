@@ -7,8 +7,8 @@ import { useState } from 'react'
    ════════════════════════════════════════════════ */
 export default function ShareModal({ project, onShare, onClose }) {
   const personal = [
-    project.sounds.length > 0 && '🎤 녹음한 목소리',
-    project.sprites.some((s) => s.image) && '🖼️ 그리거나 올린 그림·사진',
+    project.sounds.length > 0 && '녹음한 목소리',
+    project.sprites.some((s) => s.image) && '그리거나 올린 그림·사진',
   ].filter(Boolean)
   const [checked, setChecked] = useState(personal.length === 0)
   const [allowRemake, setAllowRemake] = useState(true)
@@ -24,7 +24,7 @@ export default function ShareModal({ project, onShare, onClose }) {
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="작품 공유하기">
       <div className="modal share-modal">
         <div className="modal-head">
-          <h3>🔗 친구들에게 공유하기</h3>
+          <h3>친구들에게 공유하기</h3>
           <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
@@ -44,11 +44,11 @@ export default function ShareModal({ project, onShare, onClose }) {
           <legend>친구가 내 작품을 리메이크해도 될까요?</legend>
           <label className={`share-option ${allowRemake ? 'on' : ''}`}>
             <input type="radio" name="remake" checked={allowRemake} onChange={() => setAllowRemake(true)} />
-            <span><b>🔁 리메이크 허용</b><small>친구가 복사해서 고쳐 만들 수 있어요</small></span>
+            <span><b>리메이크 허용</b><small>친구가 복사해서 고쳐 만들 수 있어요</small></span>
           </label>
           <label className={`share-option ${!allowRemake ? 'on' : ''}`}>
             <input type="radio" name="remake" checked={!allowRemake} onChange={() => setAllowRemake(false)} />
-            <span><b>👀 보기만</b><small>친구들은 구경만 할 수 있어요</small></span>
+            <span><b>보기만</b><small>친구들은 구경만 할 수 있어요</small></span>
           </label>
         </fieldset>
 

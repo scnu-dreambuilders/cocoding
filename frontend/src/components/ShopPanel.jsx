@@ -36,7 +36,7 @@ export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped
   }, [apply])
 
   const buy = async (item) => {
-    if (!window.confirm(`${item.emoji} ${item.item_name}을(를) ${item.price}코인에 살까요?`)) return
+    if (!window.confirm(`${item.item_name}을(를) ${item.price}코인에 살까요?`)) return
     setBuying(item.item_name)
     try {
       const res = await api.buyItem(item.item_name)
@@ -58,8 +58,8 @@ export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped
   return (
     <section className="dash-section shop-section">
       <div className="section-header">
-        <h3 className="section-title"><span aria-hidden="true">🛍️</span>코코 상점</h3>
-        <span className="coin-badge" aria-label={`내 코인 ${shop.balance}개`}>🪙 {shop.balance}</span>
+        <h3 className="section-title">코코 상점</h3>
+        <span className="coin-badge" aria-label={`내 코인 ${shop.balance}개`}>{shop.balance}코인</span>
         <button type="button" className="section-action" onClick={() => setShowHistory((v) => !v)}>
           {showHistory ? '내역 닫기' : '코인 내역'}
         </button>
@@ -101,7 +101,7 @@ export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped
                       <span className="shop-emoji" aria-hidden="true">{item.emoji}</span>
                       <span className="shop-name">{item.item_name}</span>
                       <span className="shop-price">
-                        {item.owned ? '보유 중' : buying === item.item_name ? '사는 중…' : `🪙 ${item.price}`}
+                        {item.owned ? '보유 중' : buying === item.item_name ? '사는 중…' : `${item.price}코인`}
                       </span>
                     </button>
                   )

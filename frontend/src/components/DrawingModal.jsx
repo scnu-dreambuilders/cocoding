@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Circle, Eraser, PaintBucket, Pencil, Square, Trash2, Undo2 } from 'lucide-react'
 import { canvasToSpriteData } from '../lib/project'
 
 /* ════════════════════════════════════════════════
@@ -9,11 +10,11 @@ const SIZE = 360
 const COLORS = ['#0f172a', '#ffffff', '#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#8b5cf6',
   '#ec4899', '#a16207', '#94a3b8', '#fecaca', '#fde68a', '#bbf7d0', '#bfdbfe', '#e9d5ff']
 const TOOLS = [
-  { id: 'pen', label: '펜', icon: '✏️' },
-  { id: 'eraser', label: '지우개', icon: '🧽' },
-  { id: 'rect', label: '사각형', icon: '⬛' },
-  { id: 'circle', label: '원', icon: '⚪' },
-  { id: 'fill', label: '색채우기', icon: '🪣' },
+  { id: 'pen', label: '펜', icon: Pencil },
+  { id: 'eraser', label: '지우개', icon: Eraser },
+  { id: 'rect', label: '사각형', icon: Square },
+  { id: 'circle', label: '원', icon: Circle },
+  { id: 'fill', label: '색채우기', icon: PaintBucket },
 ]
 
 function hexToRgba(hex) {
@@ -185,15 +186,15 @@ export default function DrawingModal({ onDone, onClose }) {
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="캐릭터 그리기">
       <div className="modal draw-modal">
         <div className="modal-head">
-          <h3>🎨 나만의 캐릭터 그리기</h3>
+          <h3>나만의 캐릭터 그리기</h3>
           <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
         </div>
         <div className="draw-body">
           <div className="draw-tools">
-            {TOOLS.map((t) => (
+            {TOOLS.map(({ icon: ToolIcon, ...t }) => (
               <button key={t.id} type="button" className={`draw-tool ${tool === t.id ? 'on' : ''}`}
                 onClick={() => setTool(t.id)} title={t.label}>
-                <span aria-hidden="true">{t.icon}</span>
+                <ToolIcon size={20} aria-hidden="true" />
                 <small>{t.label}</small>
               </button>
             ))}
@@ -202,10 +203,10 @@ export default function DrawingModal({ onDone, onClose }) {
               <input type="range" min="1" max="30" value={width} onChange={(e) => setWidth(Number(e.target.value))} />
             </label>
             <button type="button" className="draw-tool" onClick={undo} disabled={!canUndo} title="실행취소 (Ctrl+Z)">
-              <span aria-hidden="true">↩️</span><small>되돌리기</small>
+              <Undo2 size={20} aria-hidden="true" /><small>되돌리기</small>
             </button>
             <button type="button" className="draw-tool" onClick={clearAll} title="전체 지우기">
-              <span aria-hidden="true">🗑️</span><small>다 지우기</small>
+              <Trash2 size={20} aria-hidden="true" /><small>다 지우기</small>
             </button>
           </div>
           <canvas

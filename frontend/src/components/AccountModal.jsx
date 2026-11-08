@@ -70,7 +70,7 @@ export default function AccountModal({ user, onClose, onUserChange, onDeleted, s
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="내 정보">
       <div className="modal account-modal">
         <div className="modal-head">
-          <h3>👤 내 정보</h3>
+          <h3>내 정보</h3>
           <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
         </div>
 

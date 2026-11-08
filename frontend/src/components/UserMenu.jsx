@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LogOut, Settings, User } from 'lucide-react'
 import { api } from '../api/client'
 import { CocoAvatar } from './Coco'
 import TextSizeControl from './TextSizeControl'
@@ -33,20 +34,20 @@ export default function UserMenu({ user, onLogout, onUserChange, onAccountDelete
       <div className="dash-header-right usermenu">
         <TextSizeControl />
         <div className="user-chip">
-          <CocoAvatar size={28} items={equipped} />
+          {isStudent
+            ? <CocoAvatar size={28} items={equipped} />
+            : <span className="user-initial" aria-hidden="true">{user.username?.[0]}</span>}
           <span className="user-name">{user.username}</span>
           {isStudent
             ? user.level && <span className="user-level-tag">{LEVEL_LABEL[user.level] ?? user.level}</span>
             : <span className="user-level-tag">{ROLE_LABEL[role]}</span>}
         </div>
-        <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보">👤</button>
+        <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보"><User size={18} aria-hidden="true" /></button>
         {isStudent && onEditSurvey && (
-          <button type="button" className="btn-icon usermenu-settings" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정">⚙️</button>
+          <button type="button" className="btn-icon usermenu-settings" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정"><Settings size={18} aria-hidden="true" /></button>
         )}
         <button type="button" className="btn-icon" onClick={onLogout} title="로그아웃" aria-label="로그아웃">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <LogOut size={18} aria-hidden="true" />
         </button>
       </div>
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api } from '../api/client'
-import { BrandIcon } from '../components/icons'
+import { BrandLogo } from '../components/icons'
 import { passwordError } from '../lib/validators'
 import './AuthPage.css'
 
@@ -54,8 +54,7 @@ export default function PasswordResetPage({ token, onDone }) {
 
       <div className="auth-card">
         <div className="auth-brand">
-          <BrandIcon />
-          <span className="auth-brand-name">코코딩</span>
+          <BrandLogo height={30} />
         </div>
 
         <h1 className="auth-heading">비밀번호를 잊으셨나요?</h1>

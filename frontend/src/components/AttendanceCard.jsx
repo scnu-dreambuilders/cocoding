@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Check } from 'lucide-react'
 import { api } from '../api/client'
 import './Attendance.css'
 
@@ -52,7 +53,7 @@ export default function AttendanceCard({ showToast, onCoinsChange }) {
   return (
     <section className="dash-section attend-section">
       <div className="section-header">
-        <h3 className="section-title"><span aria-hidden="true">📅</span>오늘의 출석</h3>
+        <h3 className="section-title">오늘의 출석</h3>
         <span className="section-badge">{now.getMonth() + 1}월에 {state.monthDays.length}일 출석</span>
       </div>
 
@@ -68,7 +69,7 @@ export default function AttendanceCard({ showToast, onCoinsChange }) {
               : '도장을 찍고 코인을 받아보자. 연속으로 올수록 많이 줘!'}
           </p>
           <button type="button" className="attend-btn" onClick={check} disabled={busy || state.checkedToday}>
-            {state.checkedToday ? '오늘 출석 완료 ✓' : busy ? '도장 찍는 중…' : '출석 도장 찍기'}
+            {state.checkedToday ? '오늘 출석 완료' : busy ? '도장 찍는 중…' : '출석 도장 찍기'}
           </button>
           <div className="attend-total">지금까지 {state.totalDays}일 출석</div>
         </div>
@@ -82,7 +83,7 @@ export default function AttendanceCard({ showToast, onCoinsChange }) {
             return (
               <span key={day} className={`attend-day ${done ? 'is-done' : ''} ${isToday ? 'is-today' : ''}`}
                 aria-label={`${day}일 ${done ? '출석' : '미출석'}`}>
-                {done ? '🐨' : day}
+                {done ? <Check size={16} strokeWidth={3} aria-hidden="true" /> : day}
               </span>
             )
           })}

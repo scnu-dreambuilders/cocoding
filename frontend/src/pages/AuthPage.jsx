@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { Backpack, Check, School, UsersRound } from 'lucide-react'
 import { api } from '../api/client'
-import { BrandIcon } from '../components/icons'
+import { BrandLogo } from '../components/icons'
 import { ROLES, birthYearOptions, needsGuardianConsent, passwordError, usernameError } from '../lib/validators'
 import InfoModal from '../components/InfoModal'
-import heroImg from '../assets/hero.png'
+import heroImg from '../assets/coco/coco-smile.png'
 import './AuthPage.css'
+
+const ROLE_ICON = { student: Backpack, teacher: School, guardian: UsersRound }
 
 /* ════════════════════════════════════════════════
    AuthPage
@@ -22,7 +25,7 @@ function StepIndicator({ step }) {
       {STEPS.map((s, i) => (
         <div key={s.n} className="auth-step-item" role="listitem">
           <span className={`auth-step-dot ${step === s.n ? 'current' : step > s.n ? 'done' : ''}`}>
-            {step > s.n ? '✓' : s.n}
+            {step > s.n ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : s.n}
           </span>
           <span className={`auth-step-label ${step >= s.n ? 'on' : ''}`}>{s.label}</span>
           {i < STEPS.length - 1 && <span className={`auth-step-line ${step > s.n ? 'done' : ''}`} aria-hidden="true" />}
@@ -120,12 +123,11 @@ export default function AuthPage({ onLogin, onGuest, onForgotPassword }) {
       <div className={`auth-card ${mode === 'register' ? 'auth-card-wide' : ''}`}>
         {/* Brand */}
         <div className="auth-brand">
-          <BrandIcon />
-          <span className="auth-brand-name">코코딩</span>
+          <BrandLogo height={30} />
         </div>
 
         <h1 className="auth-heading">
-          {mode === 'login' ? '다시 만나서 반가워요 👋' : '처음 오셨군요! 🎉'}
+          {mode === 'login' ? '다시 만나서 반가워요' : '처음 오셨군요!'}
         </h1>
         <p className="auth-sub">
           {mode === 'login'
@@ -204,14 +206,17 @@ export default function AuthPage({ onLogin, onGuest, onForgotPassword }) {
               <div className="auth-step-panel">
                 <fieldset className="role-picker">
                   <legend>어떤 분이세요?</legend>
-                  {ROLES.map((r) => (
+                  {ROLES.map((r) => {
+                    const RoleIcon = ROLE_ICON[r.id]
+                    return (
                     <label key={r.id} className={`role-option ${form.role === r.id ? 'on' : ''}`}>
                       <input type="radio" name="role" value={r.id} checked={form.role === r.id} onChange={update('role')} />
-                      <span className="role-emoji" aria-hidden="true">{r.emoji}</span>
+                      <RoleIcon size={26} className="role-icon" aria-hidden="true" />
                       <span className="role-label">{r.label}</span>
                       <span className="role-desc">{r.desc}</span>
                     </label>
-                  ))}
+                    )
+                  })}
                 </fieldset>
                 <div className="auth-step-actions">
                   <button type="button" className="auth-next" onClick={() => setStep(2)}>다음 →</button>
@@ -316,7 +321,7 @@ export default function AuthPage({ onLogin, onGuest, onForgotPassword }) {
                 )}
                 {minor && (
                   <div className="auth-msg auth-msg-info" role="note">
-                    👪 14살 이하 친구는 <b>보호자 동의</b>가 필요해요. 가입하면 나오는 <b>동의 코드</b>를 부모님께 보여드리세요.
+                    14살 이하 친구는 <b>보호자 동의</b>가 필요해요. 가입하면 나오는 <b>동의 코드</b>를 부모님께 보여드리세요.
                     동의 전에도 챕터 학습과 작품 만들기는 할 수 있어요!
                   </div>
                 )}
@@ -344,7 +349,7 @@ export default function AuthPage({ onLogin, onGuest, onForgotPassword }) {
                 <div className="auth-step-actions">
                   <button type="button" className="auth-prev" onClick={() => setStep(2)}>← 이전</button>
                   <button type="submit" className="auth-submit auth-next-submit" disabled={loading}>
-                    {loading ? '처리 중...' : '🎉 코코딩 회원가입 완료!'}
+                    {loading ? '처리 중...' : '코코딩 회원가입 완료!'}
                   </button>
                 </div>
               </form>

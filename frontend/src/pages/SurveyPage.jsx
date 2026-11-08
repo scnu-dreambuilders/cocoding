@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import { api } from '../api/client'
 import { INTERESTS, LEVELS } from '../data/library'
 import { CocoAvatar } from '../components/Coco'
@@ -67,9 +68,8 @@ export default function SurveyPage({ user, editing = false, onDone, onSkip }) {
               return (
                 <button key={it.tag} type="button" aria-pressed={on} className={`interest-card ${on ? 'on' : ''}`}
                   onClick={() => toggle(it.tag)}>
-                  <span className="interest-emoji" aria-hidden="true">{it.emoji}</span>
                   <span>{it.tag}</span>
-                  {on && <span className="interest-check" aria-hidden="true">✓</span>}
+                  {on && <Check size={14} strokeWidth={3} className="interest-check" aria-hidden="true" />}
                 </button>
               )
             })}
@@ -86,7 +86,6 @@ export default function SurveyPage({ user, editing = false, onDone, onSkip }) {
             {LEVELS.map((l) => (
               <button key={l.level} type="button" role="radio" aria-checked={level === l.level}
                 className={`level-card ${level === l.level ? 'on' : ''}`} onClick={() => setLevel(l.level)}>
-                <span className="level-emoji" aria-hidden="true">{l.emoji}</span>
                 <b>{l.label}</b>
                 <small>{l.desc}</small>
               </button>
@@ -95,13 +94,10 @@ export default function SurveyPage({ user, editing = false, onDone, onSkip }) {
           <p className="survey-note">고른 수준에 따라 자유 창작에서 보이는 블록 수가 달라져요. 처음이면 꼭 필요한 블록만 보여줄게요!</p>
         </section>
 
-        <p className="survey-later-note">🔧 관심사와 코딩 수준은 나중에 언제든 학생 홈에서 바꿀 수 있어요.</p>
+        <p className="survey-later-note">관심사와 코딩 수준은 나중에 언제든 학생 홈에서 바꿀 수 있어요.</p>
 
         {error && <p className="survey-error" role="alert">{error}</p>}
         <div className="survey-actions">
-          {!editing && (
-            <button type="button" className="survey-skip" onClick={() => save(true)} disabled={saving}>나중에 하기</button>
-          )}
           {editing && (
             <button type="button" className="survey-skip" onClick={() => onSkip(null)} disabled={saving}>취소</button>
           )}

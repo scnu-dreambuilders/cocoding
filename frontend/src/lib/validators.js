@@ -1,9 +1,9 @@
 // 서버와 같은 입력 규칙 (backend/config/Validators.php) — 제출 전에 미리 알려주기용
 
 export const ROLES = [
-  { id: 'student', emoji: '🧒', label: '학생', desc: '블록 코딩을 배워요' },
-  { id: 'teacher', emoji: '🧑‍🏫', label: '선생님', desc: '반을 만들고 진도를 봐요' },
-  { id: 'guardian', emoji: '👪', label: '보호자', desc: '아이 가입에 동의하고 진도를 봐요' },
+  { id: 'student', label: '학생', desc: '블록 코딩을 배워요' },
+  { id: 'teacher', label: '선생님', desc: '반을 만들고 진도를 봐요' },
+  { id: 'guardian', label: '보호자', desc: '아이 가입에 동의하고 진도를 봐요' },
 ]
 export const ROLE_LABEL = Object.fromEntries(ROLES.map((r) => [r.id, r.label]))
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Award } from 'lucide-react'
 import { api } from '../api/client'
 import { CocoAvatar } from './Coco'
 import './Profile.css'
@@ -52,14 +53,14 @@ export default function ProfileModal({ userId, onClose, onOpenProject, showToast
                 <b className="profile-name">{state.profile.username}</b>
                 {state.profile.bio && <p className="profile-bio">{state.profile.bio}</p>}
                 <div className="profile-stats">
-                  <span>⭐ Lv.<b>{state.profile.level}</b></span>
-                  <span>💜 <b>{state.profile.likesReceived > 99 ? '+99' : state.profile.likesReceived}</b></span>
-                  <span>👥 <b>{state.profile.followers}</b></span>
+                  <span>Lv.<b>{state.profile.level}</b></span>
+                  <span>좋아요 <b>{state.profile.likesReceived > 99 ? '+99' : state.profile.likesReceived}</b></span>
+                  <span>팔로워 <b>{state.profile.followers}</b></span>
                 </div>
                 {!state.profile.isMe && (
                   <button type="button" className={`role-btn ${state.profile.isFollowing ? 'ghost' : ''}`}
                     onClick={toggleFollow} disabled={busy}>
-                    {state.profile.isFriend ? '🤝 친구 (팔로우 취소)' : state.profile.isFollowing ? '팔로우 취소' : '＋ 팔로우'}
+                    {state.profile.isFriend ? '친구 (팔로우 취소)' : state.profile.isFollowing ? '팔로우 취소' : '＋ 팔로우'}
                   </button>
                 )}
               </div>
@@ -71,7 +72,7 @@ export default function ProfileModal({ userId, onClose, onOpenProject, showToast
                 <div className="achv-grid">
                   {state.profile.achievements.map((a) => (
                     <div key={a.code} className="achv on" title={a.desc}>
-                      <span className="achv-emoji" aria-hidden="true">{a.emoji}</span>
+                      <Award size={24} className="achv-icon" aria-hidden="true" />
                       <span className="achv-name">{a.name}</span>
                     </div>
                   ))}
@@ -89,7 +90,7 @@ export default function ProfileModal({ userId, onClose, onOpenProject, showToast
                     <li key={p.id}>
                       <button type="button" className="friend-open" onClick={() => { onClose(); onOpenProject?.(p) }}>
                         <b>{p.title}</b>
-                        <small>💜 {p.like_count ?? 0} · 🔁 {p.remake_count ?? 0}</small>
+                        <small>좋아요 {p.like_count ?? 0} · 리메이크 {p.remake_count ?? 0}</small>
                       </button>
                     </li>
                   ))}

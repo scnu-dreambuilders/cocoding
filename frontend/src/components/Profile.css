@@ -7,7 +7,7 @@
 .chart-card,
 .rank-card {
   padding: 16px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--panel-bg);
   border: 1px solid var(--border);
 }
@@ -41,7 +41,7 @@
   min-width: 0;
   padding: 7px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text-h);
   font: inherit;
@@ -50,12 +50,12 @@
 .profile-bio-edit input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 
 .profile-level { display: flex; flex-direction: column; gap: 3px; }
-.profile-level-bar { height: 10px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.profile-level-bar { height: 10px; border-radius: var(--radius-pill); background: var(--bg); overflow: hidden; }
 .profile-level-bar span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 65%, white), var(--accent));
+  background: var(--accent);
 }
 .profile-level small { font-size: 0.8rem; color: var(--text); }
 
@@ -71,7 +71,7 @@
   gap: 6px;
   padding: 7px 12px;
   border: 1.5px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.8333rem;
   color: var(--text-h);
   cursor: pointer;
@@ -97,20 +97,21 @@
   align-items: center;
   gap: 2px;
   padding: 10px 6px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--bg);
   text-align: center;
   word-break: keep-all;
 }
 /* 받은 업적은 흰 카드 위에 얹은 노란 바탕 (페이지 바탕 위면 글자가 4.5:1에 못 미친다) */
 .achv.on { background: linear-gradient(var(--warn-bg), var(--warn-bg)), var(--panel-bg); }
-.achv-emoji { font-size: 1.5rem; line-height: 1.2; }
+.achv-icon { color: var(--text-muted); }
+.achv.on .achv-icon { color: var(--star-700); }
 .achv-name { font-size: 0.7667rem; line-height: 1.35; color: var(--text-h); }
 .achv.on .achv-name { font-weight: 600; }
 
 /* 친구 */
 .friend-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
-.friend-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; background: var(--bg); }
+.friend-list li { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius-sm); background: var(--bg); }
 .friend-open {
   flex: 1;
   min-width: 0;
@@ -146,7 +147,7 @@
 .chart-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--text); }
 .chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .chart-legend b { color: var(--text-h); }
-.chart-key { width: 12px; height: 12px; border-radius: 4px; flex: 0 0 auto; }
+.chart-key { width: 12px; height: 12px; border-radius: var(--radius-sm); flex: 0 0 auto; }
 .chart-attended { background: var(--warn); }
 .chart-chapters { background: var(--ok); }
 .chart-projects { background: var(--accent); }
@@ -167,7 +168,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   overflow: hidden;
 }
@@ -196,7 +197,7 @@
   min-height: 28px;
   padding: 5px 12px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--panel-bg);
   font: inherit;
   font-size: 0.8rem;
@@ -215,7 +216,7 @@
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   font-size: 0.8333rem;
 }

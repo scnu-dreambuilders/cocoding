@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Play, Square, Trash2 } from 'lucide-react'
 import { BUILTIN_SOUNDS } from '../blockly/blockInfo'
 import { playSound, startRecording } from '../lib/sounds'
 import { newId } from '../lib/project'
@@ -58,7 +59,7 @@ export default function SoundModal({ sounds, onChange, onClose }) {
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="소리 준비">
       <div className="modal sound-modal">
         <div className="modal-head">
-          <h3>🎤 소리 준비</h3>
+          <h3>소리 준비</h3>
           <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
@@ -68,7 +69,7 @@ export default function SoundModal({ sounds, onChange, onClose }) {
               <div className="rec-dot" aria-hidden="true" />
               <div className="rec-time">{(elapsed / 1000).toFixed(1)}초 / {MAX_MS / 1000}초</div>
               <div className="rec-bar"><span style={{ width: `${Math.min(100, (elapsed / MAX_MS) * 100)}%` }} /></div>
-              <button type="button" className="btn btn-run" onClick={() => recRef.current?.stop()}>■ 녹음 끝내기</button>
+              <button type="button" className="btn btn-run" onClick={() => recRef.current?.stop()}><Square size={14} aria-hidden="true" /> 녹음 끝내기</button>
             </>
           ) : (
             <>
@@ -87,9 +88,9 @@ export default function SoundModal({ sounds, onChange, onClose }) {
             <ul className="sound-list">
               {sounds.map((s) => (
                 <li key={s.id}>
-                  <button type="button" className="btn btn-ghost" onClick={() => playSound(s.id, sounds)} aria-label={`${s.name} 재생`}>▶</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => playSound(s.id, sounds)} aria-label={`${s.name} 재생`}><Play size={16} aria-hidden="true" /></button>
                   <input value={s.name} onChange={(e) => rename(s.id, e.target.value)} aria-label="소리 이름" />
-                  <button type="button" className="btn btn-ghost" onClick={() => remove(s.id)} aria-label={`${s.name} 삭제`}>🗑️</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => remove(s.id)} aria-label={`${s.name} 삭제`}><Trash2 size={16} aria-hidden="true" /></button>
                 </li>
               ))}
             </ul>
@@ -100,7 +101,7 @@ export default function SoundModal({ sounds, onChange, onClose }) {
           <h4 className="sound-h">기본 효과음 (눌러서 들어보기)</h4>
           <div className="sfx-grid">
             {BUILTIN_SOUNDS.map(([name, id]) => (
-              <button key={id} type="button" className="sfx-btn" onClick={() => playSound(id)}>🔔 {name}</button>
+              <button key={id} type="button" className="sfx-btn" onClick={() => playSound(id)}>{name}</button>
             ))}
           </div>
         </section>

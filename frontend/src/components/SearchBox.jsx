@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Search } from 'lucide-react'
 import { api } from '../api/client'
 import './SearchBox.css'
 
@@ -49,7 +50,7 @@ export default function SearchBox({ onOpenProject, onOpenChapter, onRemake }) {
 
   return (
     <div className="searchbox" ref={boxRef}>
-      <span className="searchbox-icon" aria-hidden="true">🔍</span>
+      <Search size={16} className="searchbox-icon" aria-hidden="true" />
       <input
         type="search"
         className="searchbox-input"
@@ -80,7 +81,7 @@ export default function SearchBox({ onOpenProject, onOpenChapter, onRemake }) {
                       disabled={c.status === 'locked'}>
                       <span className="searchbox-badge">챕터 {c.order_num}</span>
                       <span className="searchbox-title">{c.title}</span>
-                      {c.status === 'locked' && <span className="searchbox-tag">🔒 잠김</span>}
+                      {c.status === 'locked' && <span className="searchbox-tag">잠김</span>}
                       {c.status === 'completed' && <span className="searchbox-tag is-done">완료</span>}
                     </button>
                   ))}
@@ -106,9 +107,9 @@ export default function SearchBox({ onOpenProject, onOpenChapter, onRemake }) {
                   {result.publicProjects.map((p) => (
                     <button key={p.id} type="button" className="searchbox-row"
                       onClick={() => open(p.allow_remake ? onRemake : onOpenProject, p)}>
-                      <span className="searchbox-badge">👤 {p.username}</span>
+                      <span className="searchbox-badge">{p.username}</span>
                       <span className="searchbox-title">{p.title}</span>
-                      <span className="searchbox-tag">{p.allow_remake ? '🔁 리메이크' : '👀 구경'}</span>
+                      <span className="searchbox-tag">{p.allow_remake ? '리메이크' : '구경'}</span>
                     </button>
                   ))}
                 </section>

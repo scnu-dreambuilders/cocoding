@@ -14,7 +14,7 @@
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--warn);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--panel-bg);
   font: inherit;
   text-align: left;
@@ -41,7 +41,7 @@
   flex: 0 0 auto;
   padding: 3px 10px;
   border: 1px solid var(--warn);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--warn-bg);
   color: var(--warn);
   font-size: 0.7667rem;
@@ -67,7 +67,7 @@
 .assign-coin {
   flex: 0 0 auto;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--warn-bg);
   color: var(--warn);
   font-size: 0.7667rem;
@@ -84,7 +84,7 @@
   min-height: 52px;
   padding: 8px 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--panel-bg);
   color: var(--text-h);
   font: inherit;
@@ -98,7 +98,7 @@
 .assign-done-msg {
   margin: 0;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--ok-bg);
   color: var(--text-h);
   font-size: 0.8333rem;
@@ -135,7 +135,7 @@
   min-width: 0;
   padding: 7px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--panel-bg);
   color: var(--text-h);
   font: inherit;
@@ -158,7 +158,7 @@
   min-height: 30px;
   padding: 4px 12px;
   border: 1.5px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--panel-bg);
   color: var(--text-h);
   font-size: 0.8333rem;
@@ -189,7 +189,7 @@
 .assign-teacher-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
 .assign-teacher-list li {
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--panel-bg);
   font-size: 0.8333rem;
@@ -198,7 +198,7 @@
 .assign-teacher-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .assign-badge {
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--warn-bg);
   color: var(--warn);
   font-size: 0.7667rem;
@@ -238,7 +238,7 @@
 .assign-detail-sum { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .assign-detail-chip {
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--bg);
   color: var(--text-h);
   font-size: 0.7667rem;
@@ -267,7 +267,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--panel-bg);
 }
@@ -280,7 +280,7 @@
 .assign-detail-memo {
   margin: 2px 0 0;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--accent-light);
   color: var(--text-h);
   font-size: 0.8rem;

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { House, Puzzle, ShieldCheck, Star } from 'lucide-react'
 import { api } from '../api/client'
 import TopNav from '../components/TopNav'
 import UserMenu from '../components/UserMenu'
 import SiteFooter from '../components/SiteFooter'
-import { CocoAvatar } from '../components/Coco'
-import heroImg from '../assets/hero.png'
+import { COCO_IMG } from '../lib/coco'
 import './HomePage.css'
 
 /* ════════════════════════════════════════════════
@@ -19,21 +19,16 @@ const GUIDE_STEPS = [
   { n: 3, title: '자유창작으로 작품 만들기', desc: '배운 블록을 활용해 나만의 게임이나 이야기를 만들고 작품을 저장해 보세요.' },
 ]
 
-// 코코 외 캐릭터는 이번 단계에서 전용 일러스트를 새로 만들지 않고, 이모지 배지로 소개만 제공
-const CHARACTERS = [
-  { id: 'coco', name: '코코', role: '친절한 코딩 안내병', avatar: 'coco',
-    desc: '코딩 여정에서 든든한 친구가 되어줄게요. 막힌 부분엔 힌트를, 작은 성공엔 칭찬을 건네요.' },
-  { id: 'ruby', name: '루비', role: '똑똑한 알고리즘 여우', emoji: '🦊',
-    desc: '복잡해 보이는 문제도 순서대로 차근차근 풀어가는 방법을 알려줘요.' },
-  { id: 'ditto', name: '디토', role: '재미있는 디버깅 문어', emoji: '🐙',
-    desc: '여러 팔로 코드 구석구석을 살펴서 오류를 잘 찾아내요. 코드가 이상할 땐 디토를 불러보세요!' },
-  { id: 'beat', name: '비트', role: '빠른 실행 토끼', emoji: '🐰',
-    desc: '빠릿빠릿하게 실행 결과를 보여주고 다음 도전을 응원해줘요.' },
+// 코코와 함께하는 학습 이야기 — 문제를 만나서(?) 함께 풀고(!) 별을 모은다
+const COCO_STORY = [
+  { mark: '?', title: '문제를 만나요', desc: '막히는 건 누구에게나 있어요. 코코가 갸웃하며 같이 살펴봐요.' },
+  { mark: '!', title: '함께 풀어요', desc: '코코가 짧은 힌트로 다음 한 걸음을 알려줘요.' },
+  { mark: <Star size={18} fill="currentColor" />, title: '별을 모아요', desc: '챕터를 마칠 때마다 별을 얻고, 다음 챕터가 열려요.' },
 ]
 
 // 추천 프로젝트 영역 안내 문구 (사용자 상태별). 로그인 버튼은 비로그인에게만 보여준다.
 const PROJECT_EMPTY_MESSAGE = {
-  guest: '🔒 친구들의 작품은 로그인 후에 만나볼 수 있어요. (어린이 작품·개인정보 보호를 위해서예요)',
+  guest: '친구들의 작품은 로그인 후에 만나볼 수 있어요. (어린이 작품·개인정보 보호를 위해서예요)',
   pending: '보호자 동의가 완료되면 친구들의 공개 작품을 볼 수 있어요.',
   staff: '친구들의 공개 작품은 학생 계정에서 이용할 수 있어요.',
   empty: '아직 소개할 작품이 없어요. 새로운 작품이 올라오면 여기서 만날 수 있어요!',
@@ -116,10 +111,10 @@ const NEWS = [
   },
 ]
 
-function Thumb({ src, fallback = '🧩' }) {
+function Thumb({ src }) {
   return (
     <div className="home-thumb" aria-hidden="true">
-      {src ? <img src={src} alt="" /> : <span>{fallback}</span>}
+      {src ? <img src={src} alt="" /> : <Puzzle size={36} />}
     </div>
   )
 }
@@ -154,13 +149,12 @@ function Modal({ onClose, children, labelledBy }) {
 
 // 로그인 후 개인 홈(App의 dashboard)으로 가는 메뉴 라벨과 메인 홈 버튼 문구 — 역할별
 const HOME_MENU_LABEL = { student: '학생 홈', teacher: '내 반 관리', guardian: '우리 아이' }
-const HOME_CTA_LABEL = { student: '🏠 학생 홈으로 가기', teacher: '🏠 내 반 관리하기', guardian: '🏠 우리 아이 학습 확인하기' }
+const HOME_CTA_LABEL = { student: '학생 홈으로 가기', teacher: '내 반 관리하기', guardian: '우리 아이 학습 확인하기' }
 
 export default function HomePage({
   user, onAuth, onGoDashboard, onOpenFree, onLogout, onUserChange, onAccountDeleted, onEditSurvey,
 }) {
   const [guideOpen, setGuideOpen] = useState(false)
-  const [character, setCharacter] = useState(null)
   const [newsItem, setNewsItem] = useState(null)
   const [projects, setProjects] = useState({ list: [], loading: true, failed: false })
   const [toast, setToast] = useState('')
@@ -222,7 +216,7 @@ export default function HomePage({
       return
     }
     if (key !== 'study' && key !== 'free') {
-      showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
+      showToast('이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
       return
     }
     const what = key === 'study' ? '단계별 학습' : '자유창작'
@@ -246,7 +240,7 @@ export default function HomePage({
         onNavigate={handleNavigate}
         onLogin={onAuth}
         onSignup={onAuth}
-        extraMenu={user ? [{ key: 'home', icon: '🏠', label: HOME_MENU_LABEL[role] ?? '내 홈' }] : []}
+        extraMenu={user ? [{ key: 'home', icon: House, label: HOME_MENU_LABEL[role] ?? '내 홈' }] : []}
         right={user
           ? <UserMenu user={user} onLogout={onLogout} onUserChange={onUserChange}
             onAccountDeleted={onAccountDeleted} onEditSurvey={onEditSurvey} showToast={showToast} />
@@ -259,30 +253,35 @@ export default function HomePage({
           <div className="home-hero-text">
             <span className="home-hero-eyebrow">AI 친구와 함께 배우는 블록 코딩</span>
             <h1>코코딩과 함께하는<br />코딩 모험!</h1>
-            <p>AI 캐릭터 친구들과 함께 블록 코딩으로 프로그래밍을 배우는 초등학생 맞춤 교육 플랫폼이에요.</p>
+            <p>AI 친구 코코와 함께 블록을 조립하며 코딩을 배워요. 막히는 순간도 코코와 함께 풀면 별이 돼요.</p>
             <div className="home-hero-actions">
               <button type="button" className="home-btn-primary" onClick={user ? onGoDashboard : onAuth}>
-                {user ? (HOME_CTA_LABEL[role] ?? '🏠 내 홈으로 가기') : '🚀 코딩 모험 시작하기'}
+                {user ? (HOME_CTA_LABEL[role] ?? '내 홈으로 가기') : '코딩 모험 시작하기'}
               </button>
-              <button type="button" className="home-btn-ghost" onClick={() => setGuideOpen(true)}>📖 코코딩 사용법 알아보기</button>
+              <button type="button" className="home-btn-ghost" onClick={() => setGuideOpen(true)}>코코딩 사용법 알아보기</button>
             </div>
           </div>
-          <img src={heroImg} alt="" className="home-hero-img" aria-hidden="true" />
+          <img src={COCO_IMG.smile} alt="" className="home-hero-img" aria-hidden="true" />
         </section>
 
-        {/* ── AI 캐릭터 소개 ── */}
+        {/* ── AI 친구 코코 소개 ── */}
         <section className="home-section">
-          <h2 className="home-section-title">AI 캐릭터 친구들을 만나보세요!</h2>
-          <div className="home-char-grid">
-            {CHARACTERS.map((c) => (
-              <button key={c.id} type="button" className="home-char-card" onClick={() => setCharacter(c)}>
-                {c.avatar === 'coco'
-                  ? <CocoAvatar emotion="happy" size={56} />
-                  : <span className="home-char-emoji" aria-hidden="true">{c.emoji}</span>}
-                <b>{c.name}</b>
-                <span>{c.role}</span>
-              </button>
-            ))}
+          <h2 className="home-section-title">AI 친구 코코를 소개할게요</h2>
+          <div className="home-coco">
+            <img src={COCO_IMG.calm} alt="" className="home-coco-img" aria-hidden="true" />
+            <div className="home-coco-body">
+              <p className="home-coco-name"><b>코코</b><span>별을 함께 모으는 하늘다람쥐 친구</span></p>
+              <p className="home-coco-desc">아이가 막힐 때 먼저 말을 걸고, 힌트를 주고, 해냈을 때 같이 기뻐해요.</p>
+              <ol className="home-coco-story">
+                {COCO_STORY.map((s) => (
+                  <li key={s.title}>
+                    <span className="home-coco-mark" aria-hidden="true">{s.mark}</span>
+                    <b>{s.title}</b>
+                    <span>{s.desc}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
         </section>
 
@@ -312,7 +311,7 @@ export default function HomePage({
             <div className="home-empty">
               <p>{PROJECT_EMPTY_MESSAGE[projectAccess === 'ok' ? (projects.failed ? 'failed' : 'empty') : projectAccess]}</p>
               {projectAccess === 'guest' && (
-                <button type="button" className="home-btn-primary" onClick={onAuth}>로그인하고 구경하기</button>
+                <button type="button" className="home-btn-ghost" onClick={onAuth}>로그인하고 구경하기</button>
               )}
             </div>
           ) : (
@@ -344,7 +343,7 @@ export default function HomePage({
         {/* ── 보호자 동의 안내 ── */}
         <section className="home-section" id="home-safety">
           <div className="home-safety-card">
-            <span className="home-safety-icon" aria-hidden="true">🛡️</span>
+            <span className="home-safety-icon" aria-hidden="true"><ShieldCheck size={26} /></span>
             <div className="home-safety-body">
               <b>안전하게 시작해요</b>
               <p>
@@ -364,7 +363,7 @@ export default function HomePage({
 
       {guideOpen && (
         <Modal onClose={() => setGuideOpen(false)} labelledBy="guide-title">
-          <h3 id="guide-title" className="home-modal-title">✨ 코코딩 사용법</h3>
+          <h3 id="guide-title" className="home-modal-title">코코딩 사용법</h3>
           <ol className="home-guide-steps">
             {GUIDE_STEPS.map((s) => (
               <li key={s.n}>
@@ -394,21 +393,6 @@ export default function HomePage({
         </Modal>
       )}
 
-      {character && (
-        <Modal onClose={() => setCharacter(null)} labelledBy="char-title">
-          <div className="home-char-modal-head">
-            {character.avatar === 'coco'
-              ? <CocoAvatar emotion="celebrate" size={72} />
-              : <span className="home-char-emoji home-char-emoji-lg" aria-hidden="true">{character.emoji}</span>}
-            <div>
-              <h3 id="char-title" className="home-modal-title">{character.name}</h3>
-              <span className="home-char-role">{character.role}</span>
-            </div>
-          </div>
-          <p className="home-char-desc">{character.desc}</p>
-          <button type="button" className="home-btn-ghost home-modal-cta" onClick={() => setCharacter(null)}>닫기</button>
-        </Modal>
-      )}
     </div>
   )
 }

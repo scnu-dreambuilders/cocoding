@@ -63,7 +63,7 @@ export default function ActivityChart() {
   return (
     <section className="dash-section">
       <div className="section-header">
-        <h3 className="section-title"><span aria-hidden="true">📈</span>내 학습 기록</h3>
+        <h3 className="section-title">내 학습 기록</h3>
         <span className="section-badge">최근 2주</span>
       </div>
 
@@ -131,7 +131,7 @@ export default function ActivityChart() {
                 ? <>{ranking.total}명 중 <b>{ranking.myRank}위</b>예요. </>
                 : <>아직 순위에 들지 않았어요. </>}
               {ranking.comparedToAverage >= 0
-                ? <>또래 평균보다 경험치를 <b>{ranking.comparedToAverage}</b> 더 모았어요 👍</>
+                ? <>또래 평균보다 경험치를 <b>{ranking.comparedToAverage}</b> 더 모았어요!</>
                 : <>평균까지 경험치 <b>{-ranking.comparedToAverage}</b> 남았어요. 오늘 한 챕터 어때요?</>}
             </p>
             <ol className="rank-list">

@@ -1,27 +1,26 @@
-/* 관심사 카테고리 15종 (기획서 1-가) — 이모지는 설문 카드·추천 주제의 기본 캐릭터로 사용 */
+/* 관심사 카테고리 15종 (기획서 1-가) */
 export const INTERESTS = [
-  { tag: '게임', emoji: '🎮' },
-  { tag: '애니메이션', emoji: '🎬' },
-  { tag: '동물', emoji: '🐶' },
-  { tag: '스포츠', emoji: '⚽' },
-  { tag: '음식', emoji: '🍕' },
-  { tag: '우주', emoji: '🚀' },
-  { tag: '음악', emoji: '🎵' },
-  { tag: '자연', emoji: '🌳' },
-  { tag: '탈것', emoji: '🚗' },
-  { tag: '학교생활', emoji: '🏫' },
-  { tag: '공룡', emoji: '🦖' },
-  { tag: '로봇', emoji: '🤖' },
-  { tag: '요리', emoji: '🍳' },
-  { tag: '마법', emoji: '🪄' },
-  { tag: '패션', emoji: '👗' },
+  { tag: '게임' },
+  { tag: '애니메이션' },
+  { tag: '동물' },
+  { tag: '스포츠' },
+  { tag: '음식' },
+  { tag: '우주' },
+  { tag: '음악' },
+  { tag: '자연' },
+  { tag: '탈것' },
+  { tag: '학교생활' },
+  { tag: '공룡' },
+  { tag: '로봇' },
+  { tag: '요리' },
+  { tag: '마법' },
+  { tag: '패션' },
 ]
-export const INTEREST_EMOJI = Object.fromEntries(INTERESTS.map((i) => [i.tag, i.emoji]))
 
 export const LEVELS = [
-  { level: 1, label: '처음이에요', desc: '블록 코딩이 처음이에요', emoji: '🌱' },
-  { level: 2, label: '조금 해봤어요', desc: '스크래치·엔트리를 해본 적 있어요', emoji: '🌿' },
-  { level: 3, label: '꽤 해봤어요', desc: '게임도 만들어 봤어요', emoji: '🌳' },
+  { level: 1, label: '처음이에요', desc: '블록 코딩이 처음이에요' },
+  { level: 2, label: '조금 해봤어요', desc: '스크래치·엔트리를 해본 적 있어요' },
+  { level: 3, label: '꽤 해봤어요', desc: '게임도 만들어 봤어요' },
 ]
 export const LEVEL_LABEL = Object.fromEntries(LEVELS.map((l) => [l.level, l.label]))
 
