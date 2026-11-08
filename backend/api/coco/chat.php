@@ -3,11 +3,12 @@
 // GET   코코 대화 사용 가능 여부와 남은 횟수 {enabled, remaining, limit}
 // POST  {message, history?: [{role: 'user'|'coco', text}], context?: {chapter, code}}
 //       → {reply, remaining}
-// 대화 내용은 DB에 저장하지 않는다. Gemini로는 질문·직전 대화·현재 코드만 보내고 이름·이메일은 보내지 않는다.
+// 대화 내용은 DB에 저장하지 않는다. AI로는 질문·직전 대화·현재 코드만 보내고 이름·이메일은 보내지 않는다.
+// 어느 AI를 쓸지는 .env에서 정한다 (config/AiChat.php 참고)
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
-require_once __DIR__ . '/../../config/Gemini.php';
+require_once __DIR__ . '/../../config/AiChat.php';
 
 const MESSAGE_MAX = 300;
 const HISTORY_MAX = 6;      // 직전 대화 몇 개까지 기억할지 (질문+답 3번)
@@ -51,7 +52,7 @@ function remaining($key, $limit) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     Response::success([
-        'enabled' => Gemini::isConfigured(),
+        'enabled' => AiChat::isConfigured(),
         'remaining' => remaining($dailyKey, $dailyLimit),
         'limit' => $dailyLimit,
     ]);
@@ -61,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('지원하지 않는 요청입니다.', 405);
 }
 
-if (!Gemini::isConfigured()) {
+if (!AiChat::isConfigured()) {
     Response::error('코코가 아직 대화 준비 중이야. 조금만 기다려줘!', 503);
 }
 
@@ -99,7 +100,7 @@ foreach ($history as $turn) {
     if ($text === '') continue;
     $contents[] = ['role' => ($turn['role'] ?? '') === 'coco' ? 'model' : 'user', 'text' => scrub($text)];
 }
-// Gemini는 대화가 user로 시작해야 한다
+// 대화는 user로 시작해야 한다 (Gemini 규칙, OpenRouter도 이 편이 안전하다)
 while ($contents && $contents[0]['role'] !== 'user') array_shift($contents);
 
 // 지금 보고 있는 화면 정보는 질문 앞에 붙여서 보낸다
@@ -112,11 +113,11 @@ if ($code !== '') $prefix .= "[학생의 현재 블록 코드]\n$code\n[코드 �
 $contents[] = ['role' => 'user', 'text' => $prefix . scrub($message)];
 
 try {
-    $reply = Gemini::generate(SYSTEM_PROMPT, $contents, [
+    $reply = AiChat::generate(SYSTEM_PROMPT, $contents, [
         'temperature' => 0.7,
         'maxOutputTokens' => 1024,
     ]);
-} catch (GeminiUnavailableException $e) {
+} catch (AiUnavailableException $e) {
     error_log($e->getMessage());
     Response::error('코코가 지금 대답하기 어려워. 잠시 후에 다시 물어봐!', 503);
 }

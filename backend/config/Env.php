@@ -29,6 +29,13 @@ class Env {
         throw new RuntimeException('환경 설정 파일(.env)을 읽을 수 없습니다. 찾아본 위치: ' . implode(', ', self::candidates()));
     }
 
+    // .env에 그 줄이 아예 없는지 확인. ini 형식에서는 false가 빈 문자열로 읽히기 때문에,
+    // '적지 않음'과 '거짓'을 구분하려면 이걸 써야 한다
+    public static function has($key) {
+        self::load();
+        return array_key_exists($key, self::$values);
+    }
+
     public static function get($key, $default = null) {
         self::load();
         return self::$values[$key] ?? $default;
