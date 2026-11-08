@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../config/AiChat.php';
 require_once __DIR__ . '/../../config/ReplyFilter.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 const MESSAGE_MAX = 300;
 const HISTORY_MAX = 6;      // 직전 대화 몇 개까지 기억할지 (질문+답 3번)
@@ -138,7 +139,7 @@ $reply = preg_replace('/[*#`]+/u', '', $reply);
 // 걸린 답은 보여주지 않고, 이유만 서버 로그에 남긴다 (답 내용은 남기지 않는다)
 $blocked = ReplyFilter::check($reply);
 if ($blocked !== null) {
-    error_log('코코 답변 차단: ' . $blocked . ' (provider: ' . (AiChat::provider() ?? '없음') . ')');
+    Logger::audit('coco.blocked', ['reason' => $blocked, 'provider' => AiChat::provider()]);
     $reply = FALLBACK_REPLY;
 }
 if (mb_strlen($reply) > REPLY_MAX) $reply = mb_substr($reply, 0, REPLY_MAX) . '…';

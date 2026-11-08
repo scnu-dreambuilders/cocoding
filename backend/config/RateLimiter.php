@@ -4,6 +4,7 @@
 // 조용히 꺼졌기 때문에, 앱이 어차피 쓰는 DB에 기록한다 → 권한 문제로 꺼지지 않음.
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Response.php';
+require_once __DIR__ . '/Logger.php';
 
 class RateLimiter {
     private static function hashKey($key) {
@@ -42,6 +43,8 @@ class RateLimiter {
     public static function limit($key, $maxAttempts, $windowSeconds, $message = '요청이 너무 많아요. 잠시 후 다시 시도해주세요.') {
         if (self::tooMany($key, $maxAttempts, $windowSeconds)) {
             header('Retry-After: ' . $windowSeconds);
+            // 어떤 제한에 걸렸는지만 남긴다 (키에는 이메일이 들어갈 수 있어 종류만)
+            Logger::audit('ratelimit', ['kind' => explode(':', $key)[0] . ':' . (explode(':', $key)[1] ?? '')]);
             Response::error($message, 429);
         }
         self::hit($key);
