@@ -18,6 +18,7 @@ import { BLOCK_INFO, CATEGORIES, setBlockContext } from '../blockly/blocks'
 import { buildToolbox, categoryIdOf, LEVEL_BLOCKS, ALL_BLOCKS } from '../blockly/toolbox'
 import { Runtime, validateWorkspace } from '../engine/runtime'
 import { gradeChapter, starsOf } from '../engine/grader'
+import { itemTip } from '../lib/gradeText'
 import { CHAPTERS, MY_GAME, chapterBlocks, learnedBlocks, usedTypes } from '../data/chapters'
 import { LEVELS } from '../data/library'
 import { makeProject, makeSprite, normalizeProject, serializeProject } from '../lib/project'
@@ -64,8 +65,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     if (isChapter) p = makeProject({ sprites: chapter.sprites(), scenes: chapter.scenes?.() })
     else if (launch.template === 'mygame') p = makeProject({ scenes: MY_GAME.scenes() })
     else if (launch.topic) {
-      p = makeProject({ sprites: [makeSprite({ id: 'coco', name: '코코', emoji: '🐨', x: -120 }),
-        makeSprite({ id: 'hero', name: launch.topic.category ?? '주인공', emoji: launch.topic.emoji ?? '⭐', x: 100 })] })
+      p = makeProject({ sprites: [makeSprite({ id: 'coco', name: '코코', x: -120 }),
+        makeSprite({ id: 'hero', name: launch.topic.category ?? '주인공', costume: launch.topic.costume ?? 'star', x: 100 })] })
     } else p = makeProject()
     setBlockContext(p) // 블록 드롭다운이 워크스페이스 로드 전에 캐릭터 목록을 알아야 함
     return p
@@ -161,7 +162,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
 
   /* 캐릭터/장면/소리 이름이 바뀌면 블록 드롭다운 갱신 */
   const ctxKey = JSON.stringify([
-    project.sprites.map((s) => [s.id, s.name, s.emoji]), project.scenes.map((s) => [s.id, s.name]), project.sounds.map((s) => [s.id, s.name]),
+    project.sprites.map((s) => [s.id, s.name, s.costume, s.emoji]), project.scenes.map((s) => [s.id, s.name]), project.sounds.map((s) => [s.id, s.name]),
   ])
   useEffect(() => {
     setBlockContext(projectRef.current)
@@ -407,7 +408,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       setTimeout(() => setCelebrate(false), 3500)
     } else {
       const first = res.items.find((it) => !it.done)
-      say(`${res.score}점! 조금만 더 해보자!\n${first?.tip ?? ''}`, 'hint', 'thinking', { duration: 15000 })
+      say(`${res.score}점! 조금만 더 해보자!\n${itemTip(first) ?? ''}`, 'hint', 'thinking', { duration: 15000 })
       if (first?.missing?.length) flashBlock(first.missing[0])
     }
     saveGrade(res, snapshot)

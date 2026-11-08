@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { STAGE_W, STAGE_H, HALF_W, HALF_H, SPRITE_PX, spriteRadius } from '../engine/runtime'
-import { COCO_EMOJI, COCO_IMG } from '../lib/coco'
+import { costumeGlyph, costumeImage } from '../lib/costumes'
 
 /* ════════════════════════════════════════════════
    무대 — 캔버스 480×360 (x: -240~240, y: -180~180)
@@ -103,7 +103,8 @@ function drawSprite(ctx, s, selected) {
   ctx.save()
   ctx.translate(cx, cy)
   ctx.rotate(((s.dir - 90) * Math.PI) / 180)
-  const img = s.image ? getImage(s.image) : s.emoji === COCO_EMOJI ? getImage(COCO_IMG.calm) : null
+  const src = costumeImage(s)
+  const img = src ? getImage(src) : null
   if (img) {
     const k = px / Math.max(img.naturalWidth, img.naturalHeight)
     ctx.drawImage(img, (-img.naturalWidth * k) / 2, (-img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k)
@@ -111,7 +112,7 @@ function drawSprite(ctx, s, selected) {
     ctx.font = `${Math.round(px * 0.85)}px ${EMOJI_FONT}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(s.emoji ?? '?', 0, px * 0.05)
+    ctx.fillText(costumeGlyph(s), 0, px * 0.05)
   }
   ctx.restore()
   if (selected) {

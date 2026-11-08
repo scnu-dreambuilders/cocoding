@@ -2,7 +2,8 @@ import { useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { SPRITE_LIBRARY, SCENE_COLORS } from '../data/library'
 import { fileToSpriteData, makeSprite, newId, MAX_SCENES } from '../lib/project'
-import { COCO_EMOJI, COCO_IMG } from '../lib/coco'
+import { COCO_IMG } from '../lib/coco'
+import { costumeGlyph, costumeImage } from '../lib/costumes'
 
 /* ════════════════════════════════════════════════
    캐릭터 패널 — 라이브러리 선택 / 직접 그리기 / 사진 올리기 + 속성 편집
@@ -94,9 +95,9 @@ export function SpritePanel({ sprites, selectedId, onSelect, onChange, onDraw, o
           <button key={s.id} type="button" role="option" aria-selected={s.id === selected?.id}
             className={`sp-tile ${s.id === selected?.id ? 'on' : ''} ${s.visible === false ? 'hidden-sprite' : ''}`}
             onClick={() => onSelect(s.id)}>
-            {s.image || s.emoji === COCO_EMOJI
-              ? <img src={s.image ?? COCO_IMG.faceCalm} alt="" />
-              : <span className="sp-emoji">{s.emoji}</span>}
+            {costumeImage(s)
+              ? <img src={s.costume === 'coco' ? COCO_IMG.faceCalm : costumeImage(s)} alt="" />
+              : <span className="sp-emoji">{costumeGlyph(s)}</span>}
             <span className="sp-name">{s.name}</span>
           </button>
         ))}
