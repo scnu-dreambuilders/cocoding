@@ -19,10 +19,11 @@ const HINT_BLOCKS = [
     '메시지 블록' => 'broadcast',
     '장면 블록' => 'switch_scene',
 ];
-const CATEGORY_EMOJI = [
-    '게임' => '🎮', '애니메이션' => '🎬', '동물' => '🐶', '스포츠' => '⚽', '음식' => '🍕',
-    '우주' => '🚀', '음악' => '🎵', '자연' => '🌳', '탈것' => '🚗', '학교생활' => '🏫',
-    '공룡' => '🦖', '로봇' => '🤖', '요리' => '🍳', '마법' => '🪄', '패션' => '👗',
+// 분야별 캐릭터 모습 키 — 무엇으로 그릴지는 화면(frontend/src/lib/costumes.js)에서 정한다
+const CATEGORY_COSTUME = [
+    '게임' => 'game', '애니메이션' => 'animation', '동물' => 'animal', '스포츠' => 'sports', '음식' => 'food',
+    '우주' => 'space', '음악' => 'music', '자연' => 'nature', '탈것' => 'vehicle', '학교생활' => 'school',
+    '공룡' => 'dino', '로봇' => 'robot', '요리' => 'cooking', '마법' => 'magic', '패션' => 'fashion',
 ];
 
 $payload = Auth::requireUser();
@@ -41,7 +42,7 @@ foreach ($categories as $category) {
     foreach ($topicsData[$category] as $topic) {
         $pool[] = [
             'category' => $category,
-            'emoji' => CATEGORY_EMOJI[$category] ?? '⭐',
+            'costume' => CATEGORY_COSTUME[$category] ?? 'star',
             'title' => $topic['title'],
             'hint' => $topic['hint'],
             'hintBlock' => $topic['hintBlock'] ?? (HINT_BLOCKS[$topic['hint']] ?? null),

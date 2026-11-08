@@ -16,16 +16,17 @@ class ProgressModel {
     const MAX_LEVEL = 30;
 
     // 업적: code => [이모지, 이름, 설명]
+    // [이름, 설명] — 화면에 보이는 아이콘은 프론트엔드에서 붙인다
     const ACHIEVEMENTS = [
-        'first_step'    => ['🐣', '첫 걸음',        '챕터 1을 완료했어요'],
-        'all_chapters'  => ['🎓', '졸업생',          '챕터 5개를 모두 완료했어요'],
-        'perfect'       => ['💯', '만점왕',          '채점에서 100점을 받았어요'],
-        'maker'         => ['🧩', '작품 수집가',     '작품을 5개 만들었어요'],
-        'sharer'        => ['🌟', '나눔쟁이',        '작품을 처음 공개했어요'],
-        'loved'         => ['💜', '인기쟁이',        '좋아요를 10개 받았어요'],
-        'streak_7'      => ['🔥', '일주일 개근',     '7일 연속 출석했어요'],
-        'collector'     => ['🎀', '멋쟁이 코코',     '꾸미기 아이템을 5개 모았어요'],
-        'friendly'      => ['🤝', '친구 많은 코더',  '친구가 3명이 되었어요'],
+        'first_step'    => ['첫 걸음',        '챕터 1을 완료했어요'],
+        'all_chapters'  => ['졸업생',          '챕터 5개를 모두 완료했어요'],
+        'perfect'       => ['만점왕',          '채점에서 100점을 받았어요'],
+        'maker'         => ['작품 수집가',     '작품을 5개 만들었어요'],
+        'sharer'        => ['나눔쟁이',        '작품을 처음 공개했어요'],
+        'loved'         => ['인기쟁이',        '좋아요를 10개 받았어요'],
+        'streak_7'      => ['일주일 개근',     '7일 연속 출석했어요'],
+        'collector'     => ['멋쟁이 코코',     '꾸미기 아이템을 5개 모았어요'],
+        'friendly'      => ['친구 많은 코더',  '친구가 3명이 되었어요'],
     ];
 
     private $db;
@@ -74,8 +75,8 @@ class ProgressModel {
         $stmt = $this->db->prepare("INSERT IGNORE INTO user_achievements (user_id, code) VALUES (?, ?)");
         $stmt->execute([$user_id, $code]);
         if ($stmt->rowCount() === 0) return null;
-        [$emoji, $name, $desc] = self::ACHIEVEMENTS[$code];
-        return ['code' => $code, 'emoji' => $emoji, 'name' => $name, 'desc' => $desc];
+        [$name, $desc] = self::ACHIEVEMENTS[$code];
+        return ['code' => $code, 'name' => $name, 'desc' => $desc];
     }
 
     public function earned($user_id) {
@@ -85,9 +86,9 @@ class ProgressModel {
         foreach ($stmt->fetchAll() as $row) $map[$row['code']] = $row['earned_at'];
 
         $list = [];
-        foreach (self::ACHIEVEMENTS as $code => [$emoji, $name, $desc]) {
+        foreach (self::ACHIEVEMENTS as $code => [$name, $desc]) {
             $list[] = [
-                'code' => $code, 'emoji' => $emoji, 'name' => $name, 'desc' => $desc,
+                'code' => $code, 'name' => $name, 'desc' => $desc,
                 'earned' => isset($map[$code]), 'earned_at' => $map[$code] ?? null,
             ];
         }

@@ -17,11 +17,11 @@ const REPLY_MAX = 400;
 const PER_MINUTE = 6;
 
 const SYSTEM_PROMPT = <<<'TXT'
-너는 초등학생용 블록코딩 학습 사이트 '코코딩'의 캐릭터 '코코'야. 보라색 코알라 친구야.
+너는 초등학생용 블록코딩 학습 사이트 '코코딩'의 캐릭터 '코코'야. 보라색 하늘다람쥐 친구야.
 
 말투와 길이
 - 친근한 반말로, 초등학생이 바로 이해할 수 있는 쉬운 말만 써.
-- 답은 2~3문장, 150자 안쪽으로 짧게. 마크다운 기호(*, #, `)는 쓰지 마. 이모지는 한 개까지만.
+- 답은 2~3문장, 150자 안쪽으로 짧게. 마크다운 기호(*, #, `)는 쓰지 마. 유니코드 이모지는 쓰지 마.
 
 도와주는 방법
 - 블록코딩, 이 사이트의 블록(이동, 좌표, 반복, 조건, 키 감지, 변수, 메시지, 장면), 작품 아이디어, 공부 습관에 관한 질문을 도와줘.
@@ -65,12 +65,12 @@ if (!Gemini::isConfigured()) {
     Response::error('코코가 아직 대화 준비 중이야. 조금만 기다려줘!', 503);
 }
 
-RateLimiter::limit("coco:chat:min:$userId", PER_MINUTE, 60, '너무 빨리 물어봤어! 잠깐 쉬었다가 다시 물어봐 🙂');
+RateLimiter::limit("coco:chat:min:$userId", PER_MINUTE, 60, '너무 빨리 물어봤어! 잠깐 쉬었다가 다시 물어봐');
 if (RateLimiter::tooMany($dailyKey, $dailyLimit, 86400)) {
-    Response::error("오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐 🌙", 429);
+    Response::error("오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐", 429);
 }
 if (RateLimiter::tooMany($globalKey, $globalLimit, 86400)) {
-    Response::error("오늘은 친구들이 코코를 너무 많이 불러서 쉬는 중이야. 내일 또 물어봐 🌙", 429);
+    Response::error("오늘은 친구들이 코코를 너무 많이 불러서 쉬는 중이야. 내일 또 물어봐", 429);
 }
 
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -126,7 +126,7 @@ RateLimiter::hit($dailyKey);
 RateLimiter::hit($globalKey);
 
 if ($reply === null) {
-    $reply = '음, 그건 코코가 대답하기 어려운 이야기야. 우리 코딩 이야기 해볼까? 🙂';
+    $reply = '음, 그건 코코가 대답하기 어려운 이야기야. 우리 코딩 이야기 해볼까?';
 }
 $reply = preg_replace('/[*#`]+/u', '', $reply);
 if (mb_strlen($reply) > REPLY_MAX) $reply = mb_substr($reply, 0, REPLY_MAX) . '…';
