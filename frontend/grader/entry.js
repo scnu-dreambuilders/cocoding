@@ -9,7 +9,7 @@
 import * as Blockly from 'blockly'
 import { DOMImplementation, DOMParser, XMLSerializer } from '@xmldom/xmldom'
 import { gradeChapter } from '../src/engine/grader'
-import { CHAPTERS } from '../src/data/chapters'
+import { CHAPTER_LOGIC } from '../src/data/chapterLogic'
 import { setBlockContext } from '../src/blockly/blocks'
 import { makeProject } from '../src/lib/project'
 
@@ -36,7 +36,7 @@ function chapterProject(chapter, submitted) {
 }
 
 async function grade(input) {
-  const chapter = CHAPTERS[input?.chapter]
+  const chapter = CHAPTER_LOGIC[input?.chapter]
   if (!chapter) return { error: 'unknown chapter' }
   const submitted = input.blocks_data
   const project = chapterProject(chapter, submitted)

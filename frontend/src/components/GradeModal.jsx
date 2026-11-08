@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Bot, Check, X } from 'lucide-react'
 import Stars from './Stars'
 import { stripEmoji } from '../lib/text'
+import { itemTip } from '../lib/gradeText'
 
 /* ════════════════════════════════════════════════
    정답 제출 채점 결과 창
@@ -45,7 +46,7 @@ function GradeResult({ grade, onClose, onNext, onRetrySave }) {
             <span className="grade-mark" aria-hidden="true">{it.done ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />}</span>
             <div className="grade-item-body">
               <div className="grade-item-label">{stripEmoji(it.label)}</div>
-              {it.tip && <div className="grade-tip">{stripEmoji(it.tip)}</div>}
+              {itemTip(it) && <div className="grade-tip">{stripEmoji(itemTip(it))}</div>}
             </div>
             <span className="grade-pts">{it.earned}<small>/{it.max}</small></span>
           </li>

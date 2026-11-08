@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
 import * as Blockly from 'blockly'
-import { HAT_TYPES, workspaceToCode } from '../blockly/blocks'
+import { HAT_TYPES, setBlockTooltips, workspaceToCode } from '../blockly/blocks'
+import { BLOCK_INFO } from '../blockly/blockInfo'
 import { buildGrid, buildTheme, RENDERER } from '../blockly/theme'
 import { searchFlyout, setSearchQuery, variableFlyout } from '../blockly/toolbox'
 import { getTextSize, useTextSize } from '../lib/textSize'
@@ -8,6 +9,13 @@ import { getTextSize, useTextSize } from '../lib/textSize'
 // Blockly 아이콘·효과음·커서는 기본값이 외부 서버(blockly-demo.appspot.com) →
 // 우리 사이트(public/blockly-media)에서 받도록 해서 CSP를 지키고 외부 접속을 없앤다
 const BLOCKLY_MEDIA = `${import.meta.env.BASE_URL}blockly-media/`
+
+// 블록 툴팁 문구는 편집기에서 넣어준다 — 블록 이름·설명을 blocks.js가 직접 가져오면
+// 서버 재채점기 번들(backend/grader/grade.mjs)에 같이 들어가기 때문이다
+setBlockTooltips((type) => {
+  const info = BLOCK_INFO[type]
+  return info ? `${info.name} — ${info.tooltip}` : ''
+})
 
 /* 좌표 범위 초과 검사 (기획서 ⑥) — [블록 종류, 입력, 최대값, 안내 문구] */
 const RANGE_RULES = [
