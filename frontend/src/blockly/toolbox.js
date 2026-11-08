@@ -2,7 +2,7 @@
    팔레트(툴박스) 구성
    - 챕터 모드: 그 챕터까지 배운 블록만 (체스 앱 방식 누적)
    - 자유 창작: 코딩 수준(1/2/3)에 따라 블록 수 제한 + 완료한 챕터 블록
-   - 맨 위 '🔍 찾기' 카테고리: 블록 검색 결과
+   - 맨 위 '찾기' 카테고리: 블록 검색 결과
    ════════════════════════════════════════════════ */
 import { BLOCK_INFO, CATEGORIES } from './blockInfo'
 
@@ -112,7 +112,7 @@ export function buildToolbox({ allowed, newBlocks = [] }) {
   const newSet = new Set(newBlocks)
 
   const contents = [{
-    kind: 'category', name: '🔍 찾기', categorystyle: 'search_category',
+    kind: 'category', name: '찾기', categorystyle: 'search_category',
     toolboxitemid: 'cat_search', custom: 'COCO_SEARCH',
   }]
 
