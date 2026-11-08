@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { SPRITE_LIBRARY, SCENE_COLORS } from '../data/library'
 import { fileToSpriteData, makeSprite, newId, MAX_SCENES } from '../lib/project'
+import { COCO_EMOJI, COCO_IMG } from '../lib/coco'
 
 /* ════════════════════════════════════════════════
    캐릭터 패널 — 라이브러리 선택 / 직접 그리기 / 사진 올리기 + 속성 편집
@@ -59,7 +61,7 @@ export function SpritePanel({ sprites, selectedId, onSelect, onChange, onDraw, o
         <span className="panel-label">캐릭터</span>
         <div className="sp-actions">
           <button type="button" className="btn btn-ghost btn-sm" onClick={onSounds} disabled={disabled || locked}>
-            🎤 소리{soundCount ? ` ${soundCount}` : ''}
+            소리{soundCount ? ` ${soundCount}` : ''}
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPicker((p) => !p)} disabled={disabled || locked}
             aria-expanded={picker}>
@@ -71,8 +73,8 @@ export function SpritePanel({ sprites, selectedId, onSelect, onChange, onDraw, o
       {picker && (
         <div className="sp-picker">
           <div className="sp-picker-actions">
-            <button type="button" className="btn btn-run btn-sm" onClick={() => { setPicker(false); onDraw() }}>🎨 직접 그리기</button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>🖼️ 사진 올리기</button>
+            <button type="button" className="btn btn-run btn-sm" onClick={() => { setPicker(false); onDraw() }}>직접 그리기</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>사진 올리기</button>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden onChange={onFile} />
           </div>
           <div className="sp-library" role="list">
@@ -92,7 +94,9 @@ export function SpritePanel({ sprites, selectedId, onSelect, onChange, onDraw, o
           <button key={s.id} type="button" role="option" aria-selected={s.id === selected?.id}
             className={`sp-tile ${s.id === selected?.id ? 'on' : ''} ${s.visible === false ? 'hidden-sprite' : ''}`}
             onClick={() => onSelect(s.id)}>
-            {s.image ? <img src={s.image} alt="" /> : <span className="sp-emoji">{s.emoji}</span>}
+            {s.image || s.emoji === COCO_EMOJI
+              ? <img src={s.image ?? COCO_IMG.faceCalm} alt="" />
+              : <span className="sp-emoji">{s.emoji}</span>}
             <span className="sp-name">{s.name}</span>
           </button>
         ))}
@@ -115,7 +119,7 @@ export function SpritePanel({ sprites, selectedId, onSelect, onChange, onDraw, o
             보이기
           </label>
           <button type="button" className="btn btn-ghost btn-sm" onClick={remove}
-            disabled={disabled || locked || sprites.length <= 1} title="캐릭터 삭제">🗑️</button>
+            disabled={disabled || locked || sprites.length <= 1} title="캐릭터 삭제" aria-label="캐릭터 삭제"><Trash2 size={16} aria-hidden="true" /></button>
         </div>
       )}
     </div>
@@ -173,7 +177,7 @@ export function SceneBar({ scenes, currentId, onSelect, onChange, disabled, lock
               onClick={() => update(current.id, { bg: c })} disabled={disabled} aria-label={`배경색 ${c}`} />
           ))}
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => remove(current.id)}
-            disabled={disabled || scenes.length <= 1} title="이 장면 삭제">🗑️</button>
+            disabled={disabled || scenes.length <= 1} title="이 장면 삭제" aria-label="이 장면 삭제"><Trash2 size={16} aria-hidden="true" /></button>
         </div>
       )}
     </div>

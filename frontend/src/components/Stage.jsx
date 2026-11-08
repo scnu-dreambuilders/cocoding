@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { STAGE_W, STAGE_H, HALF_W, HALF_H, SPRITE_PX, spriteRadius } from '../engine/runtime'
+import { COCO_EMOJI, COCO_IMG } from '../lib/coco'
 
 /* ════════════════════════════════════════════════
    무대 — 캔버스 480×360 (x: -240~240, y: -180~180)
@@ -30,20 +31,20 @@ function drawGrid(ctx, dark) {
   ctx.lineWidth = 1
   for (let x = -240; x <= 240; x += 30) {
     const major = x % 120 === 0
-    ctx.strokeStyle = x === 0 ? (dark ? 'rgba(255,255,255,.55)' : 'rgba(15,23,42,.45)')
-      : major ? (dark ? 'rgba(255,255,255,.25)' : 'rgba(15,23,42,.2)') : (dark ? 'rgba(255,255,255,.08)' : 'rgba(15,23,42,.07)')
+    ctx.strokeStyle = x === 0 ? (dark ? 'rgba(255,255,255,.55)' : 'rgba(71,41,23,.45)')
+      : major ? (dark ? 'rgba(255,255,255,.25)' : 'rgba(71,41,23,.2)') : (dark ? 'rgba(255,255,255,.08)' : 'rgba(71,41,23,.07)')
     const [cx] = toCanvas(x, 0)
     ctx.beginPath(); ctx.moveTo(cx + 0.5, 0); ctx.lineTo(cx + 0.5, STAGE_H); ctx.stroke()
   }
   for (let y = -180; y <= 180; y += 30) {
     const major = y % 90 === 0
-    ctx.strokeStyle = y === 0 ? (dark ? 'rgba(255,255,255,.55)' : 'rgba(15,23,42,.45)')
-      : major ? (dark ? 'rgba(255,255,255,.25)' : 'rgba(15,23,42,.2)') : (dark ? 'rgba(255,255,255,.08)' : 'rgba(15,23,42,.07)')
+    ctx.strokeStyle = y === 0 ? (dark ? 'rgba(255,255,255,.55)' : 'rgba(71,41,23,.45)')
+      : major ? (dark ? 'rgba(255,255,255,.25)' : 'rgba(71,41,23,.2)') : (dark ? 'rgba(255,255,255,.08)' : 'rgba(71,41,23,.07)')
     const [, cy] = toCanvas(0, y)
     ctx.beginPath(); ctx.moveTo(0, cy + 0.5); ctx.lineTo(STAGE_W, cy + 0.5); ctx.stroke()
   }
-  ctx.fillStyle = dark ? 'rgba(255,255,255,.8)' : 'rgba(15,23,42,.7)'
-  ctx.font = 'bold 10px system-ui, sans-serif'
+  ctx.fillStyle = dark ? 'rgba(255,255,255,.8)' : 'rgba(71,41,23,.75)'
+  ctx.font = 'bold 10px "Pretendard Variable", system-ui, sans-serif'
   for (const x of [-240, -120, 0, 120, 240]) {
     const [cx, cy] = toCanvas(x, 0)
     ctx.textAlign = x === -240 ? 'left' : x === 240 ? 'right' : 'center'
@@ -74,7 +75,7 @@ function drawBubble(ctx, s) {
   const [cx, cy] = toCanvas(s.x, s.y)
   const r = (SPRITE_PX / 2) * (s.size / 100)
   ctx.save()
-  ctx.font = '600 13px system-ui, "Malgun Gothic", sans-serif'
+  ctx.font = '600 13px "Pretendard Variable", system-ui, "Malgun Gothic", sans-serif'
   const lines = wrapText(ctx, s.say, 150)
   const w = Math.max(...lines.map((l) => ctx.measureText(l).width)) + 20
   const h = lines.length * 17 + 12
@@ -84,12 +85,12 @@ function drawBubble(ctx, s) {
   bx = Math.max(4, bx)
   by = Math.max(4, by)
   ctx.fillStyle = '#fff'
-  ctx.strokeStyle = 'rgba(15,23,42,.25)'
-  ctx.lineWidth = 1.5
+  ctx.strokeStyle = '#472917'
+  ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.roundRect(bx, by, w, h, 10)
+  ctx.roundRect(bx, by, w, h, 12)
   ctx.fill(); ctx.stroke()
-  ctx.fillStyle = '#0f172a'
+  ctx.fillStyle = '#472917'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'top'
   lines.forEach((l, i) => ctx.fillText(l, bx + 10, by + 7 + i * 17))
@@ -102,7 +103,7 @@ function drawSprite(ctx, s, selected) {
   ctx.save()
   ctx.translate(cx, cy)
   ctx.rotate(((s.dir - 90) * Math.PI) / 180)
-  const img = s.image ? getImage(s.image) : null
+  const img = s.image ? getImage(s.image) : s.emoji === COCO_EMOJI ? getImage(COCO_IMG.calm) : null
   if (img) {
     const k = px / Math.max(img.naturalWidth, img.naturalHeight)
     ctx.drawImage(img, (-img.naturalWidth * k) / 2, (-img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k)
@@ -110,13 +111,13 @@ function drawSprite(ctx, s, selected) {
     ctx.font = `${Math.round(px * 0.85)}px ${EMOJI_FONT}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(s.emoji ?? '❓', 0, px * 0.05)
+    ctx.fillText(s.emoji ?? '?', 0, px * 0.05)
   }
   ctx.restore()
   if (selected) {
     ctx.save()
     ctx.setLineDash([4, 3])
-    ctx.strokeStyle = '#7c3aed'
+    ctx.strokeStyle = '#2c6e75'
     ctx.lineWidth = 2
     ctx.beginPath()
     ctx.arc(cx, cy, spriteRadius(s) + 8, 0, Math.PI * 2)
@@ -127,7 +128,7 @@ function drawSprite(ctx, s, selected) {
 
 function drawMonitors(ctx, monitors) {
   ctx.save()
-  ctx.font = '600 12px system-ui, "Malgun Gothic", sans-serif'
+  ctx.font = '600 12px "Pretendard Variable", system-ui, "Malgun Gothic", sans-serif'
   ctx.textBaseline = 'middle'
   let y = 8
   for (const m of monitors) {
@@ -136,10 +137,10 @@ function drawMonitors(ctx, monitors) {
     const lw = ctx.measureText(label).width
     const vw = Math.max(22, ctx.measureText(value).width + 12)
     ctx.fillStyle = 'rgba(255,255,255,.92)'
-    ctx.strokeStyle = 'rgba(15,23,42,.2)'
-    ctx.beginPath(); ctx.roundRect(8, y, lw + vw + 20, 24, 6); ctx.fill(); ctx.stroke()
-    ctx.fillStyle = '#334155'; ctx.fillText(label, 16, y + 12)
-    ctx.fillStyle = '#FF8C1A'
+    ctx.strokeStyle = 'rgba(71,41,23,.3)'
+    ctx.beginPath(); ctx.roundRect(8, y, lw + vw + 20, 24, 8); ctx.fill(); ctx.stroke()
+    ctx.fillStyle = '#472917'; ctx.fillText(label, 16, y + 12)
+    ctx.fillStyle = '#A24F00'
     ctx.beginPath(); ctx.roundRect(lw + 22, y + 3, vw, 18, 4); ctx.fill()
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(value, lw + 22 + vw / 2, y + 12); ctx.textAlign = 'left'
     y += 30

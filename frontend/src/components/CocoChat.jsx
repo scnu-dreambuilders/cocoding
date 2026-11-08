@@ -6,6 +6,7 @@
    ════════════════════════════════════════════════ */
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
+import { stripEmoji } from '../lib/text'
 import './CocoChat.css'
 
 const HISTORY_SENT = 6 // 서버도 직전 6개까지만 사용
@@ -14,7 +15,7 @@ const SUGGESTIONS = ['이 블록은 어떻게 써?', '내 코드 어디가 틀�
 
 export default function CocoChat({ getContext, onHint, onClose, onEmotion }) {
   const [log, setLog] = useState([
-    { role: 'coco', text: '안녕! 궁금한 걸 물어봐. 지금 만들고 있는 코드도 같이 볼게 🙂' },
+    { role: 'coco', text: '안녕! 궁금한 걸 물어봐. 지금 만들고 있는 코드도 같이 볼게!' },
   ])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -57,7 +58,7 @@ export default function CocoChat({ getContext, onHint, onClose, onEmotion }) {
   const disabled = status && (!status.enabled || status.remaining <= 0)
   const notice = !status ? '' : !status.enabled
     ? '코코가 아직 대화 준비 중이야. 지금은 힌트만 줄 수 있어!'
-    : status.remaining <= 0 ? '오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐 🌙' : ''
+    : status.remaining <= 0 ? '오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐.' : ''
 
   return (
     <div className="coco-chat" role="dialog" aria-label="코코에게 물어보기">
@@ -69,7 +70,7 @@ export default function CocoChat({ getContext, onHint, onClose, onEmotion }) {
 
       <div className="coco-chat-log" ref={listRef} aria-live="polite">
         {log.map((m, i) => (
-          <p key={i} className={`coco-msg coco-msg-${m.role} ${m.error ? 'is-error' : ''}`}>{m.text}</p>
+          <p key={i} className={`coco-msg coco-msg-${m.role} ${m.error ? 'is-error' : ''}`}>{stripEmoji(m.text)}</p>
         ))}
         {busy && <p className="coco-msg coco-msg-coco coco-typing" aria-label="코코가 생각 중">•••</p>}
         {notice && <p className="coco-chat-notice">{notice}</p>}
@@ -96,7 +97,7 @@ export default function CocoChat({ getContext, onHint, onClose, onEmotion }) {
         <button type="submit" disabled={busy || disabled || !input.trim()}>보내기</button>
       </form>
       <div className="coco-chat-foot">
-        <button type="button" onClick={onHint}>💡 다음 블록 힌트</button>
+        <button type="button" onClick={onHint}>다음 블록 힌트</button>
         <span>이름·학교·전화번호는 적지 마!</span>
       </div>
     </div>

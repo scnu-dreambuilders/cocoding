@@ -4,7 +4,19 @@
   display: inline-block;
   flex-shrink: 0;
 }
-.coco-avatar svg { display: block; position: relative; z-index: 1; }
+.coco-img {
+  display: block;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* 작은 크기: 얼굴만 하늘색 원 안에 */
+.coco-avatar.is-face { border-radius: 50%; background: var(--sky-200); overflow: hidden; }
+.coco-avatar.is-face .coco-img { object-fit: cover; }
 
 .coco-item {
   position: absolute;
@@ -13,36 +25,34 @@
   pointer-events: none;
   font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
 }
-/* 아이템 크기·위치는 아바타 너비(cqw) 기준 → 어떤 크기로 그려도 비율 유지 */
+/* 아이템 크기·위치는 아바타 너비(cqw) 기준 → 어떤 크기로 그려도 비율 유지.
+   코코 전신 그림은 머리가 오른쪽에 있어서 머리 장식도 오른쪽으로 치우친다 */
 .coco-avatar { container-type: inline-size; }
-.coco-avatar > .coco-hat { font-size: 40cqw; top: -22cqw; left: 50%; transform: translateX(-50%) rotate(-8deg); }
-.coco-avatar > .coco-glasses { font-size: 34cqw; top: 30cqw; left: 50%; transform: translateX(-50%); }
-.coco-avatar > .coco-acc { font-size: 30cqw; bottom: -4cqw; right: -8cqw; transform: rotate(12deg); }
+.coco-avatar.is-full > .coco-hat { font-size: 32cqw; top: -2cqw; left: 64%; transform: translateX(-50%) rotate(-10deg); }
+.coco-avatar.is-full > .coco-glasses { font-size: 26cqw; top: 40cqw; left: 74%; transform: translateX(-50%); }
+.coco-avatar.is-full > .coco-acc { font-size: 26cqw; bottom: 0; left: 0; transform: rotate(-12deg); }
+.coco-avatar.is-face > .coco-hat { font-size: 46cqw; top: -14cqw; left: 56%; transform: translateX(-50%) rotate(-8deg); }
+.coco-avatar.is-face > .coco-glasses { font-size: 40cqw; top: 42cqw; left: 63%; transform: translateX(-50%); }
+.coco-avatar.is-face > .coco-acc { display: none; }
 .coco-avatar > .coco-bg {
   z-index: 0;
-  inset: -14cqw;
-  font-size: 110cqw;
+  inset: -10cqw;
+  font-size: 100cqw;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0.35;
-  filter: saturate(1.2);
 }
 
-/* ── 감정 애니메이션 ─────────────────────────── */
-.coco-normal svg { animation: coco-float 3s ease-in-out infinite; }
-.coco-happy svg { animation: coco-bounce 0.5s ease 2; }
-.coco-thinking svg { animation: coco-tilt 1s ease-in-out infinite; transform-origin: 50% 90%; }
-.coco-celebrate svg { animation: coco-celebrate 0.7s ease 3; }
+/* ── 감정 움직임 — 작게, 짧게 ─────────────────── */
+.coco-normal .coco-img { animation: coco-float 3s ease-in-out infinite; }
+.coco-happy .coco-img { animation: coco-bounce 0.45s ease 2; }
+.coco-thinking .coco-img { animation: coco-tilt 1.4s ease-in-out infinite; transform-origin: 60% 90%; }
+.coco-celebrate .coco-img { animation: coco-bounce 0.45s ease 3; }
 
 @keyframes coco-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-@keyframes coco-bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-12px); } }
-@keyframes coco-tilt { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
-@keyframes coco-celebrate {
-  0% { transform: scale(1) rotate(0); }
-  50% { transform: scale(1.18) rotate(180deg); }
-  100% { transform: scale(1) rotate(360deg); }
-}
+@keyframes coco-bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } }
+@keyframes coco-tilt { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
 
 /* ── 에디터 우측 하단 도킹 ───────────────────── */
 .coco-dock {
@@ -64,32 +74,29 @@
   background: none;
   padding: 0;
   cursor: pointer;
-  filter: drop-shadow(0 6px 12px rgba(76, 29, 149, 0.28));
-  transition: transform 0.15s;
+  filter: drop-shadow(0 4px 8px rgba(71, 41, 23, 0.22));
+  transition: transform 0.12s;
 }
-.coco-btn:hover { transform: scale(1.06); }
+.coco-btn:hover { transform: scale(1.05); }
 .coco-btn:active { transform: scale(0.96); }
 
+/* 말풍선: 판 바탕 + 갈색 2px 선 + 큰 둥근 모서리. 오류만 선을 빨강으로 바꾼다 */
 .coco-bubble {
   position: relative;
   max-width: 300px;
   padding: 12px 30px 12px 14px;
-  border-radius: 16px 16px 4px 16px;
-  background: #fff;
-  color: #1e293b;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
+  background: var(--panel-bg);
+  color: var(--text-h);
   font-size: 0.9rem;
   line-height: 1.55;
-  border: 2px solid #60a5fa;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  border: var(--stroke-brand) solid var(--line-brand);
+  box-shadow: var(--shadow-pop);
   margin-bottom: 46px;
   animation: coco-bubble-in 0.35s ease;
 }
 .coco-bubble p { margin: 0; white-space: pre-line; }
-.coco-bubble-intro { border-color: #60a5fa; }
-.coco-bubble-hint { border-color: #facc15; background: #fffbeb; }
-.coco-bubble-error { border-color: #ef4444; background: #fef2f2; }
-.coco-bubble-success { border-color: #22c55e; background: #f0fdf4; }
-.coco-bubble-encourage { border-color: #a78bfa; background: #faf5ff; }
+.coco-bubble-error { border-color: var(--danger); box-shadow: 0 3px 0 var(--danger); }
 @keyframes coco-bubble-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
 
 .coco-bubble-x {
@@ -100,33 +107,32 @@
   background: none;
   font-size: 1.1333rem;
   line-height: 1;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 2px 4px;
 }
-.coco-bubble-x:hover { color: #334155; }
+.coco-bubble-x:hover { color: var(--text-h); }
 
 .coco-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .coco-actions button {
-  border: 1px solid #c4b5fd;
-  background: #f5f3ff;
-  color: #5b21b6;
-  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-text);
+  border-radius: var(--radius-pill);
   padding: 4px 10px;
   font: inherit;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
 }
-.coco-actions button:hover { background: #ede9fe; }
+.coco-actions button:hover { background: var(--sky-200); }
 
 @media (prefers-color-scheme: dark) {
-  .coco-bubble { background: #1e1b2e; color: #e2e8f0; }
-  .coco-bubble-hint { background: #2a2410; }
-  .coco-bubble-error { background: #2a1215; }
-  .coco-bubble-success { background: #0f2418; }
-  .coco-bubble-encourage { background: #1f1633; }
-  .coco-actions button { background: #2e1065; color: #ddd6fe; border-color: #6d28d9; }
+  .coco-actions button:hover { background: var(--teal-800); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coco-img, .coco-dock, .coco-bubble { animation: none !important; }
 }
 
 @media (max-width: 768px) {
