@@ -5,8 +5,7 @@
    - 채점 기준(100점): 미션 조건 70 + 배운 블록 사용 20 + 오류 없이 실행 10
    ════════════════════════════════════════════════ */
 import { Runtime, validateWorkspace } from './runtime'
-import { usedTypes } from '../data/chapters'
-import { BLOCK_INFO } from '../blockly/blockInfo'
+import { usedTypes } from '../data/chapterLogic'
 
 const FRAME_MS = 1000 / 60
 const POINTS = { mission: 70, blocks: 20, clean: 10 }
@@ -169,7 +168,8 @@ export async function gradeChapter({ chapter, workspace, project, liveDone = [],
   items.push({
     group: 'blocks', label: '이번 챕터에서 배운 블록 사용하기',
     max: POINTS.blocks, earned: Math.round((POINTS.blocks * have) / chapter.required.length), done: !missing.length,
-    tip: missing.length ? `${missing.map((t) => `'${BLOCK_INFO[t]?.name ?? t}'`).join(', ')} 블록을 써보자!` : null,
+    // 빠진 블록의 '이름'은 화면에서 붙인다 (lib/gradeText.js) — 블록 이름을 채점기 번들에 넣지 않으려고
+    tip: null,
     missing,
   })
   items.push({

@@ -2,6 +2,10 @@
 // backend/config/Bootstrap.php
 // Common entrypoint: 보안 헤더, CORS, JSON error responses for any uncaught error/exception.
 require_once __DIR__ . '/Response.php';
+require_once __DIR__ . '/Logger.php';
+
+// 요청 하나를 추적할 번호를 만들고, 끝날 때 접근 기록을 남기도록 걸어둔다
+Logger::init();
 
 // API는 JSON만 돌려주므로 가장 엄격하게: 다른 사이트에 끼워 넣기·MIME 추측·리퍼러 노출 금지
 header_remove('X-Powered-By');
@@ -15,6 +19,12 @@ require_once __DIR__ . '/Cors.php';
 
 set_exception_handler(function ($e) {
     error_log($e);
+    Logger::error('exception', [
+        'type' => get_class($e),
+        'msg' => mb_substr($e->getMessage(), 0, 300),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine(),
+    ]);
     if ($e instanceof DatabaseConnectionException) {
         // 가장 흔한 설치 문제: .env의 DB 포트/계정/비밀번호가 실제 DB와 다름
         Response::error('데이터베이스에 연결할 수 없습니다. backend/.env의 DB_HOST·DB_PORT·DB_USER·DB_PASS를 확인하거나 setup-db.bat을 실행해주세요.', 503);

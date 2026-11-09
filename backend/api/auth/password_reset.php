@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../config/Validators.php';
 require_once __DIR__ . '/../../config/Mailer.php';
 require_once __DIR__ . '/../../models/UserModel.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 const RESET_TTL_MINUTES = 30;
 const SAME_ANSWER = '메일을 보냈어요. 받은 편지함을 확인해주세요. (계정이 없으면 메일이 오지 않아요)';
@@ -53,6 +54,7 @@ if (isset($data['token'])) {
         throw $e;
     }
     RateLimiter::clear("login:account:" . strtolower((string)($userModel->findById($row['user_id'])['email'] ?? '')));
+    Logger::audit('password.reset.done');
     Response::success(["message" => "비밀번호를 바꿨어요. 새 비밀번호로 로그인해주세요."]);
 }
 
@@ -70,6 +72,7 @@ if ($user) {
     $db->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, NOW() + INTERVAL ? MINUTE)")
         ->execute([$user['id'], hash('sha256', $token), RESET_TTL_MINUTES]);
 
+    Logger::audit('password.reset.request', ['uid_target' => (int)$user['id']]);
     $link = Mailer::appUrl() . '/?reset=' . $token;
     Mailer::send($email, '[코코딩] 비밀번호 다시 정하기',
         "안녕하세요, {$user['username']}님.\n\n" .

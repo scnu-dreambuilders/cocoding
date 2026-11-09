@@ -9,6 +9,7 @@ backend/.env
 # 실행 중 생기는 파일
 backend/data/.rate_limit.json
 backend/data/.schema_version
+backend/data/logs/
 *.log
 
 # 로컬 도구 / 에디터 설정

@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/BoardModel.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 const POST_COOLDOWN_SECONDS = 5;
 
@@ -53,6 +54,7 @@ if ($method === 'POST') {
             Response::error("신고 이유를 골라주세요.");
         }
         $result = $board->report($postId, $userId, $data['reason']);
+        Logger::audit('report.board', ['post' => $postId]);
         if ($result === false) Response::error("이미 신고한 글이에요.", 409);
         Response::success([
             'hidden' => $result['hidden'],

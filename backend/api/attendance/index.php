@@ -46,6 +46,6 @@ Response::success(attendanceState($coins, $userId, [
     'newAchievements' => $newAchievements,
     'level' => ProgressModel::levelInfo($progress->xp($userId)),
     'message' => $result['already']
-        ? '오늘은 이미 출석했어! 내일 또 만나자 👋'
-        : "출석 완료! {$result['coins']}코인을 받았어 (연속 {$result['streak']}일) 🎉",
+        ? '오늘은 이미 출석했어! 내일 또 만나자'
+        : "출석 완료! {$result['coins']}코인을 받았어 (연속 {$result['streak']}일)",
 ]));

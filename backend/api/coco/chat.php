@@ -3,11 +3,14 @@
 // GET   코코 대화 사용 가능 여부와 남은 횟수 {enabled, remaining, limit}
 // POST  {message, history?: [{role: 'user'|'coco', text}], context?: {chapter, code}}
 //       → {reply, remaining}
-// 대화 내용은 DB에 저장하지 않는다. Gemini로는 질문·직전 대화·현재 코드만 보내고 이름·이메일은 보내지 않는다.
+// 대화 내용은 DB에 저장하지 않는다. AI로는 질문·직전 대화·현재 코드만 보내고 이름·이메일은 보내지 않는다.
+// 어느 AI를 쓸지는 .env에서 정한다 (config/AiChat.php 참고)
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
-require_once __DIR__ . '/../../config/Gemini.php';
+require_once __DIR__ . '/../../config/AiChat.php';
+require_once __DIR__ . '/../../config/ReplyFilter.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 const MESSAGE_MAX = 300;
 const HISTORY_MAX = 6;      // 직전 대화 몇 개까지 기억할지 (질문+답 3번)
@@ -15,13 +18,15 @@ const HISTORY_TEXT_MAX = 500;
 const CODE_MAX = 2000;
 const REPLY_MAX = 400;
 const PER_MINUTE = 6;
+// 답이 비었거나 걸러졌을 때 대신 보여줄 말
+const FALLBACK_REPLY = '음, 그건 코코가 대답하기 어려운 이야기야. 우리 코딩 이야기 해볼까?';
 
 const SYSTEM_PROMPT = <<<'TXT'
-너는 초등학생용 블록코딩 학습 사이트 '코코딩'의 캐릭터 '코코'야. 보라색 코알라 친구야.
+너는 초등학생용 블록코딩 학습 사이트 '코코딩'의 캐릭터 '코코'야. 보라색 하늘다람쥐 친구야.
 
 말투와 길이
 - 친근한 반말로, 초등학생이 바로 이해할 수 있는 쉬운 말만 써.
-- 답은 2~3문장, 150자 안쪽으로 짧게. 마크다운 기호(*, #, `)는 쓰지 마. 이모지는 한 개까지만.
+- 답은 2~3문장, 150자 안쪽으로 짧게. 마크다운 기호(*, #, `)는 쓰지 마. 유니코드 이모지는 쓰지 마.
 
 도와주는 방법
 - 블록코딩, 이 사이트의 블록(이동, 좌표, 반복, 조건, 키 감지, 변수, 메시지, 장면), 작품 아이디어, 공부 습관에 관한 질문을 도와줘.
@@ -51,7 +56,7 @@ function remaining($key, $limit) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     Response::success([
-        'enabled' => Gemini::isConfigured(),
+        'enabled' => AiChat::isConfigured(),
         'remaining' => remaining($dailyKey, $dailyLimit),
         'limit' => $dailyLimit,
     ]);
@@ -61,16 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('지원하지 않는 요청입니다.', 405);
 }
 
-if (!Gemini::isConfigured()) {
+if (!AiChat::isConfigured()) {
     Response::error('코코가 아직 대화 준비 중이야. 조금만 기다려줘!', 503);
 }
 
-RateLimiter::limit("coco:chat:min:$userId", PER_MINUTE, 60, '너무 빨리 물어봤어! 잠깐 쉬었다가 다시 물어봐 🙂');
+RateLimiter::limit("coco:chat:min:$userId", PER_MINUTE, 60, '너무 빨리 물어봤어! 잠깐 쉬었다가 다시 물어봐');
 if (RateLimiter::tooMany($dailyKey, $dailyLimit, 86400)) {
-    Response::error("오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐 🌙", 429);
+    Response::error("오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐", 429);
 }
 if (RateLimiter::tooMany($globalKey, $globalLimit, 86400)) {
-    Response::error("오늘은 친구들이 코코를 너무 많이 불러서 쉬는 중이야. 내일 또 물어봐 🌙", 429);
+    Response::error("오늘은 친구들이 코코를 너무 많이 불러서 쉬는 중이야. 내일 또 물어봐", 429);
 }
 
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -99,7 +104,7 @@ foreach ($history as $turn) {
     if ($text === '') continue;
     $contents[] = ['role' => ($turn['role'] ?? '') === 'coco' ? 'model' : 'user', 'text' => scrub($text)];
 }
-// Gemini는 대화가 user로 시작해야 한다
+// 대화는 user로 시작해야 한다 (Gemini 규칙, OpenRouter도 이 편이 안전하다)
 while ($contents && $contents[0]['role'] !== 'user') array_shift($contents);
 
 // 지금 보고 있는 화면 정보는 질문 앞에 붙여서 보낸다
@@ -112,11 +117,11 @@ if ($code !== '') $prefix .= "[학생의 현재 블록 코드]\n$code\n[코드 �
 $contents[] = ['role' => 'user', 'text' => $prefix . scrub($message)];
 
 try {
-    $reply = Gemini::generate(SYSTEM_PROMPT, $contents, [
+    $reply = AiChat::generate(SYSTEM_PROMPT, $contents, [
         'temperature' => 0.7,
         'maxOutputTokens' => 1024,
     ]);
-} catch (GeminiUnavailableException $e) {
+} catch (AiUnavailableException $e) {
     error_log($e->getMessage());
     Response::error('코코가 지금 대답하기 어려워. 잠시 후에 다시 물어봐!', 503);
 }
@@ -126,9 +131,17 @@ RateLimiter::hit($dailyKey);
 RateLimiter::hit($globalKey);
 
 if ($reply === null) {
-    $reply = '음, 그건 코코가 대답하기 어려운 이야기야. 우리 코딩 이야기 해볼까? 🙂';
+    $reply = FALLBACK_REPLY;
 }
 $reply = preg_replace('/[*#`]+/u', '', $reply);
+
+// AI가 돌려준 답을 한 번 더 본다. 제공자에 따라 유해 내용 차단 기능이 없을 수 있어서다.
+// 걸린 답은 보여주지 않고, 이유만 서버 로그에 남긴다 (답 내용은 남기지 않는다)
+$blocked = ReplyFilter::check($reply);
+if ($blocked !== null) {
+    Logger::audit('coco.blocked', ['reason' => $blocked, 'provider' => AiChat::provider()]);
+    $reply = FALLBACK_REPLY;
+}
 if (mb_strlen($reply) > REPLY_MAX) $reply = mb_substr($reply, 0, REPLY_MAX) . '…';
 
 Response::success([

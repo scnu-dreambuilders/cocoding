@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../config/Validators.php';
 require_once __DIR__ . '/../../models/UserModel.php';
 require_once __DIR__ . '/../../models/GuardianModel.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 const PASSWORD_CHECK_MAX = 5;
 const PASSWORD_CHECK_WINDOW = 900; // 15분
@@ -73,6 +74,7 @@ if ($method === 'POST') {
     $userModel->updatePassword($userId, $newPassword);
     Auth::revoke($userId); // 비밀번호가 새어서 바꾸는 경우를 위해 다른 곳의 로그인 끊기
     $user = $userModel->findById($userId);
+    Logger::audit('password.change');
     Response::success(["token" => Auth::issueToken($userId, $user['username']), "user" => $user]);
 }
 
@@ -94,6 +96,7 @@ if ($method === 'DELETE') {
         $db->rollBack();
         throw $e;
     }
+    Logger::audit('account.delete');
     Response::success(["message" => "탈퇴가 완료되었어요. 그동안 고마웠어요!"]);
 }
 

@@ -6,12 +6,12 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 46px;
-  border: 2px solid #a78bfa;
-  border-radius: 16px 16px 4px 16px;
-  background: #fff;
-  color: #1e293b;
+  border: var(--stroke-brand) solid var(--line-brand);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
+  background: var(--panel-bg);
+  color: var(--text-h);
   font-size: 0.9333rem;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+  box-shadow: var(--shadow-pop), 0 10px 30px rgba(71, 41, 23, 0.16);
   overflow: hidden;
   animation: coco-bubble-in 0.35s ease;
 }
@@ -21,22 +21,22 @@
   align-items: center;
   gap: 8px;
   padding: 11px 12px 11px 16px;
-  background: #f5f3ff;
-  border-bottom: 1px solid #ede9fe;
+  background: var(--accent-light);
+  border-bottom: 1px solid var(--border);
 }
-.coco-chat-head strong { font-size: 1rem; color: #5b21b6; }
-.coco-chat-left { font-size: 0.8rem; color: #7c3aed; }
+.coco-chat-head strong { font-size: 1rem; color: var(--text-h); }
+.coco-chat-left { font-size: 0.8rem; color: var(--accent-text); }
 .coco-chat-x {
   margin-left: auto;
   border: none;
   background: none;
   font-size: 1.3333rem;
   line-height: 1;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 2px 6px;
 }
-.coco-chat-x:hover { color: #334155; }
+.coco-chat-x:hover { color: var(--text-h); }
 
 .coco-chat-log {
   flex: 1;
@@ -51,56 +51,56 @@
   margin: 0;
   max-width: 88%;
   padding: 9px 13px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   line-height: 1.6;
   white-space: pre-line;
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
-.coco-msg-coco { align-self: flex-start; background: #f1f5f9; border-bottom-left-radius: 4px; }
-.coco-msg-user { align-self: flex-end; background: #7c3aed; color: #fff; border-bottom-right-radius: 4px; }
-.coco-msg.is-error { background: #fef2f2; color: #b91c1c; }
-.coco-typing { letter-spacing: 3px; color: #7c3aed; animation: coco-typing 1s ease-in-out infinite; }
+.coco-msg-coco { align-self: flex-start; background: var(--tabs-bg); border-bottom-left-radius: 4px; }
+.coco-msg-user { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
+.coco-msg.is-error { background: var(--danger-bg); color: var(--danger); }
+.coco-typing { letter-spacing: 3px; color: var(--accent); animation: coco-typing 1s ease-in-out infinite; }
 @keyframes coco-typing { 50% { opacity: 0.35; } }
-.coco-chat-notice { margin: 4px 0 0; font-size: 0.8667rem; color: #64748b; text-align: center; }
+.coco-chat-notice { margin: 4px 0 0; font-size: 0.8667rem; color: var(--text-muted); text-align: center; }
 
 .coco-chat-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
 .coco-chat-chips button {
-  border: 1px solid #c4b5fd;
-  background: #f5f3ff;
-  color: #5b21b6;
-  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-text);
+  border-radius: var(--radius-pill);
   padding: 6px 12px;
   font: inherit;
   font-size: 0.8667rem;
   cursor: pointer;
 }
-.coco-chat-chips button:hover:not(:disabled) { background: #ede9fe; }
+.coco-chat-chips button:hover:not(:disabled) { background: var(--sky-200); }
 
-.coco-chat-form { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid #f1f5f9; }
+.coco-chat-form { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border); }
 .coco-chat-form input {
   flex: 1;
   min-width: 0;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
   padding: 9px 14px;
   font: inherit;
   font-size: 0.9333rem;
-  background: #fff;
+  background: var(--panel-bg);
   color: inherit;
 }
-.coco-chat-form input:focus { outline: 2px solid #a78bfa; outline-offset: 0; border-color: transparent; }
+.coco-chat-form input:focus { outline: 3px solid var(--focus); outline-offset: 0; border-color: transparent; }
 .coco-chat-form button {
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0 16px;
-  background: #7c3aed;
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
-.coco-chat-form button:disabled { background: #cbd5e1; cursor: default; }
+.coco-chat-form button:disabled { background: var(--tabs-bg); color: var(--text-muted); cursor: default; }
 
 .coco-chat-foot {
   display: flex;
@@ -110,7 +110,7 @@
   flex-wrap: wrap;
   padding: 0 12px 11px;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 .coco-chat-foot button {
   border: none;
@@ -118,7 +118,7 @@
   padding: 0;
   font: inherit;
   font-size: 0.8333rem;
-  color: #a16207;
+  color: var(--warn);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -126,15 +126,7 @@
 .coco-chat-foot button:hover { text-decoration: underline; }
 
 @media (prefers-color-scheme: dark) {
-  .coco-chat { background: #1e1b2e; color: #e2e8f0; }
-  .coco-chat-head { background: #2e1065; border-color: #4c1d95; }
-  .coco-chat-head strong, .coco-chat-left { color: #ddd6fe; }
-  .coco-msg-coco { background: #312e48; }
-  .coco-msg.is-error { background: #2a1215; color: #fca5a5; }
-  .coco-chat-chips button { background: #2e1065; color: #ddd6fe; border-color: #6d28d9; }
-  .coco-chat-form { border-color: #312e48; }
-  .coco-chat-form input { background: #0f0d1a; border-color: #4c4766; }
-  .coco-chat-foot button { color: #facc15; }
+  .coco-chat-chips button:hover:not(:disabled) { background: var(--teal-800); }
 }
 
 @media (max-width: 768px) {

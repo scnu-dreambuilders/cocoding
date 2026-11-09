@@ -55,7 +55,7 @@ try {
 }
 
 Response::success([
-    'message' => Validators::withParticle($name) . ' 샀어! 코코에게 입혀보자 🎁',
+    'message' => Validators::withParticle($name) . ' 샀어! 코코에게 입혀보자',
     'balance' => $coins->balance($userId),
     'items' => $items->shopCatalog($userId),
 ]);

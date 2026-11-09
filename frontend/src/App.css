@@ -49,7 +49,7 @@
   gap: 5px;
   padding: 3px 6px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-h);
   font-size: 0.9rem;
@@ -73,7 +73,7 @@
 .editor-title-input {
   padding: 3px 8px;
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text-h);
   font-size: 0.9rem;
@@ -92,24 +92,13 @@
   font-size: 0.8rem;
   font-weight: 500;
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   animation: fade-in 0.2s ease;
 }
-.save-ok  { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
-.save-err { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+.save-ok  { color: var(--ok); background: var(--ok-bg); }
+.save-err { color: var(--danger); background: var(--danger-bg); }
 
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(145deg, #6d28d9 10%, #9333ea 90%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
+/* 로고 모양은 index.css .brand-logo */
 
 .brand-name {
   font-size: 1rem;
@@ -143,7 +132,7 @@
   font-size: 0.8rem;
   padding: 1px 4px;
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--btn-hover);
   color: var(--text-muted);
   line-height: 1.5;
@@ -157,10 +146,10 @@
   align-items: center;
   gap: 5px;
   padding: 6px 11px;
-  border-radius: 7px;
-  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
   font-size: 0.8333rem;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s,
@@ -199,55 +188,43 @@
 
 /* Copied state */
 .btn-copied {
-  color: #22c55e !important;
-  border-color: rgba(34, 197, 94, 0.35) !important;
-  background: rgba(34, 197, 94, 0.06) !important;
+  color: var(--ok) !important;
+  border-color: var(--ok) !important;
+  background: var(--ok-bg) !important;
 }
 
-/* Run (primary) */
+/* Run (primary) — 별 노랑 주 버튼: 갈색 외곽선 + 아래로 3px 내려앉은 그림자, 누르면 그만큼 내려간다 */
 .btn-run {
-  background: linear-gradient(145deg, #6d28d9 0%, #9333ea 100%);
-  border-color: transparent;
-  color: #fff;
-  font-weight: 600;
+  background: var(--cta);
+  border: var(--stroke-brand) solid var(--cta-edge);
+  color: var(--on-cta);
+  font-weight: 700;
   padding: 6px 15px;
-  box-shadow: 0 1px 6px rgba(109, 40, 217, 0.4),
-    0 0 0 1px rgba(109, 40, 217, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-pop);
 }
 
 .btn-run:hover:not(:disabled) {
-  background: linear-gradient(145deg, #5b21b6 0%, #7c3aed 100%);
-  box-shadow: 0 3px 12px rgba(109, 40, 217, 0.5),
-    0 0 0 1px rgba(109, 40, 217, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
+  background: var(--cta-hover);
 }
 
 .btn-run:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 4px rgba(109, 40, 217, 0.35),
-    0 0 0 1px rgba(109, 40, 217, 0.2);
+  transform: translateY(3px);
+  box-shadow: var(--shadow-pop-pressed);
 }
 
 .btn-run:disabled {
   cursor: not-allowed;
 }
 
+/* 실행 중(정지 버튼): 누른 상태로 내려앉혀서 '지금 돌아가는 중'을 보여준다 */
 .btn-run.is-running {
-  background: linear-gradient(145deg, #5b21b6 0%, #7c3aed 100%);
-  animation: run-pulse 1.5s ease-in-out infinite;
+  background: var(--star-200);
+  transform: translateY(3px);
+  box-shadow: var(--shadow-pop-pressed);
 }
 
-@keyframes run-pulse {
-  0%, 100% {
-    box-shadow: 0 1px 6px rgba(109, 40, 217, 0.4),
-      0 0 0 1px rgba(109, 40, 217, 0.25);
-  }
-  50% {
-    box-shadow: 0 2px 14px rgba(109, 40, 217, 0.6),
-      0 0 0 1px rgba(109, 40, 217, 0.4);
-  }
+@media (prefers-reduced-motion: reduce) {
+  .btn-run { transition: none; }
 }
 
 /* Spinner */

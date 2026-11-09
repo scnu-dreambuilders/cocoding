@@ -7,6 +7,8 @@
    - onTrace로 실행 기록을 흘려보내 챕터 미션 자동 판정에 사용
    ════════════════════════════════════════════════ */
 
+import { RUNTIME_TEXT, noReceiverText } from './runtimeText'
+
 export const STAGE_W = 480
 export const STAGE_H = 360
 export const HALF_W = STAGE_W / 2
@@ -81,14 +83,14 @@ export function validateWorkspace(workspace, project) {
   if (!hats.length) {
     issues.push({
       level: 'error', kind: 'no-hat', blockId: null,
-      message: "'▶ 시작 버튼을 눌렀을 때' 같은 이벤트 블록부터 놓아봐! 이벤트 블록 아래에 붙은 블록만 실행돼.",
+      message: RUNTIME_TEXT.noHat,
     })
   }
   for (const b of tops) {
     if (!HATS.has(b.type) && !b.outputConnection) {
       issues.push({
         level: 'warn', kind: 'orphan', blockId: b.id,
-        message: '이 블록은 이벤트 블록에 붙어있지 않아서 실행되지 않아! 이벤트 블록 아래에 딱 붙여봐.',
+        message: RUNTIME_TEXT.orphan,
       })
     }
   }
@@ -98,7 +100,7 @@ export function validateWorkspace(workspace, project) {
   for (const hat of hats) {
     if (hat.type === 'when_receive') received.add(String(hat.getFieldValue('MSG')).trim())
     if (!spriteIds.has(hat.getFieldValue('SPRITE'))) {
-      issues.push({ level: 'error', kind: 'sprite', blockId: hat.id, message: '이 블록의 캐릭터가 무대에 없어! 드롭다운에서 캐릭터를 다시 골라줘.' })
+      issues.push({ level: 'error', kind: 'sprite', blockId: hat.id, message: RUNTIME_TEXT.spriteMissing })
     }
     for (const d of hat.getDescendants(false)) {
       if (d.type === 'broadcast') sent.push(d)
@@ -109,10 +111,10 @@ export function validateWorkspace(workspace, project) {
           const isBool = (conn.getCheck() ?? []).includes('Boolean')
           issues.push({
             level: 'error', kind: 'empty', blockId: d.id,
-            message: isBool ? '여기 육각형 칸에 조건 블록을 끼워 넣어봐! (예: 벽에 닿았는가?)' : '여기에 숫자를 넣어봐!',
+            message: isBool ? RUNTIME_TEXT.emptyCond : RUNTIME_TEXT.emptyNumber,
           })
         } else if (conn.type === NEXT_STATEMENT && ['repeat_n', 'forever', 'if_then'].includes(d.type) && input.name === 'DO') {
-          issues.push({ level: 'warn', kind: 'empty-body', blockId: d.id, message: '이 블록 안쪽이 비어있어! 반복하거나 실행할 블록을 안에 넣어봐.' })
+          issues.push({ level: 'warn', kind: 'empty-body', blockId: d.id, message: RUNTIME_TEXT.emptyBody })
         }
       }
     }
@@ -120,7 +122,7 @@ export function validateWorkspace(workspace, project) {
   for (const b of sent) {
     const name = String(b.getFieldValue('MSG')).trim()
     if (!received.has(name)) {
-      issues.push({ level: 'warn', kind: 'no-receiver', blockId: b.id, message: `'${name}' 메시지를 받는 블록이 없어! "메시지를 받았을 때" 블록의 이름을 똑같이 맞춰봐.` })
+      issues.push({ level: 'warn', kind: 'no-receiver', blockId: b.id, message: noReceiverText(name) })
     }
   }
   return issues

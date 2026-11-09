@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($data['done_id'])) {
         $coins = (new CoinModel())->grant($userId, (int)$a['reward_coins'], 'assignment', (string)$assignmentId);
     }
     Response::success([
-        'message' => $first ? ($coins > 0 ? "과제 완료! {$coins}코인을 받았어 🎉" : '과제를 끝냈다고 표시했어요!') : '이미 끝낸 과제예요.',
+        'message' => $first ? ($coins > 0 ? "과제 완료! {$coins}코인을 받았어" : '과제를 끝냈다고 표시했어요!') : '이미 끝낸 과제예요.',
         'coinsEarned' => $coins,
     ]);
 }

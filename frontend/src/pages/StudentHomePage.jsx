@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Check, Gamepad2, Heart, Lock, LogOut, Play, Puzzle, Settings, Trash2, Trophy, User } from 'lucide-react'
 import { api } from '../api/client'
 import { CocoAvatar } from '../components/Coco'
 import TopNav from '../components/TopNav'
 import { CHAPTERS, CHAPTER_COUNT } from '../data/chapters'
-import { INTEREST_EMOJI, LEVEL_LABEL, ITEM_TYPE_LABEL } from '../data/library'
+import { LEVEL_LABEL, ITEM_TYPE_LABEL } from '../data/library'
 import { BLOCK_INFO } from '../blockly/blockInfo'
 import { starsOf } from '../engine/grader'
 import TextSizeControl from '../components/TextSizeControl'
@@ -15,16 +16,17 @@ import SiteFooter from '../components/SiteFooter'
 import ProfileCard from '../components/ProfileCard'
 import ProfileModal from '../components/ProfileModal'
 import ActivityChart from '../components/ActivityChart'
+import Stars from '../components/Stars'
 import { StudentAssignments } from '../components/Assignments'
 import { ConsentBanner, GuardianPanel, StudentClasses, TeacherPanel } from '../components/RolePanels'
 import { ROLE_LABEL } from '../lib/validators'
-import emptyProjectsImg from '../assets/empty-projects.png'
+import emptyProjectsImg from '../assets/coco/coco-calm.png'
 import './StudentHomePage.css'
 
 const STATUS = {
-  completed:   { label: '완료',    cls: 'done',   icon: '✓' },
-  in_progress: { label: '도전 중', cls: 'active', icon: '▶' },
-  locked:      { label: '잠김',    cls: 'locked', icon: '🔒' },
+  completed:   { label: '완료',    cls: 'done',   icon: Check },
+  in_progress: { label: '도전 중', cls: 'active', icon: Play },
+  locked:      { label: '잠김',    cls: 'locked', icon: Lock },
 }
 
 // backend/models/ProjectModel.php의 REPORT_REASONS와 같아야 함
@@ -39,11 +41,11 @@ function Skeleton({ count = 3, cls = '' }) {
   return Array.from({ length: count }, (_, i) => <div key={i} className={`skeleton-card ${cls}`} aria-hidden="true" />)
 }
 
-function Section({ id, icon, title, badge, action, children }) {
+function Section({ id, title, badge, action, children }) {
   return (
     <section id={id} className="dash-section">
       <div className="section-header">
-        <h3 className="section-title"><span aria-hidden="true">{icon}</span>{title}</h3>
+        <h3 className="section-title">{title}</h3>
         {badge && <span className="section-badge">{badge}</span>}
         {action}
       </div>
@@ -61,10 +63,10 @@ function fetchCommunity(page, setCommunity, sort = 'recent') {
     .catch(() => setCommunity((c) => ({ ...c, loading: false, hasMore: false })))
 }
 
-function Thumb({ src, fallback = '🧩' }) {
+function Thumb({ src, icon: FallbackIcon = Puzzle }) {
   return (
     <div className="project-thumb" aria-hidden="true">
-      {src ? <img src={src} alt="" /> : <span className="thumb-fallback">{fallback}</span>}
+      {src ? <img src={src} alt="" /> : <FallbackIcon size={40} className="thumb-fallback" />}
     </div>
   )
 }
@@ -111,7 +113,7 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
       if (fresh.consent_status === 'pending') {
         showToast('아직 동의 전이에요. 부모님이 보호자 화면에서 코드를 입력하면 바로 열려요!')
       } else {
-        showToast('보호자 동의가 끝났어요! 이제 친구들과 작품을 나눌 수 있어요 🎉')
+        showToast('보호자 동의가 끝났어요! 이제 친구들과 작품을 나눌 수 있어요!')
         setCommunity((c) => ({ ...c, loading: true, hasMore: true }))
         fetchCommunity(1, setCommunity)
       }
@@ -173,11 +175,11 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
     if (current) {
       const no = Number(current.order_num)
       return no === 1
-        ? '처음이구나! 챕터 1에서 캐릭터를 움직이는 것부터 같이 해보자 🐾'
+        ? '처음이구나! 챕터 1에서 캐릭터를 움직이는 것부터 같이 해보자'
         : `지난번엔 챕터 ${no - 1}까지 끝냈어! 오늘은 챕터 ${no} '${CHAPTERS[no]?.title.split(' – ')[0]}'에 도전해볼까?`
     }
-    if (allDone && lastProject) return `모든 챕터 완료! 🎓 만들던 '${lastProject.title}' 이어서 만들어볼까?`
-    if (allDone) return '모든 챕터를 끝냈어! 이제 배운 블록으로 나만의 게임을 만들어보자 🎮'
+    if (allDone && lastProject) return `모든 챕터 완료! 만들던 '${lastProject.title}' 이어서 만들어볼까?`
+    if (allDone) return '모든 챕터를 끝냈어! 이제 배운 블록으로 나만의 게임을 만들어보자!'
     return '오늘도 블록으로 멋진 작품을 만들어보자!'
   }, [role, load.ch, current, allDone, lastProject])
 
@@ -213,7 +215,7 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
       changeSort('popular')
       document.getElementById('community-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     } else {
-      showToast('🚧 이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
+      showToast('이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
     }
   }
 
@@ -277,18 +279,18 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
           <div className="dash-header-right">
             <TextSizeControl />
             <div className="user-chip">
-              <CocoAvatar size={28} items={equipped} />
+              {isStudent
+                ? <CocoAvatar size={28} items={equipped} />
+                : <span className="user-initial" aria-hidden="true">{user?.username?.[0]}</span>}
               <span className="user-name">{user?.username}</span>
               {isStudent
                 ? user?.level && <span className="user-level-tag">{LEVEL_LABEL[user.level] ?? user.level}</span>
                 : <span className="user-level-tag">{ROLE_LABEL[role]}</span>}
             </div>
-            <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보">👤</button>
-            {isStudent && <button type="button" className="btn-icon" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정">⚙️</button>}
+            <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보"><User size={18} aria-hidden="true" /></button>
+            {isStudent && <button type="button" className="btn-icon" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정"><Settings size={18} aria-hidden="true" /></button>}
             <button type="button" className="btn-icon" onClick={onLogout} title="로그아웃" aria-label="로그아웃">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <LogOut size={18} aria-hidden="true" />
             </button>
           </div>
         }
@@ -297,16 +299,16 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
       <main className="dash-main">
         {/* ── 환영 + 페이스메이커 ── */}
         <section className="dash-section dash-welcome-section">
-          <div className="welcome-banner">
+          <div className={`welcome-banner ${isStudent ? '' : 'is-adult'}`}>
             <div className="welcome-coco">
-              <CocoAvatar size={92} emotion="happy" items={equipped} />
+              {isStudent && <CocoAvatar size={92} emotion="happy" items={equipped} />}
               <div className="welcome-text">
                 <h2 className="welcome-title">
                   {isStudent
-                    ? <>안녕, <em>{user?.username}</em>! 👋</>
+                    ? <>안녕, <em>{user?.username}</em>!</>
                     : role === 'teacher'
-                      ? <>안녕하세요, {user?.affiliation ? <>{user.affiliation} <em>{user?.username}</em></> : <em>{user?.username}</em>} 선생님 👋</>
-                      : <>안녕하세요, <em>{user?.username}</em> 보호자님 👋</>}
+                      ? <>안녕하세요, {user?.affiliation ? <>{user.affiliation} <em>{user?.username}</em></> : <em>{user?.username}</em>} 선생님</>
+                      : <>안녕하세요, <em>{user?.username}</em> 보호자님</>}
                 </h2>
                 <p className="welcome-bubble">{pacemaker}</p>
                 <div className="welcome-cta-row">
@@ -316,11 +318,11 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                     </button>
                   )}
                   {allDone && isStudent && (
-                    <button type="button" className="welcome-cta" onClick={onOpenMyGame}>🎮 나만의 게임 만들기 →</button>
+                    <button type="button" className="welcome-cta" onClick={onOpenMyGame}>나만의 게임 만들기 →</button>
                   )}
                   {isStudent && (
                     <button type="button" className="welcome-cta welcome-cta-secondary" onClick={openBlank}>
-                      🎨 자유창작 시작하기
+                      자유창작 시작하기
                     </button>
                   )}
                 </div>
@@ -334,7 +336,7 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                 <div className="stat-divider" />
                 <div className="stat"><span className="stat-num">{items.length}</span><span className="stat-label">아이템</span></div>
                 <div className="stat-divider" />
-                <div className="stat"><span className="stat-num">🪙 {coins}</span><span className="stat-label">코인</span></div>
+                <div className="stat"><span className="stat-num">{coins}</span><span className="stat-label">코인</span></div>
               </div>
             )}
           </div>
@@ -346,15 +348,16 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
             <SearchBox onOpenProject={openProject} onOpenChapter={(c) => openChapterById(c.id)} onRemake={remake} />
           </section>
         )}
-        {isStudent && (
-          <StudentAssignments onOpenChapter={openChapterById} showToast={showToast} onCoinsChange={setCoins} />
-        )}
-        {isStudent && <AttendanceCard showToast={showToast} onCoinsChange={setCoins} />}
         {role === 'teacher' && <TeacherPanel showToast={showToast} />}
         {role === 'guardian' && <GuardianPanel showToast={showToast} />}
 
+        {/* 학생: 넓은 화면에서는 배우고 만드는 단(왼쪽)과 기록·출석 단(오른쪽)으로 나눈다. 좁으면 한 줄로 쌓인다 */}
+        {isStudent && <div className="dash-columns">
+        <div className="dash-col-main">
+        <StudentAssignments onOpenChapter={openChapterById} showToast={showToast} onCoinsChange={setCoins} />
+
         {/* ── 오늘의 추천 주제 ── */}
-        {isStudent && <Section icon="⭐" title="오늘의 추천 주제" badge={user?.tags?.length ? '관심사 기반' : null}
+        {isStudent && <Section title="오늘의 추천 주제" badge={user?.tags?.length ? '관심사 기반' : null}
           action={<button type="button" className="section-action" onClick={onEditSurvey}>관심사 바꾸기</button>}>
           {!user?.tags?.length && (
             <p className="dash-hint">관심사를 알려주면 딱 맞는 주제를 추천해줄게! <button type="button" className="link-btn" onClick={onEditSurvey}>관심사 고르기</button></p>
@@ -363,29 +366,30 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
             {recos.map((t) => (
               <button key={`${t.category}-${t.title}`} type="button" className={`reco-card reco-lv${t.level}`}
                 onClick={() => openTopic(t)} aria-label={`${t.title} 시작하기`}>
-                <div className="reco-category">{t.emoji ?? INTEREST_EMOJI[t.category]} {t.category}</div>
+                <div className="reco-category">{t.category}</div>
                 <div className="reco-title">{t.title}</div>
                 <div className="reco-footer">
-                  <span className="reco-hint">🧩 {t.hintBlock ? BLOCK_INFO[t.hintBlock]?.name : t.hint}</span>
+                  <span className="reco-hint">{t.hintBlock ? BLOCK_INFO[t.hintBlock]?.name : t.hint}</span>
                   <span className="reco-level">Lv.{t.level}</span>
                 </div>
               </button>
             ))}
             <button type="button" className="reco-card reco-blank" onClick={openBlank}>
-              <div className="reco-category">✏️ 직접 시작</div>
+              <div className="reco-category">직접 시작</div>
               <div className="reco-title">빈 무대에서 내 마음대로 만들기</div>
             </button>
           </div>
         </Section>}
 
         {/* ── 단계별 기초학습 (학생 전용) ── */}
-        {isStudent && <Section id="chapters-section" icon="♟️" title="단계별 기초학습" badge={!load.ch && chapters.length ? `${completedNos.length}/${chapters.length}` : null}>
+        {isStudent && <Section id="chapters-section" title="단계별 기초학습" badge={!load.ch && chapters.length ? `${completedNos.length}/${chapters.length}` : null}>
           <p className="dash-hint">체스를 폰 하나로 시작하듯, 챕터마다 새 블록 몇 개씩만 배워요. 앞 챕터를 끝내면 다음 챕터가 열려요.</p>
           <div className="chapters-list">
             {load.ch ? <Skeleton count={5} cls="chapter-skeleton" />
               : err.ch ? <div className="empty-msg" role="alert">챕터를 불러오지 못했습니다: {err.ch}</div>
                 : chapters.map((ch) => {
                   const s = STATUS[ch.status] ?? STATUS.locked
+                  const StatusIcon = s.icon
                   const content = CHAPTERS[ch.order_num]
                   return (
                     <button key={ch.id} type="button" className={`chapter-card ch-${s.cls}`} onClick={() => openChapter(ch)}
@@ -394,20 +398,18 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                       <div className="ch-info">
                         <div className="ch-title">{content?.title ?? ch.title}</div>
                         <div className="ch-desc">{content?.mission ?? ch.mission}</div>
-                        {ch.reward_item && <div className="ch-reward">🎁 보상: {ch.reward_emoji ?? ''} {ch.reward_item}</div>}
+                        {ch.reward_item && <div className="ch-reward">보상: {ch.reward_item}</div>}
                         {ch.best_score != null && (
                           <div className="ch-score">
                             {ch.status === 'completed' && (
-                              <span className="ch-stars" aria-label={`별 ${starsOf(ch.best_score)}개`}>
-                                {[1, 2, 3].map((n) => <span key={n} className={n <= starsOf(ch.best_score) ? 'on' : ''}>★</span>)}
-                              </span>
+                              <Stars count={starsOf(ch.best_score)} size={14} className="ch-stars" />
                             )}
                             최고 <b>{ch.best_score}점</b> · 제출 {ch.attempts}번
                           </div>
                         )}
                       </div>
                       <div className={`ch-badge ch-badge-${s.cls}`}>
-                        <span className="ch-badge-icon">{s.icon}</span>
+                        <StatusIcon size={13} className="ch-badge-icon" aria-hidden="true" />
                         <span>{s.label}</span>
                       </div>
                       {lockedTip === ch.id && <div className="ch-locked-tip" role="status">이전 챕터를 먼저 완료해주세요!</div>}
@@ -417,19 +419,19 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
             {!load.ch && !err.ch && (
               <button type="button" className={`chapter-card mygame-card ${allDone ? 'ch-active' : 'ch-locked'}`}
                 onClick={() => (allDone ? onOpenMyGame() : showToast('챕터 5까지 모두 완료하면 열려요!'))}>
-                <div className="ch-num">🎮</div>
+                <div className="ch-num"><Gamepad2 size={22} aria-hidden="true" /></div>
                 <div className="ch-info">
                   <div className="ch-title">나만의 게임 만들기</div>
                   <div className="ch-desc">배운 모든 블록 + 직접 그린 캐릭터 + 녹음한 소리로 완성형 게임 만들기</div>
                 </div>
-                <div className={`ch-badge ch-badge-${allDone ? 'active' : 'locked'}`}>{allDone ? '열림' : '🔒 챕터 5 완료 시'}</div>
+                <div className={`ch-badge ch-badge-${allDone ? 'active' : 'locked'}`}>{allDone ? '열림' : '챕터 5 완료 시'}</div>
               </button>
             )}
           </div>
         </Section>}
 
         {/* ── 내 포트폴리오 (단계별 학습 바로 다음 — 학생이 자기 진도·작품을 먼저 보도록, 학생 전용) ── */}
-        {isStudent && <Section icon="📁" title="내 포트폴리오" badge={projects.length ? `${projects.length}개` : null}
+        {isStudent && <Section title="내 포트폴리오" badge={projects.length ? `${projects.length}개` : null}
           action={
             <div className="filter-tabs" role="tablist">
               {[['all', '전체'], ['chapter', '챕터 완성작'], ['free', '자유 창작']].map(([v, l]) => (
@@ -453,30 +455,28 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
               {shownProjects.map((p) => (
                 <div key={p.id} className="project-card">
                   <button type="button" className="project-open" onClick={() => openProject(p)} aria-label={`${p.title} 열기`}>
-                    <Thumb src={p.thumbnail_url} fallback={p.track === 'chapter' ? '🏆' : '🧩'} />
+                    <Thumb src={p.thumbnail_url} icon={p.track === 'chapter' ? Trophy : Puzzle} />
                     <div className="project-info">
                       <div className="project-title">{p.title}</div>
                       <div className="project-meta">
                         <span className={`project-track track-${p.track}`}>{p.track === 'chapter' ? '챕터' : '자유 창작'}</span>
                         {Number(p.report_hidden)
-                          ? <span className="project-hidden" title="신고가 여러 번 들어와서 비공개로 바뀌었어요">🚩 숨겨짐</span>
+                          ? <span className="project-hidden" title="신고가 여러 번 들어와서 비공개로 바뀌었어요">숨겨짐</span>
                           : Number(p.is_public) ? <span className="project-public">공개</span> : <span className="project-private">비공개</span>}
-                        {Number(p.remake_count) > 0 && <span className="project-remakes">🔁 {p.remake_count}</span>}
+                        {Number(p.remake_count) > 0 && <span className="project-remakes">리메이크 {p.remake_count}</span>}
                         <span className="project-date">{fmtDate(p.updated_at)}</span>
                       </div>
                     </div>
                   </button>
-                  <button type="button" className="project-del" onClick={() => removeProject(p)} aria-label={`${p.title} 삭제`} title="삭제">🗑️</button>
+                  <button type="button" className="project-del" onClick={() => removeProject(p)} aria-label={`${p.title} 삭제`} title="삭제"><Trash2 size={16} aria-hidden="true" /></button>
                 </div>
               ))}
             </div>
           )}
         </Section>}
 
-        {isStudent && <StudentClasses showToast={showToast} />}
-
         {/* ── 친구 작품 (학생 전용) ── */}
-        {isStudent && <Section id="community-section" icon="🌟" title="친구 작품"
+        {isStudent && <Section id="community-section" title="친구 작품"
           action={
             <div className="filter-tabs" role="tablist" aria-label="정렬">
               {[['recent', '최신순'], ['popular', '인기순']].map(([v, l]) => (
@@ -486,9 +486,9 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
             </div>
           }>
           {consentPending ? (
-            <div className="empty-msg">🔒 보호자 동의가 끝나면 친구들의 작품을 보고 리메이크할 수 있어요.</div>
+            <div className="empty-msg">보호자 동의가 끝나면 친구들의 작품을 보고 리메이크할 수 있어요.</div>
           ) : community.list.length === 0 && !community.loading ? (
-            <div className="empty-msg">아직 공개된 작품이 없어요. 에디터에서 🔗 공유를 눌러 첫 번째로 공개해보세요!</div>
+            <div className="empty-msg">아직 공개된 작품이 없어요. 에디터에서 공유를 눌러 첫 번째로 공개해보세요!</div>
           ) : (
             <div className="projects-grid">
               {community.list.map((p) => (
@@ -498,15 +498,15 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                     <div className="project-title">{p.title}</div>
                     <div className="project-meta">
                       <button type="button" className="project-author-btn" onClick={() => setProfileId(Number(p.user_id))}
-                        title={`${p.username} 프로필 보기`}>👤 {p.username}</button>
-                      <span className="project-remakes" title="리메이크 수">🔁 {p.remake_count ?? 0}</span>
+                        title={`${p.username} 프로필 보기`}>{p.username}</button>
+                      <span className="project-remakes">리메이크 {p.remake_count ?? 0}</span>
                       {Number(p.user_id) === Number(user?.id)
-                        ? <span className="project-likes" title="받은 좋아요">💜 {p.like_count ?? 0}</span>
+                        ? <span className="project-likes" title="받은 좋아요"><Heart size={14} aria-label="받은 좋아요" /> {p.like_count ?? 0}</span>
                         : (
                           <button type="button" className={`like-btn ${Number(p.liked_by_me) ? 'on' : ''}`}
                             onClick={() => toggleLike(p)} aria-pressed={!!Number(p.liked_by_me)}
                             title={Number(p.liked_by_me) ? '좋아요 취소' : '좋아요'}>
-                            {Number(p.liked_by_me) ? '💜' : '🤍'} {p.like_count ?? 0}
+                            <Heart size={14} aria-hidden="true" /> {p.like_count ?? 0}
                           </button>
                         )}
                     </div>
@@ -514,8 +514,8 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                   {Number(p.user_id) === Number(user?.id)
                     ? <button type="button" className="remake-btn mine" onClick={() => openProject(p)}>내 작품</button>
                     : Number(p.allow_remake ?? 1)
-                      ? <button type="button" className="remake-btn" onClick={() => remake(p)}>🔁 리메이크</button>
-                      : <button type="button" className="remake-btn view-only" onClick={() => openProject(p)} title="작가가 구경만 허용한 작품이에요">👀 구경하기</button>}
+                      ? <button type="button" className="remake-btn" onClick={() => remake(p)}>리메이크</button>
+                      : <button type="button" className="remake-btn view-only" onClick={() => openProject(p)} title="작가가 구경만 허용한 작품이에요">구경하기</button>}
                   {Number(p.user_id) !== Number(user?.id) && (
                     reporting === p.id ? (
                       <div className="report-box" role="group" aria-label="신고 이유">
@@ -526,7 +526,7 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
                         <button type="button" className="report-cancel" onClick={() => setReporting(null)}>취소</button>
                       </div>
                     ) : (
-                      <button type="button" className="report-btn" onClick={() => setReporting(p.id)} title="신고하기">🚩 신고</button>
+                      <button type="button" className="report-btn" onClick={() => setReporting(p.id)} title="신고하기">신고</button>
                     )
                   )}
                 </div>
@@ -540,11 +540,8 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
           )}
         </Section>}
 
-        {isStudent && <ProfileCard showToast={showToast} onOpenProfile={setProfileId} />}
-        {isStudent && <ActivityChart />}
-
         {/* ── 코코 꾸미기 (학생 전용) ── */}
-        {isStudent && <Section icon="🎀" title="코코 꾸미기" badge={items.length ? `${items.length}개 모음` : null}>
+        {isStudent && <Section title="코코 꾸미기" badge={items.length ? `${items.length}개 모음` : null}>
           {items.length === 0 ? (
             <div className="empty-msg">챕터를 완료하거나 작품을 저장하면 코코를 꾸밀 아이템을 받아요. 아래 상점에서 코인으로 살 수도 있어요!</div>
           ) : (
@@ -569,6 +566,15 @@ export default function StudentHomePage({ user, onLogout, onOpenEditor, onEditSu
           <ShopPanel showToast={showToast} equipped={equipped} onCoinsChange={setCoins}
             onBought={() => api.items().then(setItems).catch(() => {})} />
         )}
+        </div>
+
+        <aside className="dash-col-side" aria-label="내 기록">
+          <AttendanceCard showToast={showToast} onCoinsChange={setCoins} />
+          <StudentClasses showToast={showToast} />
+          <ProfileCard showToast={showToast} onOpenProfile={setProfileId} />
+          <ActivityChart />
+        </aside>
+        </div>}
       </main>
 
       <SiteFooter onNavigate={handleNavigate} />

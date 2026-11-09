@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Bot, Check, X } from 'lucide-react'
+import Stars from './Stars'
+import { stripEmoji } from '../lib/text'
+import { itemTip } from '../lib/gradeText'
 
 /* ════════════════════════════════════════════════
    정답 제출 채점 결과 창
@@ -32,26 +36,24 @@ function GradeResult({ grade, onClose, onNext, onRetrySave }) {
         <div className="grade-score" aria-label={`${result.score}점`}>
           <b>{shown}</b><small>/ 100점</small>
         </div>
-        <div className="grade-stars" aria-label={`별 ${result.stars}개`}>
-          {[1, 2, 3].map((n) => <span key={n} className={n <= result.stars ? 'on' : ''} style={{ animationDelay: `${0.5 + n * 0.15}s` }}>★</span>)}
-        </div>
-        <div className="grade-verdict">{passed ? '통과! 미션 성공 🎉' : '아직 통과하지 못했어요. 조금만 고쳐보자 💪'}</div>
+        <Stars count={result.stars} size={32} className="grade-stars" delay={0.5} />
+        <div className="grade-verdict">{passed ? '통과! 미션 성공!' : '아직 통과하지 못했어요. 조금만 고쳐보자!'}</div>
       </div>
 
       <ul className="grade-items" aria-label="채점 기준">
         {result.items.map((it) => (
           <li key={it.label} className={it.done ? 'ok' : 'no'}>
-            <span className="grade-mark" aria-hidden="true">{it.done ? '✓' : '✗'}</span>
+            <span className="grade-mark" aria-hidden="true">{it.done ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />}</span>
             <div className="grade-item-body">
-              <div className="grade-item-label">{it.label}</div>
-              {it.tip && <div className="grade-tip">💡 {it.tip}</div>}
+              <div className="grade-item-label">{stripEmoji(it.label)}</div>
+              {itemTip(it) && <div className="grade-tip">{stripEmoji(itemTip(it))}</div>}
             </div>
             <span className="grade-pts">{it.earned}<small>/{it.max}</small></span>
           </li>
         ))}
       </ul>
 
-      <p className="grade-howto">🤖 {result.howto}</p>
+      <p className="grade-howto">{stripEmoji(result.howto)}</p>
 
       <div className="grade-record" role="status">
         {saving && '기록 저장 중…'}
@@ -59,7 +61,7 @@ function GradeResult({ grade, onClose, onNext, onRetrySave }) {
         {saved && `${saved.attempts}번째 제출 · 최고 점수 ${saved.bestScore ?? result.score}점`}
         {saved?.passed && saved.rewardItem && (
           <div className="grade-reward">
-            🎁 보상 <b>{saved.rewardEmoji} {saved.rewardItem}</b>
+            보상 <b>{saved.rewardItem}</b>
             {saved.alreadyCompleted ? ' (이미 받은 보상이에요)' : '을(를) 받았어요!'}
           </div>
         )}
@@ -71,12 +73,12 @@ function GradeResult({ grade, onClose, onNext, onRetrySave }) {
           <>
             <button type="button" className="btn btn-ghost" onClick={onClose}>닫기</button>
             <button type="button" className="btn btn-run" onClick={onNext}>
-              {saved.nextChapterId ? '다음 챕터 →' : '🎮 나만의 게임 만들기'}
+              {saved.nextChapterId ? '다음 챕터 →' : '나만의 게임 만들기'}
             </button>
           </>
         ) : (
           <button type="button" className="btn btn-run" onClick={onClose} disabled={passed && saving}>
-            {passed ? '확인' : '✏️ 다시 고치기'}
+            {passed ? '확인' : '다시 고치기'}
           </button>
         )}
       </div>
@@ -96,12 +98,12 @@ export default function GradeModal({ grade, onClose, onNext, onRetrySave }) {
     <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget && !grading) onClose() }}>
       <div className="modal grade-modal" role="dialog" aria-modal="true" aria-labelledby="grade-title">
         <div className="modal-head">
-          <h3 id="grade-title">📝 채점 결과</h3>
+          <h3 id="grade-title">채점 결과</h3>
           {!grading && <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>}
         </div>
         {grading ? (
           <div className="grade-running" role="status">
-            <div className="grade-robot" aria-hidden="true">🤖</div>
+            <Bot size={52} className="grade-robot" aria-hidden="true" />
             <p>채점 로봇이 네 코드를 실행해보고 있어요…</p>
             <div className="grade-bar"><span style={{ width: `${Math.round(grade.progress * 100)}%` }} /></div>
           </div>

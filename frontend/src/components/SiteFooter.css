@@ -19,10 +19,8 @@
 }
 
 .site-footer-brand { display: flex; align-items: center; gap: 12px; }
-.site-footer-brand > div { display: flex; flex-direction: column; gap: 2px; }
-.site-footer-brand b { font-size: 1.0667rem; font-weight: 800; color: var(--text-h); letter-spacing: -0.3px; }
-/* 푸터 바탕에는 보라색 그라데이션이 얹혀 있어서, var(--text)로는 대비가 4.5:1에 못 미친다 → --text-h */
-.site-footer-brand span { font-size: 0.8667rem; color: var(--text-h); }
+/* 로고 옆 태그라인 */
+.site-footer-brand span { font-size: 0.9333rem; font-weight: 600; color: var(--text-h); }
 
 /* 사이트맵 */
 .site-footer-map {
@@ -74,7 +72,7 @@
   display: inline-block;
   margin: -5px -4px;
   padding: 5px 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--accent);
 }
 

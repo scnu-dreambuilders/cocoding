@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrandIcon } from './icons'
+import { BrandLogo } from './icons'
 import { CONTACT, SITEMAP } from '../data/siteInfo'
 import InfoModal from './InfoModal'
 import './SiteFooter.css'
@@ -24,11 +24,8 @@ export default function SiteFooter({ onNavigate }) {
       <footer className="site-footer">
         <div className="site-footer-inner">
           <div className="site-footer-brand">
-            <BrandIcon />
-            <div>
-              <b>코코딩</b>
-              <span>초등학생을 위한 블록 코딩 학습 서비스</span>
-            </div>
+            <BrandLogo height={30} />
+            <span>코코와 함께, 별을 모아요</span>
           </div>
 
           <nav className="site-footer-map" aria-label="사이트맵">
@@ -48,7 +45,7 @@ export default function SiteFooter({ onNavigate }) {
 
           <div className="site-footer-bottom">
             <p className="site-footer-note">
-              🔒 회원가입과 서비스 제공에 필요한 최소한의 정보(닉네임, 이메일, 태어난 해)만 모아요.
+              회원가입과 서비스 제공에 필요한 최소한의 정보(닉네임, 이메일, 태어난 해)만 모아요.
               만 14세 미만은 보호자 동의 후에 작품을 공유할 수 있어요.
             </p>
             <p className="site-footer-meta">

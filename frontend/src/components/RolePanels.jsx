@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Check, Play, Puzzle, Trophy, UsersRound } from 'lucide-react'
 import { api } from '../api/client'
 import { CHAPTERS } from '../data/chapters'
 import { formatCode } from '../lib/validators'
@@ -32,11 +33,11 @@ async function copyText(text, showToast) {
   }
 }
 
-function PanelSection({ icon, title, badge, children, className = '' }) {
+function PanelSection({ title, badge, children, className = '' }) {
   return (
     <section className={`dash-section role-panel ${className}`}>
       <div className="section-header">
-        <h3 className="section-title"><span aria-hidden="true">{icon}</span>{title}</h3>
+        <h3 className="section-title">{title}</h3>
         {badge && <span className="section-badge">{badge}</span>}
       </div>
       {children}
@@ -49,10 +50,10 @@ function ChapterCells({ chapters }) {
   return chapters.map((c) => {
     const title = `챕터 ${c.order_num} · ${CHAPTERS[c.order_num]?.title ?? ''}`
     if (c.status === 'completed') {
-      return <span key={c.order_num} className="cp-cell cp-done" title={`${title} — 완료 (최고 ${c.best_score ?? '-'}점)`}>{c.best_score ?? '✓'}</span>
+      return <span key={c.order_num} className="cp-cell cp-done" title={`${title} — 완료 (최고 ${c.best_score ?? '-'}점)`}>{c.best_score ?? <Check size={14} aria-hidden="true" />}</span>
     }
     if (c.status === 'in_progress') {
-      return <span key={c.order_num} className="cp-cell cp-active" title={`${title} — 도전 중 (제출 ${c.attempts}번)`}>{c.attempts ? `${c.attempts}회` : '▶'}</span>
+      return <span key={c.order_num} className="cp-cell cp-active" title={`${title} — 도전 중 (제출 ${c.attempts}번)`}>{c.attempts ? `${c.attempts}회` : <Play size={12} aria-hidden="true" />}</span>
     }
     return <span key={c.order_num} className="cp-cell cp-locked" title={`${title} — 잠김`} aria-label="잠김">·</span>
   })
@@ -68,7 +69,7 @@ export function ConsentBanner({ user, onRefresh }) {
   }
   return (
     <section className="consent-banner" aria-label="보호자 동의 안내">
-      <div className="consent-emoji" aria-hidden="true">👪</div>
+      <UsersRound size={40} className="consent-icon" aria-hidden="true" />
       <div className="consent-body">
         <h3>부모님의 동의가 필요해요</h3>
         <p>14살 이하 친구는 부모님(보호자)이 동의해야 <b>작품 공유·친구 작품 보기·리메이크</b>를 할 수 있어요. 챕터 학습과 작품 만들기는 지금도 할 수 있어요!</p>
@@ -106,7 +107,7 @@ export function StudentClasses({ showToast }) {
       const joined = await api.joinClass(code)
       setList((l) => [...l, joined])
       setCode('')
-      showToast(`'${joined.name}' 반에 들어왔어요! 🏫`)
+      showToast(`'${joined.name}' 반에 들어왔어요!`)
     } catch (err) {
       showToast(err.message)
     } finally {
@@ -125,11 +126,11 @@ export function StudentClasses({ showToast }) {
   }
 
   return (
-    <PanelSection icon="🏫" title="우리 반" badge={list.length ? `${list.length}개` : null}>
+    <PanelSection title="우리 반" badge={list.length ? `${list.length}개` : null}>
       <div className="class-join-row">
         {list.map((c) => (
           <span key={c.id} className="class-chip">
-            🏫 {c.name} <small>{c.teacher_name} 선생님</small>
+            {c.name} <small>{c.teacher_name} 선생님</small>
             <button type="button" onClick={() => leave(c)} aria-label={`${c.name} 반에서 나가기`} title="반에서 나가기">×</button>
           </span>
         ))}
@@ -284,7 +285,7 @@ export function TeacherPanel({ showToast }) {
   const chapterCount = students[0]?.chapter_count ?? Object.keys(CHAPTERS).length
 
   return (
-    <PanelSection icon="🧑‍🏫" title="내 반 관리" badge={classes?.length ? `${classes.length}개 반` : null} className="teacher-panel">
+    <PanelSection title="내 반 관리" badge={classes?.length ? `${classes.length}개 반` : null} className="teacher-panel">
       <div className="class-tabs" role="tablist" aria-label="반 목록">
         {(classes ?? []).map((c) => (
           <button key={c.id} type="button" role="tab" aria-selected={selected === c.id}
@@ -320,7 +321,7 @@ export function TeacherPanel({ showToast }) {
             ) : (
               <div className="class-name-box">
                 <b className="class-name-current">{detail.name}</b>
-                <button type="button" className="role-btn ghost" onClick={startEditName}>✏️ 수정</button>
+                <button type="button" className="role-btn ghost" onClick={startEditName}>수정</button>
               </div>
             )}
             <div className="join-code-box">
@@ -475,7 +476,7 @@ export function GuardianPanel({ showToast }) {
   }
 
   return (
-    <PanelSection icon="👪" title="우리 아이" badge={children?.length ? `${children.length}명` : null} className="guardian-panel">
+    <PanelSection title="우리 아이" badge={children?.length ? `${children.length}명` : null} className="guardian-panel">
       {preview ? (
         <div className="consent-form">
           <h4><b>{preview.username}</b> ({preview.birth_year}년생) 계정이 맞나요?</h4>
@@ -522,15 +523,15 @@ export function GuardianPanel({ showToast }) {
             </div>
             <div className="child-chapters"><ChapterCells chapters={c.chapters} /></div>
             <div className="child-meta">
-              <span>📁 작품 {c.projects}개</span>
-              <span>🌟 공개 {c.shared_projects}개</span>
+              <span>작품 {c.projects}개</span>
+              <span>공개 {c.shared_projects}개</span>
             </div>
             {c.projects_list?.length ? (
               <ul className="child-projects-list">
                 {c.projects_list.map((p) => (
                   <li key={p.id} className="child-project-row">
                     <div className="project-thumb" aria-hidden="true">
-                      {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" /> : <span>{p.track === 'chapter' ? '🏆' : '🧩'}</span>}
+                      {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" /> : (p.track === 'chapter' ? <Trophy size={24} /> : <Puzzle size={24} />)}
                     </div>
                     <div className="project-info">
                       <div className="project-title">{p.title}</div>

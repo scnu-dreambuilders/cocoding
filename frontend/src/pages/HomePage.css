@@ -7,16 +7,12 @@
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  /* 전역 --text-muted(#94a3b8)는 흰 배경에서 명암비 2.6:1이라 읽기 어렵다 → 홈 화면은 4.5:1 이상으로 */
-  --home-muted: #5b6676;
-}
-@media (prefers-color-scheme: dark) {
-  .home-root { --home-muted: #9aa7b8; }
+  /* 보조 글자 — 브랜드 --text-muted는 모든 바탕에서 4.5:1 이상이라 그대로 쓴다 */
+  --home-muted: var(--text-muted);
 }
 
 /* 한글은 기본값이면 글자 단위로 줄이 바뀌어 단어가 잘린다 → 띄어쓰기 단위로만 줄바꿈 (긴 단어만 예외) */
-.home-main,
-.home-footer {
+.home-main {
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
@@ -39,10 +35,10 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
-  background: var(--text-h);
-  color: var(--header-bg);
+  background: var(--ink-900);
+  color: #ffffff;
   padding: 10px 18px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 0.8667rem;
   font-weight: 600;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
@@ -61,21 +57,22 @@
 
 .home-hero-eyebrow {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: 0.8667rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-light);
-  padding: 4px 12px;
-  border-radius: 20px;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
   margin-bottom: 14px;
 }
 
 .home-hero-text h1 {
-  font-size: 2.4rem;
-  line-height: 1.25;
-  font-weight: 800;
+  font-family: var(--display);
+  font-size: 2.8rem;
+  line-height: 1.2;
+  font-weight: 400;
+  font-synthesis: none;
   color: var(--text-h);
-  letter-spacing: -0.6px;
   margin: 0 0 14px;
 }
 
@@ -93,10 +90,13 @@
 }
 
 .home-hero-img {
-  width: 200px;
-  height: 200px;
+  width: 300px;
+  height: auto;
   flex-shrink: 0;
   animation: home-hero-float 4.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-img { animation: none; }
 }
 
 @keyframes home-hero-float {
@@ -108,15 +108,16 @@
   .home-hero { flex-direction: column; text-align: center; }
   .home-hero-text { max-width: none; }
   .home-hero-actions { justify-content: center; }
-  .home-hero-img { width: 140px; height: 140px; }
-  .home-hero-text h1 { font-size: 1.9rem; }
+  .home-hero-img { width: 180px; }
+  .home-hero-text h1 { font-size: 2.1rem; }
 }
 
 /* ── Buttons (홈 전용 — App.css의 .btn 계열과 별개) ── */
 .home-btn-primary,
 .home-btn-ghost {
+  min-height: 48px;
   padding: 12px 22px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-family: inherit;
   font-size: 0.9333rem;
   font-weight: 700;
@@ -124,72 +125,90 @@
   white-space: nowrap;
 }
 
+/* 별 노랑 주 버튼 — 갈색 외곽선 + 내려앉은 그림자 */
 .home-btn-primary {
-  border: none;
-  background: linear-gradient(145deg, #6d28d9, #9333ea);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border: var(--stroke-brand) solid var(--cta-edge);
+  background: var(--cta);
+  color: var(--on-cta);
+  box-shadow: var(--shadow-pop);
 }
-.home-btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+.home-btn-primary:hover { background: var(--cta-hover); }
+.home-btn-primary:active { transform: translateY(3px); box-shadow: var(--shadow-pop-pressed); }
 
 .home-btn-ghost {
-  border: 1px solid var(--border);
-  background: var(--header-bg);
+  border: var(--stroke-brand) solid var(--line-brand);
+  background: var(--panel-bg);
   color: var(--text-h);
 }
 .home-btn-ghost:hover { background: var(--btn-hover); }
 
 /* ── Section shell ── */
 .home-section-title {
-  font-size: 1.2667rem;
-  font-weight: 800;
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  font-synthesis: none;
   color: var(--text-h);
-  letter-spacing: -0.3px;
   margin: 0 0 18px;
 }
 
-/* ── AI 캐릭터 카드 ── */
-.home-char-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
-}
-
-.home-char-card {
+/* ── AI 친구 코코 ── */
+.home-coco {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 22px 14px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--header-bg);
-  cursor: pointer;
-  font-family: inherit;
-  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  gap: 28px;
+  padding: 24px 28px;
+  border: var(--stroke-brand) solid var(--line-brand);
+  border-radius: var(--radius-lg);
+  background: var(--sky-200);
+  color: var(--ink-900);
+  box-shadow: var(--shadow-pop);
 }
-.home-char-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.14);
+.home-coco-img { width: 200px; height: auto; flex-shrink: 0; }
+.home-coco-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.home-coco-name { margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.home-coco-name b { font-family: var(--display); font-weight: 400; font-synthesis: none; font-size: 2rem; }
+.home-coco-name span { font-size: 1rem; font-weight: 700; color: var(--teal-800); }
+.home-coco-desc { margin: 0; font-size: 1rem; line-height: 1.6; color: var(--ink-900); }
+/* 문제를? → 해결하자! → 별 — 코코 시안의 이야기 순서 */
+.home-coco-story {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
 }
-.home-char-card b { font-size: 0.9333rem; color: var(--text-h); }
-.home-char-card span { font-size: 0.8267rem; color: var(--home-muted); text-align: center; }
-/* 위 span 규칙이 이모지 크기를 덮어써서 13px로 줄어들던 문제 방지 (선택자를 더 구체적으로) */
-.home-char-card .home-char-emoji { font-size: 2.2rem; color: inherit; }
-
-.home-char-emoji {
-  font-size: 2.2rem;
-  line-height: 1;
-  width: 56px;
-  height: 56px;
+.home-coco-story li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1.5px solid var(--ink-900);
+}
+.home-coco-mark {
+  grid-row: span 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: var(--accent-light);
+  font-size: 1.2rem;
+  font-weight: 800;
+  background: var(--star-300);
+  border: var(--stroke-brand) solid var(--ink-900);
+  color: var(--ink-900);
 }
-.home-char-emoji-lg { width: 72px; height: 72px; font-size: 2.8rem; }
+.home-coco-story b { font-size: 0.9667rem; color: var(--ink-900); }
+.home-coco-story li > span:last-child { font-size: 0.8333rem; line-height: 1.5; color: var(--ink-700); }
+@media (max-width: 760px) {
+  .home-coco { flex-direction: column; text-align: left; padding: 20px; }
+  .home-coco-img { width: 150px; }
+}
 
 /* ── 새소식 ── */
 .home-news-list {
@@ -203,9 +222,9 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--header-bg);
+  border: var(--stroke-brand) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
 }
 
 .home-news-tag {
@@ -213,9 +232,9 @@
   font-size: 0.7333rem;
   font-weight: 700;
   padding: 3px 9px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   background: var(--accent-light);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .home-news-date {
@@ -240,12 +259,8 @@
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 .home-news-card-btn:hover {
-  border-color: var(--accent);
-  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.12);
-}
-.home-news-card-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  border-color: var(--line-brand);
+  box-shadow: var(--shadow-pop);
 }
 
 @media (max-width: 560px) {
@@ -261,9 +276,9 @@
 }
 
 .home-proj-card {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--header-bg);
+  border: var(--stroke-brand) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
   overflow: hidden;
 }
 
@@ -273,7 +288,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  color: var(--accent-text);
 }
 .home-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -292,12 +307,8 @@
 }
 .home-proj-card-btn:hover {
   transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.14);
-}
-.home-proj-card-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  border-color: var(--line-brand);
+  box-shadow: var(--shadow-pop);
 }
 .home-proj-info { min-width: 0; }
 .home-proj-info b {
@@ -321,7 +332,7 @@
 
 .home-proj-skeleton {
   aspect-ratio: 4 / 3;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--tabs-bg);
   animation: home-pulse 1.4s ease-in-out infinite;
 }
@@ -333,7 +344,7 @@
 .home-empty {
   padding: 28px 20px;
   border: 1px dashed var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -354,8 +365,8 @@
   gap: 18px;
   padding: 22px 24px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--header-bg);
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
 }
 .home-safety-icon {
   flex-shrink: 0;
@@ -363,10 +374,10 @@
   height: 48px;
   border-radius: 50%;
   background: var(--accent-light);
+  color: var(--accent-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
 }
 .home-safety-body { flex: 1; min-width: 0; }
 .home-safety-body b { display: block; font-size: 0.9333rem; color: var(--text-h); margin-bottom: 4px; }
@@ -384,7 +395,7 @@
 .home-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(27, 63, 68, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -398,8 +409,9 @@
   max-width: 540px;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  background: var(--header-bg);
-  border-radius: 16px;
+  background: var(--panel-bg);
+  border: var(--stroke-brand) solid var(--line-brand);
+  border-radius: var(--radius-lg);
   padding: 34px 34px 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   /* 한글은 기본값이면 글자 단위로 줄이 바뀌어 읽기 어렵다 → 띄어쓰기 단위로만 줄바꿈 */
@@ -427,13 +439,15 @@
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 .home-modal-close:hover { background: var(--btn-hover); }
 
 .home-modal-title {
-  font-size: 1.3rem;
-  font-weight: 800;
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  font-synthesis: none;
   color: var(--text-h);
   line-height: 1.4;
   margin: 0 0 22px;
@@ -464,8 +478,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #6d28d9, #9333ea);
-  color: #fff;
+  background: var(--cta);
+  border: var(--stroke-brand) solid var(--cta-edge);
+  color: var(--on-cta);
   font-size: 0.9333rem;
   font-weight: 700;
   display: flex;
@@ -493,27 +508,6 @@
   line-height: 1.75;
 }
 
-/* 캐릭터 소개 모달 */
-.home-char-modal-head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-.home-char-modal-head .home-modal-title { margin: 0 0 4px; }
-.home-char-role {
-  font-size: 0.9rem;
-  color: var(--accent);
-  font-weight: 600;
-}
-.home-char-desc {
-  font-size: 0.9667rem;
-  color: var(--text-h);
-  line-height: 1.75;
-  margin: 14px 0 0;
-}
-
 /* ════════════════════════════════════════════════
    2차 사용성 보완 — 새 소식 › 표시, 푸터, 모바일 추천 작품 2열
    ════════════════════════════════════════════════ */
@@ -526,74 +520,6 @@
   color: var(--home-muted);
 }
 .home-news-card-btn:hover .home-news-more { color: var(--accent); }
-
-/* 푸터 */
-.home-footer {
-  margin-top: 8px;
-  border-top: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--accent-light), transparent 140%), var(--header-bg);
-}
-.home-footer-inner {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 30px 24px 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.home-footer-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px 24px;
-  flex-wrap: wrap;
-}
-.home-footer-brand { display: flex; align-items: center; gap: 12px; }
-.home-footer-brand > div { display: flex; flex-direction: column; gap: 2px; }
-.home-footer-brand b { font-size: 1.0667rem; font-weight: 800; color: var(--text-h); letter-spacing: -0.3px; }
-.home-footer-brand span { font-size: 0.8667rem; color: var(--home-muted); }
-
-/* 바로가기: 눌러 볼 수 있는 둥근 칩 */
-.home-footer-links { display: flex; flex-wrap: wrap; gap: 8px; }
-.home-footer-links button {
-  padding: 8px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--header-bg);
-  font-family: inherit;
-  font-size: 0.8667rem;
-  font-weight: 600;
-  color: var(--text-h);
-  cursor: pointer;
-  transition: border-color 0.12s, color 0.12s, transform 0.12s;
-}
-.home-footer-links button:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
-.home-footer-links button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.home-footer-bottom {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px 24px;
-  flex-wrap: wrap;
-  padding-top: 16px;
-  border-top: 1px dashed var(--border-strong);
-}
-.home-footer-note {
-  flex: 1 1 360px;
-  margin: 0;
-  font-size: 0.8267rem;
-  line-height: 1.65;
-  color: var(--home-muted);
-  word-break: keep-all;
-}
-.home-footer small { font-size: 0.78rem; color: var(--home-muted); white-space: nowrap; }
-
-@media (max-width: 560px) {
-  .home-footer-inner { padding: 24px 16px 22px; }
-  .home-footer-links { width: 100%; }
-  .home-footer-links button { flex: 1 1 auto; text-align: center; }
-}
 
 /* 모바일: 추천 작품 4개가 1열로 길게 이어지지 않도록 2열로 */
 @media (max-width: 560px) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Award, Lock } from 'lucide-react'
 import { api } from '../api/client'
 import { CocoAvatar } from './Coco'
 import './Profile.css'
@@ -74,7 +75,7 @@ export default function ProfileCard({ showToast, onOpenProfile }) {
   return (
     <section className="dash-section">
       <div className="section-header">
-        <h3 className="section-title"><span aria-hidden="true">🏅</span>내 프로필</h3>
+        <h3 className="section-title">내 프로필</h3>
         <span className="section-badge">Lv.{me.level}</span>
       </div>
 
@@ -110,9 +111,9 @@ export default function ProfileCard({ showToast, onOpenProfile }) {
             </div>
 
             <div className="profile-stats">
-              <span>💜 받은 좋아요 <b>{likeLabel(me.likesReceived)}</b></span>
-              <span>👥 팔로워 <b>{me.followers}</b></span>
-              <span>🤝 친구 <b>{me.friends?.length ?? 0}</b></span>
+              <span>받은 좋아요 <b>{likeLabel(me.likesReceived)}</b></span>
+              <span>팔로워 <b>{me.followers}</b></span>
+              <span>친구 <b>{me.friends?.length ?? 0}</b></span>
             </div>
           </div>
         </div>
@@ -134,7 +135,7 @@ export default function ProfileCard({ showToast, onOpenProfile }) {
           <div className="achv-grid">
             {[...earned, ...locked].map((a) => (
               <div key={a.code} className={`achv ${a.earned ? 'on' : ''}`} title={a.earned ? a.desc : `${a.desc} (아직 못 받았어요)`}>
-                <span className="achv-emoji" aria-hidden="true">{a.earned ? a.emoji : '🔒'}</span>
+                {a.earned ? <Award size={24} className="achv-icon" aria-hidden="true" /> : <Lock size={24} className="achv-icon" aria-hidden="true" />}
                 <span className="achv-name">{a.name}</span>
               </div>
             ))}
@@ -154,7 +155,7 @@ export default function ProfileCard({ showToast, onOpenProfile }) {
                     <b>{f.username}</b>
                     {f.bio && <small>{f.bio}</small>}
                   </button>
-                  <span className="friend-tag">🤝 친구</span>
+                  <span className="friend-tag">친구</span>
                   <button type="button" className="row-remove" onClick={() => unfollow(f)} title="팔로우 취소" aria-label={`${f.username} 팔로우 취소`}>×</button>
                 </li>
               ))}

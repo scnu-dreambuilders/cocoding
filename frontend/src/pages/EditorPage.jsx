@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Play, Search, Square } from 'lucide-react'
 import * as Blockly from 'blockly'
 import BlocklyEditor from '../components/BlocklyEditor'
 import Stage from '../components/Stage'
@@ -17,29 +18,32 @@ import { BLOCK_INFO, CATEGORIES, setBlockContext } from '../blockly/blocks'
 import { buildToolbox, categoryIdOf, LEVEL_BLOCKS, ALL_BLOCKS } from '../blockly/toolbox'
 import { Runtime, validateWorkspace } from '../engine/runtime'
 import { gradeChapter, starsOf } from '../engine/grader'
+import { itemTip } from '../lib/gradeText'
 import { CHAPTERS, MY_GAME, chapterBlocks, learnedBlocks, usedTypes } from '../data/chapters'
 import { LEVELS } from '../data/library'
 import { makeProject, makeSprite, normalizeProject, serializeProject } from '../lib/project'
 import { playSound } from '../lib/sounds'
 import { api } from '../api/client'
+import { stripEmoji } from '../lib/text'
 import '../App.css'
 import './EditorPage.css'
 
 const IDLE_MS = 30000
-const PRAISE = ['좋아, 잘 연결했어! 👍', '블록이 딱 맞았어!', '멋진데? 계속 해보자!', '오, 점점 완성되고 있어! ✨']
+const PRAISE = ['좋아, 잘 연결했어!', '블록이 딱 맞았어!', '멋진데? 계속 해보자!', '오, 점점 완성되고 있어!']
 const blockName = (t) => BLOCK_INFO[t]?.name ?? t
 const catName = (t) => CATEGORIES[BLOCK_INFO[t]?.cat]?.name ?? ''
 
 function Celebration() {
-  const pieces = ['🎉', '⭐', '🎊', '✨', '🏆', '💜']
+  const colors = ['var(--star-300)', 'var(--teal-400)', 'var(--sky-300)', '#ffc3cb', '#b1f0c1', '#e2ccff']
   return (
     <div className="celebration" aria-hidden="true">
       {Array.from({ length: 28 }, (_, i) => (
-        <span key={i} style={{
+        <span key={i} className={i % 3 === 0 ? 'is-round' : ''} style={{
           left: `${(Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1 * 100}%`,
           animationDelay: `${(i % 7) * 0.12}s`,
-          fontSize: `${18 + (i % 4) * 6}px`,
-        }}>{pieces[i % pieces.length]}</span>
+          width: `${8 + (i % 4) * 3}px`,
+          background: colors[i % colors.length],
+        }} />
       ))}
     </div>
   )
@@ -61,13 +65,13 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     if (isChapter) p = makeProject({ sprites: chapter.sprites(), scenes: chapter.scenes?.() })
     else if (launch.template === 'mygame') p = makeProject({ scenes: MY_GAME.scenes() })
     else if (launch.topic) {
-      p = makeProject({ sprites: [makeSprite({ id: 'coco', name: '코코', emoji: '🐨', x: -120 }),
-        makeSprite({ id: 'hero', name: launch.topic.category ?? '주인공', emoji: launch.topic.emoji ?? '⭐', x: 100 })] })
+      p = makeProject({ sprites: [makeSprite({ id: 'coco', name: '코코', x: -120 }),
+        makeSprite({ id: 'hero', name: launch.topic.category ?? '주인공', costume: launch.topic.costume ?? 'star', x: 100 })] })
     } else p = makeProject()
     setBlockContext(p) // 블록 드롭다운이 워크스페이스 로드 전에 캐릭터 목록을 알아야 함
     return p
   })
-  // 빈 화면에서 시작하지 않도록: 바로 ▶ 실행해볼 수 있는 시작 블록
+  // 빈 화면에서 시작하지 않도록: 바로 실행해볼 수 있는 시작 블록
   const [initialWs, setInitialWs] = useState(() => {
     if (isChapter || launch.projectId || launch.template) return null
     const sprite = launch.topic ? 'hero' : 'coco'
@@ -158,7 +162,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
 
   /* 캐릭터/장면/소리 이름이 바뀌면 블록 드롭다운 갱신 */
   const ctxKey = JSON.stringify([
-    project.sprites.map((s) => [s.id, s.name, s.emoji]), project.scenes.map((s) => [s.id, s.name]), project.sounds.map((s) => [s.id, s.name]),
+    project.sprites.map((s) => [s.id, s.name, s.costume, s.emoji]), project.scenes.map((s) => [s.id, s.name]), project.sounds.map((s) => [s.id, s.name]),
   ])
   useEffect(() => {
     setBlockContext(projectRef.current)
@@ -166,7 +170,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   }, [ctxKey])
 
   /* ── 코코 말하기 ───────────────────────────── */
-  const say = useCallback((text, type = 'intro', emotion = 'normal', { duration = 8000, actions } = {}) => {
+  const say = useCallback((rawText, type = 'intro', emotion = 'normal', { duration = 8000, actions } = {}) => {
+    const text = stripEmoji(rawText)
     clearTimeout(cocoTimer.current)
     setCoco({ message: { id: Date.now() + Math.random(), text, type, actions }, emotion })
     if (duration) {
@@ -231,7 +236,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     const t = setTimeout(() => {
       if (isChapter) {
         const names = chapter.focus.map((b) => `'${blockName(b)}'`).join(', ')
-        say(`챕터 ${chapterNo}에서는 ${names} 블록을 배울 거야! 팔레트에서 반짝이는 칸을 찾아봐 👀`, 'intro', 'happy')
+        say(`챕터 ${chapterNo}에서는 ${names} 블록을 배울 거야! 팔레트에서 반짝이는 칸을 찾아봐`, 'intro', 'happy')
         flashBlock(chapter.focus[0])
       } else if (launch.template === 'mygame') {
         say(MY_GAME.intro, 'intro', 'celebrate')
@@ -242,10 +247,10 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         if (hb) flashBlock(hb)
       } else if (launch.projectId) {
         say(meta.owner
-          ? `다시 왔구나! '${meta.title}' 이어서 만들어보자 💪`
-          : `${meta.author} 친구의 작품을 구경하는 중이야 👀 ▶ 실행을 눌러봐! 블록을 바꿔봐도 친구 작품은 그대로야.`, 'intro', 'happy')
+          ? `다시 왔구나! '${meta.title}' 이어서 만들어보자`
+          : `${meta.author} 친구의 작품을 구경하는 중이야. 실행을 눌러봐! 블록을 바꿔봐도 친구 작품은 그대로야.`, 'intro', 'happy')
       } else {
-        say(`${user ? '' : '로그인 없이 체험 중이야! (저장은 로그인 후에 할 수 있어)\n'}시작 블록을 놓아뒀어. ▶ 실행을 눌러보고, '이동' 칸의 블록을 아래에 붙여봐!`,
+        say(`${user ? '' : '로그인 없이 체험 중이야! (저장은 로그인 후에 할 수 있어)\n'}시작 블록을 놓아뒀어. 실행을 눌러보고, '이동' 칸의 블록을 아래에 붙여봐!`,
           'intro', 'happy')
         flashBlock('move_x')
       }
@@ -263,7 +268,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     else if (isChapter) pool = chapter.newBlocks
     const next = pool.find((t) => !used.has(t))
     if (!next) {
-      say('잘하고 있어! ▶ 실행 버튼을 눌러서 결과를 확인해봐 🙂', 'encourage', 'happy')
+      say('잘하고 있어! 실행 버튼을 눌러서 결과를 확인해봐', 'encourage', 'happy')
       return
     }
     say(`혹시 '${blockName(next)}' 블록 찾고 있어? '${catName(next)}' 칸에 있어!`, 'hint', 'thinking', {
@@ -315,7 +320,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   }, [say])
 
   const onRangeWarning = useCallback(({ message }) => {
-    say(`⚠️ 너무 큰 숫자야! ${message}`, 'error', 'thinking', { duration: 7000 })
+    say(`너무 큰 숫자야! ${message}`, 'error', 'thinking', { duration: 7000 })
   }, [say])
 
   /* ── 무대 표시 상태 ─────────────────────────── */
@@ -352,14 +357,14 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       setRecord({ best: saved.bestScore, attempts: saved.attempts })
       setGrade((g) => g && { ...g, saving: false, saved })
       if (!saved.passed) {
-        if (res.passed) say(`채점 서버에서 다시 확인해보니 ${saved.score}점이었어. 코드를 한 번 더 살펴보자 💪`, 'hint', 'thinking', { duration: 15000 })
+        if (res.passed) say(`채점 서버에서 다시 확인해보니 ${saved.score}점이었어. 코드를 한 번 더 살펴보자`, 'hint', 'thinking', { duration: 15000 })
         return
       }
       setResult({ ...saved, score: saved.score, stars: starsOf(saved.score) })
       setMaxStep(4)
       setStep(4)
-      say(saved.nextChapterId ? `${saved.score}점으로 챕터 ${chapterNo} 완료! 다음 챕터가 열렸어 🔓\n보상: ${saved.rewardEmoji ?? ''} ${saved.rewardItem}`
-        : `${saved.score}점! 모든 챕터를 끝냈어! 🎓 이제 '나만의 게임 만들기'가 열렸어!`, 'success', 'celebrate', { duration: 0 })
+      say(saved.nextChapterId ? `${saved.score}점으로 챕터 ${chapterNo} 완료! 다음 챕터가 열렸어\n보상: ${saved.rewardItem}`
+        : `${saved.score}점! 모든 챕터를 끝냈어! 이제 '나만의 게임 만들기'가 열렸어!`, 'success', 'celebrate', { duration: 0 })
       onUserUpdate?.()
       if (user) api.items().then((list) => setItems(list.filter((i) => Number(i.equipped)))).catch(() => {})
     } catch (err) {
@@ -374,7 +379,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     ed.clearErrors()
     const ws = ed.getWorkspace()
     setGrade({ phase: 'grading', progress: 0 })
-    say('채점 로봇이 네 코드를 실행해보고 있어… 🤖', 'intro', 'thinking', { duration: 0 })
+    say('채점 로봇이 네 코드를 실행해보고 있어…', 'intro', 'thinking', { duration: 0 })
     const started = performance.now()
     let res
     try {
@@ -397,13 +402,13 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     setChecks(res.items.filter((it) => it.group === 'mission').map((it) => ({ label: it.label, done: it.done })))
     if (res.error?.blockId) ed.markErrors([res.error.blockId], { shake: true })
     if (res.passed) {
-      say(`🎉 ${res.score}점! 미션 성공!`, 'success', 'celebrate', { duration: 0 })
+      say(`${res.score}점! 미션 성공!`, 'success', 'celebrate', { duration: 0 })
       setCelebrate(true)
       playSound('sfx:win')
       setTimeout(() => setCelebrate(false), 3500)
     } else {
       const first = res.items.find((it) => !it.done)
-      say(`${res.score}점! 조금만 더 해보자 💪\n💡 ${first?.tip ?? ''}`, 'hint', 'thinking', { duration: 15000 })
+      say(`${res.score}점! 조금만 더 해보자!\n${itemTip(first) ?? ''}`, 'hint', 'thinking', { duration: 15000 })
       if (first?.missing?.length) flashBlock(first.missing[0])
     }
     saveGrade(res, snapshot)
@@ -440,7 +445,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       const first = errors[0]
       if (first.blockId) ed.markErrors(errors.map((i) => i.blockId).filter(Boolean), { shake: !lenient })
       const type = ws.getBlockById(first.blockId)?.type
-      say(`${lenient ? '' : '❌ '}${first.message}${type && !lenient ? `\n\n💬 ${BLOCK_INFO[type]?.desc ?? ''}` : ''}`,
+      say(`${first.message}${type && !lenient ? `\n\n${BLOCK_INFO[type]?.desc ?? ''}` : ''}`,
         lenient ? 'hint' : 'error', 'thinking', { duration: 12000 })
       if (first.kind === 'no-hat') flashBlock('when_start')
       return
@@ -449,7 +454,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     if (warns.length) {
       hinted = true
       ed.markErrors(warns.map((i) => i.blockId).filter(Boolean), { shake: false, focus: false, cls: 'coco-warn-block' })
-      say(`⚠️ ${warns[0].message}`, 'hint', 'thinking', { duration: 9000 })
+      say(`${warns[0].message}`, 'hint', 'thinking', { duration: 9000 })
     } else if (isChapter && stepRef.current === 3) {
       const missing = chapter.required.find((t) => !usedTypes(ws).has(t))
       if (missing) {
@@ -482,7 +487,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
             if (!allDone && list.every((c) => c.done)) {
               allDone = true
               setReady(true)
-              say('조건을 모두 채운 것 같아! 📝 정답 제출을 눌러서 채점받아봐!', 'success', 'happy', { duration: 0 })
+              say('조건을 모두 채운 것 같아! 정답 제출을 눌러서 채점받아봐!', 'success', 'happy', { duration: 0 })
             }
           })
         }
@@ -490,7 +495,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       onError: (err) => {
         const type = ws.getBlockById(err.blockId)?.type
         ed.markErrors([err.blockId], { shake: !lenient })
-        say(`${lenient ? '' : '❌ '}${err.message}${type ? `\n\n💬 ${BLOCK_INFO[type]?.desc ?? ''}` : ''}`,
+        say(`${err.message}${type ? `\n\n${BLOCK_INFO[type]?.desc ?? ''}` : ''}`,
           lenient ? 'hint' : 'error', 'thinking', { duration: 12000 })
       },
       onFinish: ({ reason }) => {
@@ -499,7 +504,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         const j = judgeRef.current
         if (reason === 'done' && j && !allDone && !hinted) {
           const left = j.checks().filter((c) => !c.done)
-          if (left.length) say(`거의 다 왔어! 아직 남은 조건 → ${left[0].label} 💪`, 'encourage', 'thinking', { duration: 9000 })
+          if (left.length) say(`거의 다 왔어! 아직 남은 조건 → ${left[0].label}`, 'encourage', 'thinking', { duration: 9000 })
         }
       },
     })
@@ -536,12 +541,12 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       workspace: ws, project: template, playSound: (id) => playSound(id),
       onFinish: () => {
         cleanup()
-        say('이제 똑같이 조립해서 ▶ 실행해봐!', 'intro', 'happy')
+        say('이제 똑같이 조립해서 실행해봐!', 'intro', 'happy')
       },
     })
     runtimeRef.current = rt
     setDemoRunning(true)
-    say('예시를 보여줄게! 무대를 봐 👀', 'intro', 'happy', { duration: 4000 })
+    say('예시를 보여줄게! 무대를 봐', 'intro', 'happy', { duration: 4000 })
     rt.start()
     ;(ex.demoKeys ?? []).forEach((k, i) => timers.push(setTimeout(() => { rt.keyDown(k); rt.keyUp(k) }, 500 + i * 450)))
     timers.push(setTimeout(() => rt.stop('demo-end'), Math.max(4500, 800 + (ex.demoKeys?.length ?? 0) * 450)))
@@ -556,7 +561,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     setStep(3)
     setMaxStep((m) => Math.max(m, 3))
     setChecks(chapter.makeJudge(blocklyRef.current.getWorkspace()).checks())
-    say(`🎯 스스로 완성 미션!\n${chapter.mission}`, 'intro', 'happy', { duration: 12000 })
+    say(`스스로 완성 미션!\n${chapter.mission}`, 'intro', 'happy', { duration: 12000 })
   }, [chapter, say, stopRun])
 
   const goStep = useCallback((n) => {
@@ -566,13 +571,13 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     }
     setStep(n)
     if (n > maxStep) setMaxStep(n)
-    if (n === 2) say('오른쪽 예시처럼 블록을 조립해봐! ▶ 예시 결과 보기로 먼저 확인해도 좋아', 'intro', 'happy')
+    if (n === 2) say('오른쪽 예시처럼 블록을 조립해봐! 예시 결과 보기로 먼저 확인해도 좋아', 'intro', 'happy')
   }, [maxStep, startSelf, say])
 
   const showHint = () => {
     const n = Math.min(chapter.hints.length, hintCount + 1)
     setHintCount(n)
-    say(`💡 ${chapter.hints[n - 1]}`, 'hint', 'thinking', { duration: 12000 })
+    say(`${chapter.hints[n - 1]}`, 'hint', 'thinking', { duration: 12000 })
   }
 
   /* ── 저장 / 공유 ───────────────────────────── */
@@ -584,7 +589,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     if (isChapter) return null
     if (!meta.owner) {
       say(meta.allowRemake
-        ? '친구 작품은 저장할 수 없어. 대시보드에서 🔁 리메이크하면 내 작품으로 복사해서 고칠 수 있어!'
+        ? '친구 작품은 저장할 수 없어. 대시보드에서 리메이크하면 내 작품으로 복사해서 고칠 수 있어!'
         : '친구 작품은 구경만 할 수 있어. 작가가 리메이크를 허용하지 않은 작품이야.', 'hint', 'thinking')
       return null
     }
@@ -601,9 +606,9 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         id = res.id
         setMeta((m) => ({ ...m, id }))
         if (res.rewardItem) {
-          say(`포트폴리오에 등록됐어! 📁\n저장 보상으로 ${res.rewardEmoji ?? ''} ${res.rewardItem}을(를) 받았어!`, 'success', 'celebrate')
+          say(`포트폴리오에 등록됐어!\n저장 보상으로 ${res.rewardItem}을(를) 받았어!`, 'success', 'celebrate')
           onUserUpdate?.()
-        } else if (!quiet) say('포트폴리오에 등록됐어! 📁', 'success', 'happy', { duration: 4000 })
+        } else if (!quiet) say('포트폴리오에 등록됐어!', 'success', 'happy', { duration: 4000 })
       }
       setDirty(false)
       setSaveMsg('saved')
@@ -622,7 +627,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
   const toggleShare = async () => {
     if (!meta.isPublic) {
       if (user?.consent_status === 'pending') {
-        say('보호자 동의가 끝나면 친구들에게 공유할 수 있어! 대시보드에 있는 동의 코드를 부모님께 보여드려 👪', 'hint', 'thinking', { duration: 10000 })
+        say('보호자 동의가 끝나면 친구들에게 공유할 수 있어! 대시보드에 있는 동의 코드를 부모님께 보여드려', 'hint', 'thinking', { duration: 10000 })
         return
       }
       setModal('share')
@@ -645,8 +650,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       setMeta((m) => ({ ...m, isPublic: true, allowRemake }))
       setModal(null)
       say(allowRemake
-        ? "친구 작품 탭에 공개됐어! 친구들이 '리메이크'해서 따라 만들 수 있어 🌟"
-        : '친구 작품 탭에 공개됐어! 친구들은 구경만 할 수 있어 🌟', 'success', 'happy')
+        ? "친구 작품 탭에 공개됐어! 친구들이 '리메이크'해서 따라 만들 수 있어"
+        : '친구 작품 탭에 공개됐어! 친구들은 구경만 할 수 있어', 'success', 'happy')
     } catch (err) {
       setModal(null)
       say(`공유하지 못했어: ${err.message}`, 'error', 'thinking')
@@ -736,24 +741,24 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         </div>
 
         <div className="header-actions">
-          {saveMsg === 'saved' && <span className="save-msg save-ok" role="status">저장됨 ✓</span>}
+          {saveMsg === 'saved' && <span className="save-msg save-ok" role="status">저장됨</span>}
           {saveMsg === 'error' && <span className="save-msg save-err" role="alert">저장 실패</span>}
           <span className="shortcut-hint" aria-hidden="true"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 실행</span>
           <TextSizeControl />
           {isChapter && step === 3 && (
             <button type="button" className={`btn btn-submit ${ready ? 'is-ready' : ''}`} onClick={handleSubmit} disabled={busy}
               title="자동 채점 로봇이 코드를 실행해서 채점해요">
-              📝 정답 제출
+              정답 제출
             </button>
           )}
           {user && !isChapter && !meta.owner && (
-            <span className="view-only-badge" title="친구의 공개 작품이라 저장·공유는 할 수 없어요">👀 구경 중</span>
+            <span className="view-only-badge" title="친구의 공개 작품이라 저장·공유는 할 수 없어요">구경 중</span>
           )}
           {user && !isChapter && meta.owner && (
             <>
               <button type="button" className={`btn btn-ghost ${meta.isPublic ? 'btn-shared' : ''}`} onClick={toggleShare}
                 title="친구 작품 탭에 공개하기">
-                {meta.isPublic ? '🌟 공개 중' : '🔗 공유'}
+                {meta.isPublic ? '공개 중' : '공유'}
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => handleSave()} disabled={saving} title="저장 (Ctrl+S)">
                 {saving ? <IconSpinner /> : <IconSave />}
@@ -763,7 +768,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           )}
           <button type="button" className={`btn btn-run ${running ? 'is-running' : ''}`} onClick={handleRun}
             disabled={demoRunning || grading} title="실행 / 정지 (Ctrl+Enter)">
-            {running ? '■ 정지' : '▶ 실행'}
+            {running ? <><Square size={14} aria-hidden="true" /> 정지</> : <><Play size={14} aria-hidden="true" /> 실행</>}
           </button>
         </div>
       </header>
@@ -772,7 +777,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         <section className="ed-blocks">
           <div className="palette-bar">
             <label className="palette-search">
-              <span aria-hidden="true">🔍</span>
+              <Search size={15} aria-hidden="true" />
               <input value={search} placeholder="블록 찾기 (예: 반복, 좌표)" aria-label="블록 검색"
                 onChange={(e) => { setSearch(e.target.value); blocklyRef.current?.search(e.target.value) }} />
               {search && <button type="button" onClick={() => { setSearch(''); blocklyRef.current?.search('') }} aria-label="검색어 지우기">×</button>}
@@ -783,7 +788,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
               <label className="palette-level" title="코딩 수준에 따라 보이는 블록 수가 달라져요">
                 블록
                 <select value={level} onChange={(e) => setLevel(Number(e.target.value))}>
-                  {LEVELS.map((l) => <option key={l.level} value={l.level}>{l.emoji} {l.label}</option>)}
+                  {LEVELS.map((l) => <option key={l.level} value={l.level}>{l.label}</option>)}
                 </select>
                 <span className="palette-count">{allowed.length}개</span>
               </label>
@@ -837,7 +842,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
             <div className="stage-toolbar">
               <button type="button" className={`btn btn-sm ${running ? 'btn-stop' : 'btn-run'}`} onClick={handleRun} disabled={demoRunning || grading}
                 title="실행 / 정지 (Ctrl+Enter)">
-                {running ? '■ 정지' : '▶ 실행'}
+                {running ? <><Square size={14} aria-hidden="true" /> 정지</> : <><Play size={14} aria-hidden="true" /> 실행</>}
               </button>
               <button type="button" className={`btn btn-ghost btn-sm ${showGrid ? 'on' : ''}`} onClick={() => setShowGrid((g) => !g)}
                 aria-pressed={showGrid} title="x/y 격자와 좌표 표시">
@@ -884,7 +889,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
           <div className="side-tabs" role="tablist">
             {isChapter && (
               <button type="button" role="tab" aria-selected={tab === 'mission'} className={`tab-btn ${tab === 'mission' ? 'active' : ''}`}
-                onClick={() => setTab('mission')}>🎯 미션</button>
+                onClick={() => setTab('mission')}>미션</button>
             )}
             <button type="button" role="tab" aria-selected={tab === 'code'} className={`tab-btn ${tab === 'code' ? 'active' : ''}`}
               onClick={() => setTab('code')}><IconCode /> 코드 보기</button>
@@ -926,7 +931,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
             setProject((p) => ({ ...p, sprites: [...p.sprites, s] }))
             setSelectedId(s.id)
             setModal(null)
-            say(`'${name}' 캐릭터가 무대에 올라왔어! 이벤트 블록의 드롭다운에서 '${name}'을(를) 골라서 움직여봐 🎨`, 'success', 'celebrate')
+            say(`'${name}' 캐릭터가 무대에 올라왔어! 이벤트 블록의 드롭다운에서 '${name}'을(를) 골라서 움직여봐`, 'success', 'celebrate')
           }}
         />
       )}

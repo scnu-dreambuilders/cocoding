@@ -3,6 +3,7 @@
 // JWT(HS256) 발급·검증. 토큰에 사용자별 token_version(tv)을 담아서
 // 로그아웃하면 DB의 버전을 올려 이전에 발급한 토큰을 모두 무효화한다.
 require_once __DIR__ . '/Env.php';
+require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/Database.php';
 
 class Auth {
@@ -98,7 +99,10 @@ class Auth {
                 $payload['consent'] = $row['consent_status'];
             }
         }
-        return self::$cachedUser = $payload ?: null;
+        self::$cachedUser = $payload ?: null;
+        // 접근 기록에 '누구의 요청인지' 남기기 위해 번호만 알려준다
+        Logger::setUser(self::$cachedUser['id'] ?? null);
+        return self::$cachedUser;
     }
 
     // 로그인이 필요한 API: 아니면 401로 끝냄

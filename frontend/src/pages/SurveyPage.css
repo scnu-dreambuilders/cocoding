@@ -6,18 +6,18 @@
   padding: 32px 16px;
   overflow-y: auto;
   height: 100%;
-  background: radial-gradient(circle at 10% 0%, rgba(167, 139, 250, 0.25), transparent 40%),
-    radial-gradient(circle at 90% 100%, rgba(96, 165, 250, 0.2), transparent 45%), var(--bg);
+  background: radial-gradient(circle at 10% 0%, rgba(130, 191, 197, 0.3), transparent 40%),
+    radial-gradient(circle at 90% 100%, rgba(253, 210, 96, 0.22), transparent 45%), var(--bg);
 }
 .survey-card {
   position: relative;
   width: 760px;
   max-width: 100%;
   background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: 20px;
+  border: var(--stroke-brand) solid var(--line-brand);
+  border-radius: var(--radius-lg);
   padding: 24px 26px;
-  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.1);
+  box-shadow: var(--shadow-pop), var(--shadow-card);
   color: var(--text-h);
 }
 
@@ -28,12 +28,13 @@
   right: 24px;
   border: none;
   background: none;
-  color: var(--text-muted);
+  color: var(--text);
   font: inherit;
   font-size: 0.8667rem;
   font-weight: 600;
   cursor: pointer;
-  padding: 4px;
+  min-height: 44px;
+  padding: 4px 8px;
 }
 .survey-topskip:hover { color: var(--text-h); }
 .survey-topskip:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -58,8 +59,9 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #6d28d9, #9333ea);
-  color: #fff;
+  background: var(--cta);
+  border: var(--stroke-brand) solid var(--cta-edge);
+  color: var(--on-cta);
   font-size: 0.8rem;
   font-weight: 700;
   display: flex;
@@ -68,16 +70,16 @@
   margin-top: 2px;
 }
 .survey-section-head > div { flex: 1; min-width: 180px; }
-.survey-desc { margin: 2px 0 0; font-size: 0.8267rem; color: var(--text-muted); }
+.survey-desc { margin: 2px 0 0; font-size: 0.8667rem; color: var(--text); }
 .survey-count-badge {
   flex-shrink: 0;
   align-self: flex-start;
   font-size: 0.7733rem;
   font-weight: 700;
   padding: 4px 11px;
-  border-radius: 20px;
-  background: rgba(124, 58, 237, 0.1);
-  color: #7c3aed;
+  border-radius: var(--radius-pill);
+  background: var(--accent-light);
+  color: var(--accent-text);
   white-space: nowrap;
 }
 .survey-later-note {
@@ -86,15 +88,15 @@
   color: var(--text-muted);
 }
 .survey-bubble {
-  background: #f5f3ff;
-  color: #4c1d95;
-  border: 2px solid #c4b5fd;
-  border-radius: 16px 16px 16px 4px;
+  background: var(--panel-bg);
+  color: var(--text-h);
+  border: var(--stroke-brand) solid var(--line-brand);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-sm);
   padding: 10px 14px;
   font-weight: 600;
   font-size: 0.9333rem;
 }
-.survey-title { font-size: 1.4667rem; margin: 0; }
+.survey-title { font-family: var(--display); font-weight: 400; font-synthesis: none; font-size: 1.6rem; margin: 0; }
 .survey-title small { font-size: 0.8667rem; color: var(--text-muted); font-weight: 500; }
 /* 15개 관심사 카드 — 화면이 넓으면 여러 열, 좁으면 자연스럽게 줄어듦 (개수·데이터는 그대로) */
 .interest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
@@ -103,11 +105,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 14px 6px 10px;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px 6px;
   border: 2px solid var(--border);
-  border-radius: 14px;
-  background: var(--bg);
+  border-radius: var(--radius-md);
+  background: var(--panel-bg);
   color: var(--text-h);
   font: inherit;
   font-size: 0.9rem;
@@ -115,25 +118,20 @@
   cursor: pointer;
   transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
-.interest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08); }
-.interest-card:active { transform: scale(0.96); }
-.interest-card.on { border-color: #4f9dff; background: rgba(79, 157, 255, 0.1); }
-.interest-emoji { font-size: 2.2667rem; line-height: 1.1; }
+.interest-card:hover { border-color: var(--border-strong); }
+.interest-card:active { transform: translateY(2px); }
+.interest-card.on { border-color: var(--line-brand); background: var(--accent-light); box-shadow: var(--shadow-pop); }
 .interest-check {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 20px;
-  height: 20px;
+  top: 4px;
+  right: 4px;
+  padding: 3px;
+  box-sizing: content-box;
   border-radius: 50%;
-  background: #4f9dff;
-  color: #fff;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--accent);
+  color: var(--on-accent);
 }
-.survey-sub { font-size: 1.1333rem; margin: 0; }
+.survey-sub { font-family: var(--display); font-weight: 400; font-synthesis: none; font-size: 1.4rem; margin: 0; }
 .level-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .level-card {
   display: flex;
@@ -142,17 +140,17 @@
   gap: 3px;
   padding: 14px 8px;
   border: 2px solid var(--border);
-  border-radius: 14px;
-  background: var(--bg);
+  border-radius: var(--radius-md);
+  background: var(--panel-bg);
   color: var(--text-h);
   font: inherit;
   cursor: pointer;
 }
-.level-card small { color: var(--text-muted); font-size: 0.8rem; }
-.level-card.on { border-color: #7c3aed; background: rgba(124, 58, 237, 0.08); }
-.level-emoji { font-size: 1.8667rem; }
+.level-card:hover { border-color: var(--border-strong); }
+.level-card small { color: var(--text); font-size: 0.8rem; }
+.level-card.on { border-color: var(--line-brand); background: var(--accent-light); box-shadow: var(--shadow-pop); }
 .survey-note { font-size: 0.8333rem; color: var(--text-muted); margin: 10px 0 0; }
-.survey-error { color: #ef4444; font-size: 0.8667rem; }
+.survey-error { color: var(--danger); font-size: 0.8667rem; }
 .survey-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 .survey-skip {
   border: none;
@@ -163,19 +161,20 @@
   cursor: pointer;
 }
 .survey-go {
+  min-height: 48px;
   padding: 11px 22px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #6d28d9, #9333ea);
-  color: #fff;
+  border: var(--stroke-brand) solid var(--cta-edge);
+  border-radius: var(--radius-md);
+  background: var(--cta);
+  color: var(--on-cta);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: var(--shadow-pop);
 }
-.survey-go:disabled { opacity: 0.5; cursor: not-allowed; }
-@media (prefers-color-scheme: dark) {
-  .survey-bubble { background: #1f1633; color: #ddd6fe; border-color: #6d28d9; }
-}
+.survey-go:hover:not(:disabled) { background: var(--cta-hover); }
+.survey-go:active:not(:disabled) { transform: translateY(3px); box-shadow: var(--shadow-pop-pressed); }
+.survey-go:disabled { background: var(--tabs-bg); color: var(--text-muted); border-color: var(--border-strong); box-shadow: none; cursor: not-allowed; }
 @media (max-width: 640px) {
   .level-row { grid-template-columns: 1fr; }
   .survey-topskip { position: static; display: block; margin: 0 0 10px; text-align: right; }

@@ -8,7 +8,7 @@
   .usermenu .btn-icon { width: 26px; height: 26px; }
 }
 
-/* 아주 좁은 화면: 설정(⚙️)은 학생 홈에서도 쓸 수 있어 여기서는 숨긴다 */
+/* 아주 좁은 화면: 설정 버튼은 학생 홈에서도 쓸 수 있어 여기서는 숨긴다 */
 @media (max-width: 420px) {
   .usermenu .usermenu-settings { display: none; }
 }

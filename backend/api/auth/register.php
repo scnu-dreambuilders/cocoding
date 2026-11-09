@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../config/Validators.php';
 require_once __DIR__ . '/../../models/UserModel.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);
@@ -58,6 +59,8 @@ if ($userModel->findByUsername($username)) {
 }
 
 $userId = $userModel->create($username, $email, $password, $role, $role === 'student' ? $birthYear : null, $affiliation);
+Logger::setUser($userId);
+Logger::audit('register', ['role' => $role]);
 
 Response::success([
     "token" => Auth::issueToken($userId, $username),

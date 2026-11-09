@@ -1,4 +1,5 @@
-import { BrandIcon } from './icons'
+import { BookOpen, Gamepad2, MessageCircleQuestion, MessagesSquare, Palette } from 'lucide-react'
+import { BrandLogo } from './icons'
 import './TopNav.css'
 
 /* ════════════════════════════════════════════════
@@ -11,14 +12,14 @@ import './TopNav.css'
    ════════════════════════════════════════════════ */
 
 const MENU = [
-  { key: 'study', label: '단계별 학습', icon: '📘' },
-  { key: 'free', label: '자유창작', icon: '🎨' },
-  { key: 'qna', label: 'Q&A 게시판', icon: '💬' },
-  { key: 'board', label: '토론 게시판', icon: '🗣️' },
-  { key: 'game', label: '게임존', icon: '🎮' },
+  { key: 'study', label: '단계별 학습', icon: BookOpen },
+  { key: 'free', label: '자유창작', icon: Palette },
+  { key: 'qna', label: 'Q&A 게시판', icon: MessageCircleQuestion },
+  { key: 'board', label: '토론 게시판', icon: MessagesSquare },
+  { key: 'game', label: '게임존', icon: Gamepad2 },
 ]
 
-// extraMenu: 페이지가 메뉴 맨 앞에 더 얹는 항목 [{ key, label, icon }] (예: 로그인 후 "학생 홈")
+// extraMenu: 페이지가 메뉴 맨 앞에 더 얹는 항목 [{ key, label, icon: lucide 아이콘 }] (예: 로그인 후 "학생 홈")
 export default function TopNav({ user, active, onNavigate, onBrandClick, onLogin, onSignup, onLogout, right, extraMenu = [] }) {
   const go = (key) => onNavigate?.(key)
 
@@ -26,11 +27,10 @@ export default function TopNav({ user, active, onNavigate, onBrandClick, onLogin
     <header className="topnav">
       <div className="topnav-left">
         <button type="button" className="topnav-brand" onClick={onBrandClick} disabled={!onBrandClick}>
-          <BrandIcon />
-          <span className="topnav-brand-name">코코딩</span>
+          <BrandLogo height={26} />
         </button>
         <nav className="topnav-menu" aria-label="주요 메뉴">
-          {[...extraMenu, ...MENU].map((m) => (
+          {[...extraMenu, ...MENU].map(({ icon: MenuIcon, ...m }) => (
             <button
               key={m.key}
               type="button"
@@ -39,7 +39,7 @@ export default function TopNav({ user, active, onNavigate, onBrandClick, onLogin
               aria-label={m.label}
               title={m.label}
             >
-              <span aria-hidden="true">{m.icon}</span>
+              <MenuIcon size={18} aria-hidden="true" />
               <span>{m.label}</span>
             </button>
           ))}

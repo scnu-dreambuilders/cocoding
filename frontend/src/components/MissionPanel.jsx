@@ -1,6 +1,9 @@
+import { Check, Play, Trophy } from 'lucide-react'
 import { BLOCK_INFO } from '../blockly/blockInfo'
-import { CATEGORY_COLOURS } from '../blockly/theme'
+import { CATEGORY_COLOURS, CATEGORY_EDGES } from '../blockly/theme'
 import { BlockPreview } from './BlocklyEditor'
+import Stars from './Stars'
+import { stripEmoji } from '../lib/text'
 
 /* ════════════════════════════════════════════════
    챕터 미션 패널 — STEP1 소개 → STEP2 따라하기 → STEP3 스스로 완성 → STEP4 완료
@@ -11,17 +14,9 @@ export function BlockChip({ type, isNew }) {
   const info = BLOCK_INFO[type]
   if (!info) return null
   return (
-    <span className={`block-chip ${isNew ? 'is-new' : ''}`} style={{ '--chip': CATEGORY_COLOURS[info.cat] }}>
+    <span className={`block-chip ${isNew ? 'is-new' : ''}`} style={{ '--chip': CATEGORY_COLOURS[info.cat], '--chip-edge': CATEGORY_EDGES[info.cat] }}>
       {info.name}
       {isNew && <b>NEW</b>}
-    </span>
-  )
-}
-
-function Stars({ n }) {
-  return (
-    <span className="mini-stars" aria-label={`별 ${n}개`}>
-      {[1, 2, 3].map((i) => <span key={i} className={i <= n ? 'on' : ''}>★</span>)}
     </span>
   )
 }
@@ -42,7 +37,7 @@ export default function MissionPanel({
             <button key={label} type="button" role="tab" aria-selected={step === n}
               className={`mstep ${step === n ? 'on' : ''} ${n < step || (result && n <= 4) ? 'done' : ''}`}
               disabled={n > maxStep} onClick={() => onStep(n)}>
-              <span className="mstep-num">{n < step || (result && n === 4) ? '✓' : n}</span>
+              <span className="mstep-num">{n < step || (result && n === 4) ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : n}</span>
               {label}
             </button>
           )
@@ -57,39 +52,39 @@ export default function MissionPanel({
 
         {step === 1 && (
           <>
-            <p className="mission-chess">{chapter.chess}</p>
-            <p className="mission-text">{chapter.concept}</p>
+            <p className="mission-chess">{stripEmoji(chapter.chess)}</p>
+            <p className="mission-text">{stripEmoji(chapter.concept)}</p>
             <div className="mission-sub">이번에 새로 배우는 블록</div>
             <div className="chip-row">
               {chapter.newBlocks.map((t) => <BlockChip key={t} type={t} isNew />)}
             </div>
-            <p className="mission-note">✨ 팔레트에서 반짝이는 카테고리에 새 블록이 있어요. 이전 챕터 블록도 그대로 쓸 수 있어요.</p>
+            <p className="mission-note">팔레트에서 반짝이는 카테고리에 새 블록이 있어요. 이전 챕터 블록도 그대로 쓸 수 있어요.</p>
             <button type="button" className="btn btn-run mission-cta" onClick={() => onStep(2)}>따라하기 시작 →</button>
           </>
         )}
 
         {step === 2 && (
           <>
-            <p className="mission-text">{chapter.example.desc}</p>
+            <p className="mission-text">{stripEmoji(chapter.example.desc)}</p>
             <BlockPreview state={chapter.example.workspace} />
             <div className="mission-row">
               <button type="button" className="btn btn-ghost" onClick={onDemo} disabled={demoRunning}>
-                {demoRunning ? '예시 실행 중…' : '▶ 예시 결과 보기'}
+                {demoRunning ? '예시 실행 중…' : <><Play size={14} aria-hidden="true" /> 예시 결과 보기</>}
               </button>
               <button type="button" className="btn btn-run" onClick={onStartSelf}>다 따라했어요! 스스로 완성 →</button>
             </div>
-            <p className="mission-note">왼쪽 작업 공간에 똑같이 조립하고 ▶ 실행해봐요. 틀려도 괜찮아요!</p>
+            <p className="mission-note">왼쪽 작업 공간에 똑같이 조립하고 실행해봐요. 틀려도 괜찮아요!</p>
           </>
         )}
 
         {step === 3 && (
           <>
-            <p className="mission-goal">🎯 {chapter.mission}</p>
+            <p className="mission-goal">{stripEmoji(chapter.mission)}</p>
             <ul className="checklist" aria-label="미션 조건">
               {checks.map((c) => (
                 <li key={c.label} className={c.done ? 'ok' : ''}>
-                  <span className="check-box" aria-hidden="true">{c.done ? '✓' : ''}</span>
-                  {c.label}
+                  <span className="check-box" aria-hidden="true">{c.done && <Check size={14} strokeWidth={3} />}</span>
+                  {stripEmoji(c.label)}
                 </li>
               ))}
             </ul>
@@ -98,15 +93,15 @@ export default function MissionPanel({
             </div>
             {hintCount > 0 && (
               <ol className="hint-list">
-                {chapter.hints.slice(0, hintCount).map((h) => <li key={h}>{h}</li>)}
+                {chapter.hints.slice(0, hintCount).map((h) => <li key={h}>{stripEmoji(h)}</li>)}
               </ol>
             )}
             <div className="mission-row">
               <button type="button" className={`btn btn-submit ${ready ? 'is-ready' : ''}`} onClick={onSubmit} disabled={grading}>
-                {grading ? '채점 중…' : '📝 정답 제출하고 채점받기'}
+                {grading ? '채점 중…' : '정답 제출하고 채점받기'}
               </button>
               <button type="button" className="btn btn-ghost" onClick={onHint} disabled={hintCount >= chapter.hints.length}>
-                💡 힌트 보기 ({hintCount}/{chapter.hints.length})
+                힌트 보기 ({hintCount}/{chapter.hints.length})
               </button>
             </div>
             {record.attempts > 0 && (
@@ -115,28 +110,28 @@ export default function MissionPanel({
               </p>
             )}
             <p className="mission-note">
-              ▶ 실행으로 연습하면 위 조건이 바로바로 체크돼요. 다 됐으면 📝 정답 제출! 채점 로봇이 코드를 직접 실행해서 100점 만점으로 채점해요.
+              실행으로 연습하면 위 조건이 바로바로 체크돼요. 다 됐으면 정답 제출! 채점 로봇이 코드를 직접 실행해서 100점 만점으로 채점해요.
             </p>
           </>
         )}
 
         {step === 4 && (
           <div className="mission-done">
-            <div className="mission-done-emoji" aria-hidden="true">🏆</div>
+            <Trophy size={52} className="mission-done-icon" aria-hidden="true" />
             <h4>챕터 {no} 완료!</h4>
             {result?.score != null && (
-              <p className="mission-done-score"><Stars n={result.stars} /> <b>{result.score}점</b></p>
+              <p className="mission-done-score"><Stars count={result.stars} size={18} /> <b>{result.score}점</b></p>
             )}
             {result?.rewardItem && (
               <p>
-                보상 아이템 <b>{result.rewardEmoji} {result.rewardItem}</b>
+                보상 아이템 <b>{result.rewardItem}</b>
                 {result.alreadyCompleted ? ' (이미 받은 보상이에요)' : '을(를) 받았어요!'}
               </p>
             )}
-            {result?.portfolioSaved && <p className="muted">완성한 작품이 포트폴리오에 저장됐어요 📁</p>}
+            {result?.portfolioSaved && <p className="muted">완성한 작품이 포트폴리오에 저장됐어요.</p>}
             <div className="mission-row">
               {result?.nextChapterId && <button type="button" className="btn btn-run" onClick={onNext}>다음 챕터 →</button>}
-              {!result?.nextChapterId && <button type="button" className="btn btn-run" onClick={onNext}>🎮 나만의 게임 만들기</button>}
+              {!result?.nextChapterId && <button type="button" className="btn btn-run" onClick={onNext}>나만의 게임 만들기</button>}
               <button type="button" className="btn btn-ghost" onClick={onDashboard}>대시보드</button>
             </div>
           </div>

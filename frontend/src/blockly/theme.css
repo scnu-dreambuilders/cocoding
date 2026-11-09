@@ -1,0 +1,15 @@
+/* 블록 위 글자 — 연한 블록 바탕 위에 갈색(8.7:1 이상).
+   Blockly가 '.블록테마 .blocklyText { fill: #fff }'를 런타임에 넣으므로 선택자를 한 단계 더 구체적으로 쓴다.
+   드롭다운 글자는 Blockly가 !important로 흰색을 박아 두어서 같은 방식으로 덮는다(화살표 그림은 public/blockly-media). */
+.injectionDiv .blocklyBlockCanvas .blocklyText.blocklyText,
+.injectionDiv .blocklyBlockCanvas .blocklyEditableField > text.blocklyText {
+  fill: #472917;
+}
+.injectionDiv .blocklyBlockCanvas .blocklyDropdownText.blocklyDropdownText {
+  fill: #472917 !important;
+}
+
+/* 팔레트에서 고른 칸 — 바탕이 연한 블록 색이라 글자도 갈색 */
+.injectionDiv .blocklyToolboxSelected .blocklyToolboxCategoryLabel {
+  color: #472917;
+}

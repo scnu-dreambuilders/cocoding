@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/UserModel.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 // 실패 제한 (15분 기준)
 //   계정+IP 5번  — 한 곳에서 한 계정 대입 방지. 남이 내 이메일로 일부러 틀려도 막히는 건 그 사람 IP뿐
@@ -30,6 +31,7 @@ if (RateLimiter::tooMany($accountIpKey, LOGIN_MAX_PER_ACCOUNT_IP, LOGIN_WINDOW)
     || RateLimiter::tooMany($ipKey, LOGIN_MAX_PER_IP, LOGIN_WINDOW)
     || RateLimiter::tooMany($accountKey, LOGIN_MAX_PER_ACCOUNT, LOGIN_WINDOW)) {
     header('Retry-After: ' . LOGIN_WINDOW);
+    Logger::audit('login.locked', ['acct' => Logger::accountHash($email)]);
     Response::error("로그인에 여러 번 실패했어요. 15분 후에 다시 시도해주세요.", 429);
 }
 
@@ -44,11 +46,16 @@ if (!$valid) {
     RateLimiter::hit($accountIpKey);
     RateLimiter::hit($ipKey);
     RateLimiter::hit($accountKey);
+    // 이메일은 남기지 않는다 — 같은 계정을 노리는 시도인지만 알 수 있게 해시로
+    Logger::audit('login.fail', ['acct' => Logger::accountHash($email), 'known' => $user ? 1 : 0]);
     Response::error("이메일 또는 비밀번호가 올바르지 않습니다.", 401);
 }
 
 RateLimiter::clear($accountIpKey);
 RateLimiter::clear($accountKey);
+
+Logger::setUser($user['id']);
+Logger::audit('login.ok', ['role' => $user['role'] ?? null]);
 
 Response::success([
     "token" => Auth::issueToken($user['id'], $user['username']),

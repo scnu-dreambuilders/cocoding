@@ -87,19 +87,19 @@ export function StudentAssignments({ onOpenChapter }) {
     const head = (
       <>
         <span className={`assign-chapter ${free ? 'is-free' : ''}`}>
-          {free ? '✏️ 자유 과제' : `챕터 ${a.order_num}`}
+          {free ? '자유 과제' : `챕터 ${a.order_num}`}
         </span>
         <span className="assign-body">
           <b>{assignTitle(a)}</b>
           {a.note && <small>{a.note}</small>}
-          <small className="assign-class">🏫 {a.class_name}</small>
+          <small className="assign-class">{a.class_name}</small>
         </span>
         <span className="assign-right">
           {a.reward_coins > 0 && (
-            <span className="assign-coin" title={`끝내면 ${a.reward_coins}코인`}>🪙 {a.reward_coins}</span>
+            <span className="assign-coin" title={`끝내면 ${a.reward_coins}코인`}>{a.reward_coins}코인</span>
           )}
           {a.done
-            ? <span className="assign-state is-ok">완료 ✓</span>
+            ? <span className="assign-state is-ok">완료</span>
             : <span className={`assign-state ${due?.cls ?? ''}`}>{due ? due.text : (free ? '해보자!' : '하러 가기 →')}</span>}
         </span>
       </>
@@ -139,7 +139,7 @@ export function StudentAssignments({ onOpenChapter }) {
         ) : (
           <div className="assign-actions">
             <button type="button" className="role-btn assign-mini"
-              onClick={() => { setNoteFor(a.id); setDraft(''); setMsg(null) }}>✅ 끝냈어요</button>
+              onClick={() => { setNoteFor(a.id); setDraft(''); setMsg(null) }}>끝냈어요</button>
           </div>
         ))}
       </div>
@@ -149,8 +149,8 @@ export function StudentAssignments({ onOpenChapter }) {
   return (
     <section className="dash-section">
       <div className="section-header">
-        <h3 className="section-title"><span aria-hidden="true">📌</span>선생님이 내준 과제</h3>
-        <span className="section-badge">{left.length > 0 ? `${left.length}개 남음` : '모두 완료 ✓'}</span>
+        <h3 className="section-title">선생님이 내준 과제</h3>
+        <span className="section-badge">{left.length > 0 ? `${left.length}개 남음` : '모두 완료'}</span>
       </div>
 
       <div className="assign-list">
@@ -201,14 +201,14 @@ function AssignmentDetail({ row, onClose }) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal assign-detail-modal" role="dialog" aria-modal="true" aria-labelledby="assign-detail-title">
         <div className="modal-head">
-          <h3 id="assign-detail-title">📋 {assignTitle(row)}</h3>
+          <h3 id="assign-detail-title">{assignTitle(row)}</h3>
           <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
         <div className="assign-detail-sum">
-          <span className={`assign-badge ${free ? 'is-free' : ''}`}>{free ? '✏️ 자유 과제' : `챕터 ${row.order_num}`}</span>
+          <span className={`assign-badge ${free ? 'is-free' : ''}`}>{free ? '자유 과제' : `챕터 ${row.order_num}`}</span>
           {row.due_on && <span className="assign-detail-chip">마감 {row.due_on}</span>}
-          {row.reward_coins > 0 && <span className="assign-coin">🪙 {row.reward_coins}</span>}
+          {row.reward_coins > 0 && <span className="assign-coin">{row.reward_coins}코인</span>}
           {detail && <span className="assign-detail-chip is-count">{detail.doneCount}/{students.length}명 완료</span>}
         </div>
         {row.note && <p className="assign-detail-note-teacher">“{row.note}”</p>}
@@ -224,7 +224,7 @@ function AssignmentDetail({ row, onClose }) {
               <li key={s.id} className={s.done ? 'is-done' : ''}>
                 <div className="assign-detail-row">
                   <span className="assign-detail-name">{s.username}</span>
-                  <span className={`assign-detail-state ${s.done ? 'is-ok' : ''}`}>{s.done ? '완료 ✓' : '아직'}</span>
+                  <span className={`assign-detail-state ${s.done ? 'is-ok' : ''}`}>{s.done ? '완료' : '아직'}</span>
                 </div>
                 {metaOf(s) && <span className="assign-detail-meta">{metaOf(s)}</span>}
                 {free && s.student_note && <p className="assign-detail-memo">“{s.student_note}”</p>}
@@ -341,12 +341,12 @@ export function TeacherAssignments({ classId, showToast }) {
           <label className={`assign-kind-opt ${kind === 'chapter' ? 'on' : ''}`}>
             <input type="radio" name={`assign-kind-${classId}`} value="chapter"
               checked={kind === 'chapter'} onChange={() => setKind('chapter')} />
-            <span>📘 챕터 과제</span>
+            <span>챕터 과제</span>
           </label>
           <label className={`assign-kind-opt ${kind === 'free' ? 'on' : ''}`}>
             <input type="radio" name={`assign-kind-${classId}`} value="free"
               checked={kind === 'free'} onChange={() => setKind('free')} />
-            <span>✏️ 자유 과제</span>
+            <span>자유 과제</span>
           </label>
         </div>
 
@@ -392,16 +392,16 @@ export function TeacherAssignments({ classId, showToast }) {
             <li key={a.id} className={`${a.chapter_id ? 'is-chapter' : 'is-free'} ${editId === a.id ? 'is-editing' : ''}`}>
               <div className="assign-teacher-row">
                 <span className={`assign-badge ${a.chapter_id ? '' : 'is-free'}`}>
-                  {a.chapter_id ? `챕터 ${a.order_num}` : '✏️ 자유'}
+                  {a.chapter_id ? `챕터 ${a.order_num}` : '자유'}
                 </span>
                 <span className="assign-teacher-name" title={assignTitle(a)}>{assignTitle(a)}</span>
-                {a.reward_coins > 0 && <span className="assign-coin">🪙 {a.reward_coins}</span>}
+                {a.reward_coins > 0 && <span className="assign-coin">{a.reward_coins}코인</span>}
                 {a.due_on && <span className="assign-teacher-due">~{a.due_on.slice(5)}</span>}
                 <span className="assign-teacher-count">{a.done_count}/{a.member_count}명 완료</span>
                 <span className="assign-row-actions">
                   <button type="button" className="role-btn ghost assign-mini" onClick={() => setOpenId(a.id)}>자세히 보기</button>
                   <button type="button" className="role-btn ghost assign-mini" aria-expanded={editId === a.id}
-                    onClick={() => (editId === a.id ? setEditId(null) : startEdit(a))}>✏️ 수정</button>
+                    onClick={() => (editId === a.id ? setEditId(null) : startEdit(a))}>수정</button>
                   <button type="button" className="row-remove" onClick={() => remove(a)}
                     aria-label={`${assignTitle(a)} 과제 취소`} title="과제 취소">×</button>
                 </span>

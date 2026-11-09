@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ProjectModel.php';
+require_once __DIR__ . '/../../config/Logger.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);
@@ -33,4 +34,5 @@ $result = $projectModel->report($id, $payload['id'], $reason);
 if ($result === false) {
     Response::error("이미 신고한 작품이에요.", 409);
 }
+Logger::audit('report.project', ['hidden' => $result['hidden'] ? 1 : 0]);
 Response::success(["message" => "신고가 접수됐어요. 고마워요!", "hidden" => $result['hidden']]);

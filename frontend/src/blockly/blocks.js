@@ -1,22 +1,28 @@
 /* ════════════════════════════════════════════════
    코코딩 커스텀 블록 정의
    - 기획서의 블록(이동·반복·조건·변수·메시지/장면) + 무대 실행용 보조 블록
-   - BLOCK_INFO: 이름/툴팁/설명 — 블록 검색, 코코의 힌트·오류 말풍선에 사용
+   - 블록에 보이는 글자는 전부 blockText.js에 있다 (여기에는 두지 않는다)
+   - 카테고리 같은 로직 값은 blockDefs.js
    - 코드 생성기는 '코드 보기' 패널 표시용 (실제 실행은 engine/runtime.js)
    ════════════════════════════════════════════════ */
 import * as Blockly from 'blockly'
 import { javascriptGenerator, Order } from 'blockly/javascript'
 import * as Ko from 'blockly/msg/ko'
-import { BLOCK_INFO, BUILTIN_SOUNDS, CATEGORIES, HAT_TYPES, KEY_OPTIONS } from './blockInfo'
+import { BLOCK_CATEGORY, HAT_TYPES } from './blockDefs'
+import { BLOCKLY_TEXT, BLOCK_LABEL, CODE_FALLBACK, DROPDOWN_TEXT, UNCONNECTED_NOTE, keyOptions, soundOptions } from './blockText'
 
 // 편집기 쪽에서 blocks.js만 가져다 쓰는 곳이 많아 그대로 다시 내보낸다
-export { BLOCK_INFO, BUILTIN_SOUNDS, CATEGORIES, HAT_TYPES, KEY_OPTIONS }
+export { BLOCK_INFO, BUILTIN_SOUNDS, CATEGORIES, KEY_OPTIONS } from './blockInfo'
+export { HAT_TYPES } from './blockDefs'
+
+const KEY_OPTIONS = keyOptions()
 
 Blockly.setLocale(Ko)
-Blockly.Msg.MATH_RANDOM_INT_TITLE = '%1 부터 %2 사이의 무작위 수'
+Blockly.Msg.MATH_RANDOM_INT_TITLE = BLOCKLY_TEXT.randomInt
+// 변수 이름 기본값은 저장된 작품에 그대로 들어가는 값이라 문구 파일로 빼지 않는다
 Blockly.Msg.VARIABLES_DEFAULT_NAME = '점수'
-Blockly.Msg.NEW_VARIABLE = '＋ 변수 만들기'
-Blockly.Msg.NEW_VARIABLE_TITLE = '새 변수 이름 (예: 점수, 목숨)'
+Blockly.Msg.NEW_VARIABLE = BLOCKLY_TEXT.newVariable
+Blockly.Msg.NEW_VARIABLE_TITLE = BLOCKLY_TEXT.newVariableTitle
 
 /* ── 동적 드롭다운 (현재 프로젝트의 캐릭터/장면/소리) ── */
 const ctx = { sprites: [], scenes: [], sounds: [] }
@@ -27,33 +33,42 @@ export function setBlockContext({ sprites, scenes, sounds }) {
   ctx.sounds = sounds ?? []
 }
 
+// 캐릭터 보관함에서 고른 이모지가 있으면 앞에 붙이고, 모습 키로 그리는 캐릭터는 이름만 보여준다
 export function spriteLabel(s) {
-  return `${s.emoji ?? '🖼️'} ${s.name}`
+  return [s.emoji, s.name].filter(Boolean).join(' ')
 }
 
 function spriteOptions() {
-  if (!ctx.sprites.length) return [['(캐릭터 없음)', '__none__']]
+  if (!ctx.sprites.length) return [[DROPDOWN_TEXT.noSprite, '__none__']]
   return ctx.sprites.map((s) => [spriteLabel(s), s.id])
 }
 function touchOptions() {
-  return [['🧱 벽', '__wall__'], ...ctx.sprites.map((s) => [spriteLabel(s), s.id])]
+  return [[DROPDOWN_TEXT.wall, '__wall__'], ...ctx.sprites.map((s) => [spriteLabel(s), s.id])]
 }
 function sceneOptions() {
-  if (!ctx.scenes.length) return [['장면 1', 'scene1']]
+  if (!ctx.scenes.length) return [[DROPDOWN_TEXT.defaultScene, 'scene1']]
   return ctx.scenes.map((s) => [s.name, s.id])
 }
-function soundOptions() {
-  return [...BUILTIN_SOUNDS.map(([n, id]) => [`🔔 ${n}`, id]), ...ctx.sounds.map((s) => [`🎤 ${s.name}`, s.id])]
+function soundDropdown() {
+  return [
+    ...soundOptions().map(([n, id]) => [`${DROPDOWN_TEXT.builtinSound} ${n}`.trim(), id]),
+    ...ctx.sounds.map((s) => [`${DROPDOWN_TEXT.recordedSound} ${s.name}`.trim(), s.id]),
+  ]
 }
 
 /* ── 블록 정의 도우미 ─────────────────────────── */
-function tip(type) {
-  const info = BLOCK_INFO[type]
-  return info ? `${info.name} — ${info.tooltip}` : ''
+/* 툴팁 문구는 화면 쪽에서 넣어준다 (editor에서 setBlockTooltips 호출).
+   블록 이름·설명을 여기서 가져오면 서버 재채점기 번들에 같이 들어가기 때문이다.
+   넣어주지 않으면 툴팁만 비고 블록 동작은 그대로다. */
+let tooltipOf = () => ''
+export function setBlockTooltips(fn) {
+  tooltipOf = typeof fn === 'function' ? fn : () => ''
 }
+const tip = (type) => () => tooltipOf(type)
+
 // 블록에는 색 대신 스타일 이름만 준다 → 실제 색은 theme.js의 blockStyles가 정함
 function styleOf(type) {
-  return `${BLOCK_INFO[type].cat}_style`
+  return `${BLOCK_CATEGORY[type]}_style`
 }
 
 // 캐릭터 드롭다운이 붙은 이벤트(모자) 블록
@@ -70,21 +85,21 @@ function defineHat(type, build) {
   }
 }
 
-defineHat('when_start', (input) => input.appendField('▶ 시작 버튼을 눌렀을 때'))
+defineHat('when_start', (input) => input.appendField(BLOCK_LABEL.when_start))
 defineHat('when_key', (input) =>
-  input.appendField(new Blockly.FieldDropdown(KEY_OPTIONS), 'KEY').appendField('키를 눌렀을 때'))
-defineHat('when_clicked', (input) => input.appendField('캐릭터를 클릭했을 때'))
+  input.appendField(new Blockly.FieldDropdown(KEY_OPTIONS), 'KEY').appendField(BLOCK_LABEL.when_key_suffix))
+defineHat('when_clicked', (input) => input.appendField(BLOCK_LABEL.when_clicked))
 defineHat('when_receive', (input) =>
-  input.appendField(new Blockly.FieldTextInput('신호'), 'MSG').appendField('메시지를 받았을 때'))
+  input.appendField(new Blockly.FieldTextInput('신호'), 'MSG').appendField(BLOCK_LABEL.when_receive_suffix))
 defineHat('when_scene_start', (input) =>
-  input.appendField(new Blockly.FieldDropdown(sceneOptions), 'SCENE').appendField('장면이 시작될 때'))
+  input.appendField(new Blockly.FieldDropdown(sceneOptions), 'SCENE').appendField(BLOCK_LABEL.when_scene_start_suffix))
 
 // 드롭다운이 필요한 나머지 블록
 Blockly.Blocks.touching = {
   init() {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown(touchOptions), 'TARGET')
-      .appendField('에 닿았는가?')
+      .appendField(BLOCK_LABEL.touching_suffix)
     this.setOutput(true, 'Boolean')
     this.setStyle(styleOf('touching'))
     this.setTooltip(tip('touching'))
@@ -94,7 +109,7 @@ Blockly.Blocks.key_pressed = {
   init() {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown(KEY_OPTIONS.filter(([, v]) => v !== 'any')), 'KEY')
-      .appendField('키를 눌렀는가?')
+      .appendField(BLOCK_LABEL.key_pressed_suffix)
     this.setOutput(true, 'Boolean')
     this.setStyle(styleOf('key_pressed'))
     this.setTooltip(tip('key_pressed'))
@@ -104,7 +119,7 @@ Blockly.Blocks.switch_scene = {
   init() {
     this.appendDummyInput()
       .appendField(new Blockly.FieldDropdown(sceneOptions), 'SCENE')
-      .appendField('장면 시작하기')
+      .appendField(BLOCK_LABEL.switch_scene_suffix)
     this.setPreviousStatement(true)
     this.setNextStatement(true)
     this.setStyle(styleOf('switch_scene'))
@@ -114,8 +129,8 @@ Blockly.Blocks.switch_scene = {
 Blockly.Blocks.play_sound = {
   init() {
     this.appendDummyInput()
-      .appendField(new Blockly.FieldDropdown(soundOptions), 'SOUND')
-      .appendField('소리 재생하기')
+      .appendField(new Blockly.FieldDropdown(soundDropdown), 'SOUND')
+      .appendField(BLOCK_LABEL.play_sound_suffix)
     this.setPreviousStatement(true)
     this.setNextStatement(true)
     this.setStyle(styleOf('play_sound'))
@@ -134,45 +149,45 @@ const stmt = (type, message0, args0 = [], extra = {}) => ({
 })
 
 Blockly.defineBlocksWithJsonArray([
-  stmt('move_x', 'x 좌표를 %1 만큼 바꾸기', [num('DX')]),
-  stmt('move_y', 'y 좌표를 %1 만큼 바꾸기', [num('DY')]),
-  stmt('set_dir', '%1 도 방향 보기', [num('DIR')]),
-  stmt('move_steps', '%1 만큼 움직이기', [num('STEPS')]),
-  stmt('turn_around', '방향 반대로 바꾸기'),
-  stmt('goto_xy', 'x: %1 y: %2 위치로 이동하기', [num('X'), num('Y')]),
-  stmt('goto_random', '무작위 위치로 이동하기'),
-  stmt('turn_right', '오른쪽으로 %1 도 돌기', [num('DEG')]),
-  { type: 'get_x', message0: 'x 좌표', output: 'Number', style: styleOf('get_x'), tooltip: tip('get_x') },
-  { type: 'get_y', message0: 'y 좌표', output: 'Number', style: styleOf('get_y'), tooltip: tip('get_y') },
+  stmt('move_x', BLOCK_LABEL.move_x, [num('DX')]),
+  stmt('move_y', BLOCK_LABEL.move_y, [num('DY')]),
+  stmt('set_dir', BLOCK_LABEL.set_dir, [num('DIR')]),
+  stmt('move_steps', BLOCK_LABEL.move_steps, [num('STEPS')]),
+  stmt('turn_around', BLOCK_LABEL.turn_around),
+  stmt('goto_xy', BLOCK_LABEL.goto_xy, [num('X'), num('Y')]),
+  stmt('goto_random', BLOCK_LABEL.goto_random),
+  stmt('turn_right', BLOCK_LABEL.turn_right, [num('DEG')]),
+  { type: 'get_x', message0: BLOCK_LABEL.get_x, output: 'Number', style: styleOf('get_x'), tooltip: tip('get_x') },
+  { type: 'get_y', message0: BLOCK_LABEL.get_y, output: 'Number', style: styleOf('get_y'), tooltip: tip('get_y') },
 
-  stmt('say', '%1 말하기', [{ type: 'input_value', name: 'TEXT' }]),
-  stmt('say_secs', '%1 을(를) %2 초 동안 말하기', [{ type: 'input_value', name: 'TEXT' }, num('SECS')]),
-  stmt('show', '보이기'),
-  stmt('hide', '숨기기'),
-  stmt('change_size', '크기를 %1 만큼 바꾸기', [num('DS')]),
-  stmt('set_size', '크기를 %1 % 로 정하기', [num('SIZE')]),
+  stmt('say', BLOCK_LABEL.say, [{ type: 'input_value', name: 'TEXT' }]),
+  stmt('say_secs', BLOCK_LABEL.say_secs, [{ type: 'input_value', name: 'TEXT' }, num('SECS')]),
+  stmt('show', BLOCK_LABEL.show),
+  stmt('hide', BLOCK_LABEL.hide),
+  stmt('change_size', BLOCK_LABEL.change_size, [num('DS')]),
+  stmt('set_size', BLOCK_LABEL.set_size, [num('SIZE')]),
 
-  stmt('repeat_n', '%1 번 반복하기 %2 %3',
+  stmt('repeat_n', BLOCK_LABEL.repeat_n,
     [num('TIMES'), { type: 'input_dummy' }, { type: 'input_statement', name: 'DO' }]),
-  stmt('forever', '무한 반복하기 %1 %2',
+  stmt('forever', BLOCK_LABEL.forever,
     [{ type: 'input_dummy' }, { type: 'input_statement', name: 'DO' }], { nextStatement: undefined }),
-  stmt('wait', '%1 초 기다리기', [num('SECS')]),
-  stmt('stop_all', '모두 멈추기', [], { nextStatement: undefined }),
+  stmt('wait', BLOCK_LABEL.wait, [num('SECS')]),
+  stmt('stop_all', BLOCK_LABEL.stop_all, [], { nextStatement: undefined }),
 
-  stmt('if_then', '만약 %1 라면 %2 %3',
+  stmt('if_then', BLOCK_LABEL.if_then,
     [{ type: 'input_value', name: 'COND', check: 'Boolean' }, { type: 'input_dummy' }, { type: 'input_statement', name: 'DO' }]),
-  stmt('if_else', '만약 %1 라면 %2 %3 아니면 %4 %5',
+  stmt('if_else', BLOCK_LABEL.if_else,
     [{ type: 'input_value', name: 'COND', check: 'Boolean' }, { type: 'input_dummy' }, { type: 'input_statement', name: 'DO' },
       { type: 'input_dummy' }, { type: 'input_statement', name: 'ELSE' }]),
 
-  stmt('var_set', '%1 을(를) %2 (으)로 정하기',
+  stmt('var_set', BLOCK_LABEL.var_set,
     [{ type: 'field_variable', name: 'VAR', variable: '점수' }, { type: 'input_value', name: 'VALUE' }]),
-  stmt('var_change', '%1 을(를) %2 만큼 바꾸기',
+  stmt('var_change', BLOCK_LABEL.var_change,
     [{ type: 'field_variable', name: 'VAR', variable: '점수' }, num('DELTA')]),
-  stmt('var_show', '변수 %1 보이기', [{ type: 'field_variable', name: 'VAR', variable: '점수' }]),
-  stmt('var_hide', '변수 %1 숨기기', [{ type: 'field_variable', name: 'VAR', variable: '점수' }]),
+  stmt('var_show', BLOCK_LABEL.var_show, [{ type: 'field_variable', name: 'VAR', variable: '점수' }]),
+  stmt('var_hide', BLOCK_LABEL.var_hide, [{ type: 'field_variable', name: 'VAR', variable: '점수' }]),
 
-  stmt('broadcast', '%1 메시지 보내기', [{ type: 'field_input', name: 'MSG', text: '신호' }]),
+  stmt('broadcast', BLOCK_LABEL.broadcast, [{ type: 'field_input', name: 'MSG', text: '신호' }]),
 ])
 
 /* ════════════════════════════════════════════════
@@ -182,9 +197,9 @@ const G = javascriptGenerator
 const val = (b, name, fallback = '0') => G.valueToCode(b, name, Order.NONE) || fallback
 const body = (b, name) => G.statementToCode(b, name)
 const q = (s) => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
-const varName = (b) => b.workspace.getVariableMap().getVariableById(b.getFieldValue('VAR'))?.getName() ?? '변수'
-const spriteName = (b) => ctx.sprites.find((s) => s.id === b.getFieldValue('SPRITE'))?.name ?? '캐릭터'
-const sceneName = (b) => ctx.scenes.find((s) => s.id === b.getFieldValue('SCENE'))?.name ?? '장면'
+const varName = (b) => b.workspace.getVariableMap().getVariableById(b.getFieldValue('VAR'))?.getName() ?? CODE_FALLBACK.variable
+const spriteName = (b) => ctx.sprites.find((s) => s.id === b.getFieldValue('SPRITE'))?.name ?? CODE_FALLBACK.sprite
+const sceneName = (b) => ctx.scenes.find((s) => s.id === b.getFieldValue('SCENE'))?.name ?? CODE_FALLBACK.scene
 
 // 이벤트 블록은 아래에 붙은 블록들을 함수 본문으로 감싸서 보여준다
 function hatGen(header) {
@@ -205,7 +220,7 @@ G.scrub_ = function (block, code, thisOnly) {
   if (HAT_TYPES.has(block.type)) return origScrub(block, code, true)
   // 이벤트 블록에 연결되지 않은 블록 묶음은 실행되지 않는다는 표시
   if (!block.getParent() && !block.outputConnection) {
-    code = `// ⚠ 이벤트 블록에 연결되지 않아서 실행되지 않아요\n${code}`
+    code = `// ${UNCONNECTED_NOTE}\n${code}`
   }
   return origScrub(block, code, thisOnly)
 }
@@ -229,7 +244,7 @@ Object.assign(G.forBlock, {
   set_size: (b) => `size = ${val(b, 'SIZE', '100')};\n`,
   play_sound: (b) => {
     const id = b.getFieldValue('SOUND')
-    const name = BUILTIN_SOUNDS.find(([, v]) => v === id)?.[0] ?? ctx.sounds.find((s) => s.id === id)?.name ?? id
+    const name = soundOptions().find(([, v]) => v === id)?.[0] ?? ctx.sounds.find((s) => s.id === id)?.name ?? id
     return `playSound(${q(name)});\n`
   },
   repeat_n: (b) => `for (let i = 0; i < ${val(b, 'TIMES')}; i++) {\n${body(b, 'DO')}}\n`,

@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════
-   AI 캐릭터 '코코' — 상황별 문구(말풍선) + CSS 애니메이션
+   AI 캐릭터 '코코'(하늘다람쥐) — 상황별 문구(말풍선) + CSS 애니메이션
    자유 대화는 panel로 받은 CocoChat(Gemini, 서버 호출)이 담당
    emotion: normal | happy | thinking | celebrate
    message.type: intro | hint | error | success | encourage
@@ -7,46 +7,22 @@
    panel: 말풍선 대신 띄울 대화창 (열려 있으면 말풍선은 숨김)
    ════════════════════════════════════════════════ */
 import './Coco.css'
+import { COCO_IMG } from '../lib/coco'
 
-function Face({ emotion }) {
-  const eyes = emotion === 'happy' || emotion === 'celebrate'
-    ? <><path d="M36 50q5-6 10 0" /><path d="M58 50q5-6 10 0" /></>
-    : emotion === 'thinking'
-      ? <><circle cx="41" cy="50" r="4" /><path d="M58 51h10" /></>
-      : <><circle cx="41" cy="50" r="4.5" /><circle cx="63" cy="50" r="4.5" /></>
-  const mouth = emotion === 'celebrate'
-    ? <path d="M44 66q8 10 16 0z" fill="#be123c" stroke="none" />
-    : emotion === 'happy'
-      ? <path d="M45 65q7 7 14 0" />
-      : emotion === 'thinking'
-        ? <path d="M47 68q5-3 10 0" />
-        : <path d="M47 66q5 4 10 0" />
-  return (
-    <g stroke="#1e1b4b" strokeWidth="3" strokeLinecap="round" fill="#1e1b4b">
-      {eyes}
-      <g fill="none">{mouth}</g>
-    </g>
-  )
-}
+const SMILE = new Set(['happy', 'celebrate'])
+// 48px 이하에서는 전신이 뭉개지므로 얼굴만 잘라낸 그림을 둥근 하늘색 바탕에 올린다
+const FACE_MAX = 48
 
 export function CocoAvatar({ emotion = 'normal', items = [], size = 96 }) {
   // 서버 아이템은 item_type, 그 밖에서는 type으로 넘어온다
   const byType = Object.fromEntries(items.map((i) => [i.item_type ?? i.type, i.emoji]))
+  const face = size <= FACE_MAX
+  const smile = SMILE.has(emotion)
+  const src = face ? (smile ? COCO_IMG.faceSmile : COCO_IMG.faceCalm) : (smile ? COCO_IMG.smile : COCO_IMG.calm)
   return (
-    <div className={`coco-avatar coco-${emotion}`} style={{ width: size, height: size }}>
+    <div className={`coco-avatar coco-${emotion} ${face ? 'is-face' : 'is-full'}`} style={{ width: size, height: size }}>
       {byType.background && <span className="coco-item coco-bg" aria-hidden="true">{byType.background}</span>}
-      <svg viewBox="0 0 104 104" width={size} height={size} aria-hidden="true">
-        <circle cx="20" cy="30" r="17" fill="#a78bfa" />
-        <circle cx="20" cy="30" r="9" fill="#f5d0fe" />
-        <circle cx="84" cy="30" r="17" fill="#a78bfa" />
-        <circle cx="84" cy="30" r="9" fill="#f5d0fe" />
-        <ellipse cx="52" cy="56" rx="36" ry="33" fill="#c4b5fd" />
-        <ellipse cx="52" cy="60" rx="24" ry="20" fill="#ede9fe" />
-        <ellipse cx="52" cy="58" rx="7" ry="5.5" fill="#4c1d95" />
-        <circle cx="31" cy="64" r="5" fill="#f9a8d4" opacity=".6" />
-        <circle cx="73" cy="64" r="5" fill="#f9a8d4" opacity=".6" />
-        <Face emotion={emotion} />
-      </svg>
+      <img className="coco-img" src={src} alt="" width={size} height={size} draggable="false" />
       {byType.hat && <span className="coco-item coco-hat" aria-hidden="true">{byType.hat}</span>}
       {byType.glasses && <span className="coco-item coco-glasses" aria-hidden="true">{byType.glasses}</span>}
       {byType.accessory && <span className="coco-item coco-acc" aria-hidden="true">{byType.accessory}</span>}

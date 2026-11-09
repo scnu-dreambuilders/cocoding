@@ -1,49 +1,102 @@
+/* 제목 글꼴 — 로고와 같은 HS산토끼체 2.0 (굵기 1종, 한글 완성형 2,350자. 없는 글자는 본문 글꼴로 보임) */
+@font-face {
+  font-family: 'HS산토끼체 2.0';
+  src: url('/fonts/HSSanTokki2.0.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  /* ── Typography ─────────────────────────────── */
-  --sans: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo',
-    'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  /* ── 글꼴 ───────────────────────────────────── */
+  --sans: 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic',
+    'Noto Sans KR', system-ui, sans-serif;
+  --display: 'HS산토끼체 2.0', 'Pretendard Variable', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'JetBrains Mono',
     Consolas, 'Courier New', monospace;
 
-  /* ── Light mode tokens ──────────────────────── */
-  --text: #64748b;
-  --text-h: #0f172a;
-  --text-muted: #94a3b8;
+  /* ── 브랜드 단계 팔레트 (코코 시안의 하늘·청록, 별 노랑, 코코 갈색) ──
+     화면에서는 아래 의미 토큰을 먼저 쓰고, 맞는 게 없을 때만 직접 쓴다 */
+  --sky-50: #f3fafa;
+  --sky-100: #e4f2f3;
+  --sky-200: #c8e4e6;
+  --sky-300: #a6d3d8;
+  --teal-400: #82bfc5;
+  --teal-500: #5ba6ae;
+  --teal-600: #3b8991;
+  --teal-700: #2c6e75;
+  --teal-800: #24565c;
+  --teal-900: #1b3f44;
+  --star-50: #fff8e1;
+  --star-100: #feefc0;
+  --star-200: #fde38f;
+  --star-300: #fdd260;
+  --star-400: #f6b92f;
+  --star-500: #eb9f0e;
+  --star-700: #8a5a06;
+  --ink-300: #c7b5a8;
+  --ink-500: #8a6b58;
+  --ink-600: #7a5a46;
+  --ink-700: #6b4a36;
+  --ink-900: #472917;
 
-  --bg: #f1f5f9;
+  /* ── 글자·바탕 ── 글자 3종은 bg·panel-bg·tabs-bg 위에서 모두 4.5:1 이상 */
+  --text: var(--ink-700);
+  --text-h: var(--ink-900);
+  --text-muted: var(--ink-600);
+
+  --bg: var(--sky-50);
   --header-bg: #ffffff;
   --panel-bg: #ffffff;
-  --tabs-bg: #f8fafc;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --tabs-bg: var(--sky-100);
+  --border: var(--sky-200);
+  /* 입력칸 테두리 — 흰 바탕에서 4.06:1. --border는 구분선에만 */
+  --border-strong: var(--teal-600);
 
-  --btn-hover: #f1f5f9;
-  --tab-hover: rgba(0, 0, 0, 0.04);
+  --btn-hover: var(--sky-100);
+  --tab-hover: rgba(71, 41, 23, 0.06);
 
-  /* ── Code / terminal (always dark) ─────────── */
-  --code-bg: #0f172a;
-  --code-text: #94a3b8;
-  --code-text-h: #e2e8f0;
-  --output-bg: #0f172a;
-  --output-text: #4ade80;
-  --output-prompt: rgba(74, 222, 128, 0.5);
+  /* ── 코드 보기·실행 결과 (항상 어두움) ── */
+  --code-bg: var(--teal-900);
+  --code-text: var(--sky-200);
+  --code-text-h: #ffffff;
+  --output-bg: #14292c;
+  --output-text: var(--star-300);
+  --output-prompt: rgba(253, 210, 96, 0.55);
 
-  /* ── Accent ─────────────────────────────────── */
-  --accent: #7c3aed;
-  --accent-light: rgba(124, 58, 237, 0.1);
-  /* 연한 보라 바탕 위의 글자용 — --accent는 그 위에서 4.5:1이 안 나온다 */
-  --accent-text: #6b21a8;
+  /* ── 강조: 링크·선택·초점은 청록, 주 버튼은 별 노랑 ── */
+  --accent: var(--teal-700);
+  --on-accent: #ffffff;
+  --accent-light: var(--sky-100);
+  /* 연한 바탕(--accent-light) 위의 글자용 */
+  --accent-text: var(--teal-800);
+  --focus: var(--teal-700);
+  /* 한 화면에 가장 큰 노랑 버튼은 하나만. 노랑 면은 항상 갈색 외곽선과 함께 */
+  --cta: var(--star-300);
+  --cta-hover: var(--star-400);
+  --on-cta: var(--ink-900);
+  --cta-edge: var(--ink-900);
+  /* 학생 화면의 놀이형 외곽선 */
+  --line-brand: var(--ink-900);
 
-  /* ── 상태 색 (성공·보상·위험) ────────────────
-     글자용(--ok 등)은 배경 위에서 4.5:1이 나오는 값, --*-bg는 옅은 배경용 */
-  --ok: #15803d;
-  --ok-bg: rgba(34, 197, 94, 0.12);
-  --warn: #b45309;
-  --warn-bg: rgba(245, 158, 11, 0.14);
-  --danger: #dc2626;
-  --danger-bg: rgba(239, 68, 68, 0.1);
+  /* ── 상태 색 ── 글자용(--ok 등)은 짝이 되는 바탕 위에서 4.5:1 이상 */
+  --ok: #1f7447;
+  --ok-bg: #ddf3e5;
+  --warn: var(--star-700);
+  --warn-bg: var(--star-100);
+  --danger: #b03c27;
+  --danger-bg: #ffe8e1;
 
-  /* ── Base ───────────────────────────────────── */
+  /* ── 모양 ── */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --stroke-brand: 2px;
+  --shadow-pop: 0 3px 0 var(--line-brand);
+  --shadow-pop-pressed: 0 0 0 var(--line-brand);
+  --shadow-card: 0 2px 10px rgba(71, 41, 23, 0.1);
+
   /* 모든 글자 크기는 rem(1rem = 이 값) → 글씨 크기 설정 하나로 화면 전체가 커짐 (lib/textSize.js) */
   font: 17px/1.5 var(--sans);
   color: var(--text);
@@ -56,38 +109,81 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #8b9ab0;
-    --text-h: #e6edf3;
-    --text-muted: #6e7b8e;
+    --text: #c9e0e2;
+    --text-h: #f2f9f9;
+    --text-muted: #96b7bb;
 
-    --bg: #010409;
-    --header-bg: #0d1117;
-    --panel-bg: #0d1117;
-    --tabs-bg: #010409;
-    --border: #21262d;
-    --border-strong: #30363d;
+    --bg: #0e2225;
+    --header-bg: #132d31;
+    --panel-bg: #17353a;
+    --tabs-bg: #112a2e;
+    --border: #28484d;
+    --border-strong: #6a979d;
 
-    --btn-hover: rgba(255, 255, 255, 0.06);
-    --tab-hover: rgba(255, 255, 255, 0.04);
-    --accent-text: #d8c7ff;
+    --btn-hover: rgba(255, 255, 255, 0.08);
+    --tab-hover: rgba(255, 255, 255, 0.06);
 
-    --ok: #5ddc93;
-    --ok-bg: rgba(34, 197, 94, 0.18);
-    --warn: #fbbf24;
-    --warn-bg: rgba(245, 158, 11, 0.18);
-    --danger: #fca5a5;
-    --danger-bg: rgba(239, 68, 68, 0.18);
+    --code-bg: #0a1a1d;
+    --code-text: #a6c4c8;
+    --code-text-h: #e6f1f2;
+    --output-bg: #081416;
 
-    --code-bg: #010409;
-    --code-text: #7d8590;
-    --code-text-h: #adbac7;
-    --output-bg: #010409;
-    --output-text: #3fb950;
-    --output-prompt: rgba(63, 185, 80, 0.45);
+    --accent: var(--teal-400);
+    --on-accent: var(--ink-900);
+    --accent-light: #284b50;
+    --accent-text: var(--sky-200);
+    --focus: var(--teal-400);
+    --line-brand: var(--sky-300);
 
-    --accent: #a371f7;
-    --accent-light: rgba(163, 113, 247, 0.12);
+    --ok: #7fd6a4;
+    --ok-bg: #163a2b;
+    --warn: var(--star-300);
+    --warn-bg: #4a3a12;
+    --danger: #ff9f8c;
+    --danger-bg: #4a2420;
+
+    --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.4);
   }
+}
+
+/* 로고는 글자색을 따른다 (components/icons.jsx BrandLogo) */
+.brand-logo {
+  display: block;
+  width: auto;
+  flex-shrink: 0;
+  color: var(--text-h);
+}
+
+/* 선생님·보호자 계정 표시 — 코코 대신 이름 첫 글자 (어른 화면에는 캐릭터를 쓰지 않는다) */
+.user-initial {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* lucide 아이콘 — 글자 줄 가운데에 맞추고, 좁은 칸에서 찌그러지지 않게 */
+svg.lucide {
+  flex-shrink: 0;
+  vertical-align: -0.15em;
+}
+.stars { display: inline-flex; gap: 2px; vertical-align: -0.15em; }
+.stars svg { fill: var(--tabs-bg); color: var(--border-strong); }
+.stars svg.on { fill: var(--star-400); color: var(--star-700); }
+
+/* 제목 글꼴 — 1.4rem 이상 큰 제목에만. 굵기가 한 종류라 굵게 만들지 않는다 */
+.font-display {
+  font-family: var(--display);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0;
 }
 
 /* 글씨 크기: 작게(예전 크기) / 보통(기본) / 크게 */
@@ -115,7 +211,7 @@ body {
   display: inline-flex;
   align-items: flex-end;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -142,7 +238,7 @@ body {
 /* 키보드로 이동할 때 지금 어디에 있는지 항상 보이게.
    :where()라서 우선순위가 0 → 각자 정의한 포커스 스타일이 있으면 그쪽이 이긴다. */
 :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
   border-radius: 4px;
 }

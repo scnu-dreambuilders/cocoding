@@ -186,11 +186,11 @@ export default function BoardPage({ user, onLogout, onNavigate, onGoHome }) {
       <main className="board-main">
         <header className="board-head">
           <div>
-            <h2>💬 토론 게시판</h2>
+            <h2>토론 게시판</h2>
             <p>코딩하면서 궁금한 것, 만든 작품 이야기를 친구들과 나눠요.</p>
           </div>
           {!writing && !openId && (
-            <button type="button" className="role-btn" onClick={() => setWriting(true)}>✏️ 글 쓰기</button>
+            <button type="button" className="role-btn" onClick={() => setWriting(true)}>글 쓰기</button>
           )}
         </header>
 
@@ -210,7 +210,7 @@ export default function BoardPage({ user, onLogout, onNavigate, onGoHome }) {
                 <h3>{loaded.post.title}</h3>
                 <p className="board-meta">
                   <Author id={loaded.post.user_id} onOpenProfile={setProfileId}>
-                    👤 {loaded.post.username}
+                    {loaded.post.username}
                   </Author>
                   <span>{fmt(loaded.post.created_at)}</span>
                   {loaded.post.is_mine ? (
@@ -219,7 +219,7 @@ export default function BoardPage({ user, onLogout, onNavigate, onGoHome }) {
                       <button type="button" className="board-link danger" onClick={remove}>지우기</button>
                     </>
                   ) : (
-                    <button type="button" className="board-link" onClick={() => setReporting((v) => !v)}>🚩 신고</button>
+                    <button type="button" className="board-link" onClick={() => setReporting((v) => !v)}>신고</button>
                   )}
                 </p>
 
@@ -264,7 +264,7 @@ export default function BoardPage({ user, onLogout, onNavigate, onGoHome }) {
               <div className="skeleton-card board-skeleton" aria-hidden="true" />
             </>
           ) : list.error ? (
-            <p className="board-error" role="alert">⚠️ {list.error}</p>
+            <p className="board-error" role="alert">{list.error}</p>
           ) : list.posts.length === 0 ? (
             <p className="empty-msg">아직 글이 없어요. 첫 글을 올려보세요!</p>
           ) : (
@@ -275,8 +275,8 @@ export default function BoardPage({ user, onLogout, onNavigate, onGoHome }) {
                     <button type="button" className="board-row" onClick={() => setOpenId(p.id)}>
                       <span className="board-title">{p.title}</span>
                       <span className="board-row-meta">
-                        👤 {p.username} · {fmt(p.created_at)}
-                        {p.comment_count > 0 && <b> · 💬 {p.comment_count}</b>}
+                        {p.username} · {fmt(p.created_at)}
+                        {p.comment_count > 0 && <b> · 댓글 {p.comment_count}</b>}
                       </span>
                     </button>
                   </li>
