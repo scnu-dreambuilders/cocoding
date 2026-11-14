@@ -105,7 +105,7 @@ const NEWS = [
   {
     tag: '안내', date: '2026.08', title: '챕터 5개를 모두 완료하면 나만의 게임 만들기가 열려요',
     body: [
-      '단계별 학습의 챕터 5개를 모두 완료하면 학생 홈에서 "나만의 게임 만들기"가 열려요.',
+      '단계별 학습의 챕터 5개를 모두 완료하면 단계별 학습 화면에서 "나만의 게임 만들기"가 열려요.',
       '지금까지 배운 블록과 직접 그린 캐릭터, 녹음한 소리를 모아 나만의 게임을 완성해 보세요.',
     ],
   },
@@ -152,7 +152,7 @@ const HOME_MENU_LABEL = { student: '학생 홈', teacher: '내 반 관리', guar
 const HOME_CTA_LABEL = { student: '학생 홈으로 가기', teacher: '내 반 관리하기', guardian: '우리 아이 학습 확인하기' }
 
 export default function HomePage({
-  user, onAuth, onGoDashboard, onOpenFree, onLogout, onUserChange, onAccountDeleted, onEditSurvey,
+  user, onAuth, onGoDashboard, onOpenStudy, onOpenMyPage, onOpenFree, onLogout, onUserChange, onAccountDeleted, onEditSurvey,
 }) {
   const [guideOpen, setGuideOpen] = useState(false)
   const [newsItem, setNewsItem] = useState(null)
@@ -225,8 +225,8 @@ export default function HomePage({
     } else if (!isStudent) {
       showToast(`${what}은 학생 계정에서만 이용할 수 있어요.`)
     } else if (key === 'study') {
-      onGoDashboard?.()
-      scrollDashboardTo(() => document.getElementById('chapters-section'))
+      // 챕터 목록은 단계별 학습 화면에 있다
+      (onOpenStudy ?? onGoDashboard)?.()
     } else {
       (onOpenFree ?? onGoDashboard)?.()
     }
@@ -243,7 +243,7 @@ export default function HomePage({
         extraMenu={user ? [{ key: 'home', icon: House, label: HOME_MENU_LABEL[role] ?? '내 홈' }] : []}
         right={user
           ? <UserMenu user={user} onLogout={onLogout} onUserChange={onUserChange}
-            onAccountDeleted={onAccountDeleted} onEditSurvey={onEditSurvey} showToast={showToast} />
+            onAccountDeleted={onAccountDeleted} onEditSurvey={onEditSurvey} onOpenMyPage={onOpenMyPage} showToast={showToast} />
           : undefined}
       />
 

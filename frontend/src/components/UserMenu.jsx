@@ -13,7 +13,8 @@ import './UserMenu.css'
    학생 홈의 오른쪽 영역과 같은 모양을 메인 홈에서도 쓰기 위한 컴포넌트.
    (학생 홈은 기존 코드를 그대로 쓰고, 여기서는 건드리지 않는다)
    ════════════════════════════════════════════════ */
-export default function UserMenu({ user, onLogout, onUserChange, onAccountDeleted, onEditSurvey, showToast }) {
+// onOpenMyPage: 학생이 '내 정보' 아이콘을 누르면 마이페이지로 이동 (없으면 기존처럼 내 정보 창)
+export default function UserMenu({ user, onLogout, onUserChange, onAccountDeleted, onEditSurvey, onOpenMyPage, showToast }) {
   const role = user.role ?? 'student'
   const isStudent = role === 'student'
   const [equipped, setEquipped] = useState([])
@@ -42,7 +43,9 @@ export default function UserMenu({ user, onLogout, onUserChange, onAccountDelete
             ? user.level && <span className="user-level-tag">{LEVEL_LABEL[user.level] ?? user.level}</span>
             : <span className="user-level-tag">{ROLE_LABEL[role]}</span>}
         </div>
-        <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보"><User size={18} aria-hidden="true" /></button>
+        {isStudent && onOpenMyPage
+          ? <button type="button" className="btn-icon" onClick={onOpenMyPage} title="마이페이지" aria-label="마이페이지"><User size={18} aria-hidden="true" /></button>
+          : <button type="button" className="btn-icon" onClick={() => setAccountOpen(true)} title="내 정보" aria-label="내 정보"><User size={18} aria-hidden="true" /></button>}
         {isStudent && onEditSurvey && (
           <button type="button" className="btn-icon usermenu-settings" onClick={onEditSurvey} title="관심사·코딩 수준 수정" aria-label="관심사 수정"><Settings size={18} aria-hidden="true" /></button>
         )}

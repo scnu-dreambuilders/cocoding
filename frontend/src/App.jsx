@@ -29,6 +29,10 @@ function readCachedUser() {
 // 설문을 한 번도 하지 않은 학생 (건너뛰면 빈 배열로 저장됨). 선생님·보호자는 설문 없음
 const needsSurvey = (u) => u && (u.role ?? 'student') === 'student' && (u.tags === null || u.tags === undefined)
 
+// 로그인 후 개인 화면들. 모두 StudentHomePage 하나가 view만 바꿔 그린다 (상태 공유)
+//  dashboard: 학생 홈(교사·보호자는 기존 화면) / study: 단계별 학습 / mypage: 마이페이지
+const PERSONAL_PAGES = ['dashboard', 'study', 'mypage']
+
 // 비밀번호 재설정 메일 링크(?reset=토큰)로 들어왔는지
 function readResetToken() {
   const token = new URLSearchParams(window.location.search).get('reset')
@@ -41,6 +45,8 @@ export default function App() {
   const [page,      setPage]      = useState(() => (readResetToken() ? 'reset' : readCachedUser() ? 'dashboard' : 'home'))
   const [launch,    setLaunch]    = useState(null)
   const [editorKey, setEditorKey] = useState(0)
+  // 에디터·설문 수정에서 돌아갈 개인 화면 (학습 화면에서 연 챕터는 학습 화면으로 돌아온다)
+  const [backTo, setBackTo] = useState('dashboard')
 
   const saveUser = useCallback((u) => {
     localStorage.setItem('cocooding_user', JSON.stringify(u))
@@ -106,10 +112,18 @@ export default function App() {
   }
 
   const openEditor = useCallback((next) => {
+    // 에디터끼리 이동할 때(다음 챕터 등)는 처음 들어온 화면을 그대로 기억한다
+    if (page !== 'editor') setBackTo(PERSONAL_PAGES.includes(page) ? page : 'dashboard')
     setLaunch(next)
     setEditorKey((k) => k + 1) // 챕터→다음 챕터처럼 에디터끼리 이동해도 새로 마운트
     setPage('editor')
-  }, [])
+  }, [page])
+
+  // 관심사·코딩 수준 수정: 끝나면 연 화면으로 돌아간다 (메인 홈에서 열면 기존처럼 학생 홈)
+  const openSurveyEdit = useCallback(() => {
+    setBackTo(PERSONAL_PAGES.includes(page) ? page : 'dashboard')
+    setPage('survey-edit')
+  }, [page])
 
   const openChapterById = useCallback(async (chapterId) => {
     try {
@@ -140,7 +154,7 @@ export default function App() {
 
   const goDashboard = () => {
     setLaunch(null)
-    setPage(user ? 'dashboard' : 'home')
+    setPage(user ? backTo : 'home')
   }
 
   /* ── Render ───────────────────────────────────── */
@@ -161,23 +175,27 @@ export default function App() {
   }
 
   if ((page === 'survey' || page === 'survey-edit') && user) {
+    const afterSurvey = page === 'survey-edit' ? backTo : 'dashboard'
     return (
       <SurveyPage
         user={user}
         editing={page === 'survey-edit'}
-        onDone={(u) => { saveUser(u); setPage('dashboard') }}
-        onSkip={(u) => { if (u) saveUser(u); setPage('dashboard') }}
+        onDone={(u) => { saveUser(u); setPage(afterSurvey) }}
+        onSkip={(u) => { if (u) saveUser(u); setPage(afterSurvey) }}
       />
     )
   }
 
-  if (page === 'dashboard' && user) {
+  // 학생 홈·단계별 학습·마이페이지는 같은 자리에서 같은 컴포넌트로 그려 상태를 유지한다
+  if (PERSONAL_PAGES.includes(page) && user) {
     return (
       <StudentHomePage
         user={user}
+        view={page}
+        onChangeView={setPage}
         onLogout={logout}
         onOpenEditor={openEditor}
-        onEditSurvey={() => setPage('survey-edit')}
+        onEditSurvey={openSurveyEdit}
         onOpenMyGame={openMyGame}
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
@@ -194,11 +212,13 @@ export default function App() {
         onAuth={() => setPage('auth')}
         onGuest={() => openEditor({ mode: 'free' })}
         onGoDashboard={() => setPage('dashboard')}
+        onOpenStudy={() => setPage('study')}
+        onOpenMyPage={() => setPage('mypage')}
         onOpenFree={openFreeFromHome}
         onLogout={logout}
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
-        onEditSurvey={() => setPage('survey-edit')}
+        onEditSurvey={openSurveyEdit}
       />
     )
   }
@@ -209,7 +229,7 @@ export default function App() {
         user={user}
         onLogout={logout}
         onGoHome={() => setPage('home')}
-        onNavigate={(key) => (key === 'board' ? setPage('board') : key === 'home' ? setPage('dashboard') : setPage('dashboard'))}
+        onNavigate={(key) => (key === 'board' ? setPage('board') : key === 'study' ? setPage('study') : setPage('dashboard'))}
       />
     )
   }
