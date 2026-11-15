@@ -132,7 +132,8 @@ export default function MissionPanel({
             <div className="mission-row">
               {result?.nextChapterId && <button type="button" className="btn btn-run" onClick={onNext}>다음 챕터 →</button>}
               {!result?.nextChapterId && <button type="button" className="btn btn-run" onClick={onNext}>나만의 게임 만들기</button>}
-              <button type="button" className="btn btn-ghost" onClick={onDashboard}>대시보드</button>
+              {/* 에디터를 연 화면으로 돌아간다 (학습 화면·학생 홈 등) */}
+              <button type="button" className="btn btn-ghost" onClick={onDashboard}>돌아가기</button>
             </div>
           </div>
         )}

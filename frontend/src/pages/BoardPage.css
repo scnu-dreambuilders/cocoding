@@ -176,6 +176,7 @@
   white-space: pre-wrap;
   word-break: keep-all;
   overflow-wrap: anywhere;
+  min-height: 240px;
 }
 
 .board-report {

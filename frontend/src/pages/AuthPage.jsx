@@ -45,8 +45,9 @@ const TERMS_INFO = {
     detail: '새로운 기능이나 이벤트 소식을 이메일로 가끔 받아볼 수 있어요. 나중에 언제든 설정에서 바꿀 수 있어요.' },
 }
 
-export default function AuthPage({ onLogin, onGuest, onForgotPassword }) {
-  const [mode, setMode] = useState('login') // 'login' | 'register'
+// initialMode: 처음 열 탭 — 회원가입 버튼으로 들어오면 'register', 그 밖에는 'login'
+export default function AuthPage({ onLogin, onGuest, onForgotPassword, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode === 'register' ? 'register' : 'login') // 'login' | 'register'
   const [docOpen, setDocOpen] = useState(null) // 약관·개인정보처리방침 전문 창
   const [step, setStep] = useState(1) // register 전용: 1 유형선택 → 2 약관동의 → 3 정보입력
   const [form, setForm] = useState({ username: '', email: '', password: '', role: 'student', birthYear: '', adult: false, affiliation: '' })

@@ -66,23 +66,6 @@ async function pickRecommended(myId) {
   return shuffled(pool).slice(0, RECO_MAX)
 }
 
-// 학생 홈으로 이동한 뒤 목록 로딩(골격 카드)이 끝나면 해당 섹션으로 스크롤한다.
-// 로딩 중에 스크롤하면 이후 콘텐츠가 늘어나 위치가 어긋난다. 섹션을 못 찾으면 학생 홈에만 머문다.
-function scrollDashboardTo(findSection) {
-  let tries = 0
-  const tick = () => {
-    const section = findSection()
-    const loading = document.querySelector('.dash-main .skeleton-card')
-    if ((!section || loading) && tries < 20) {
-      tries += 1
-      setTimeout(tick, 150)
-      return
-    }
-    section?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-  setTimeout(tick, 150)
-}
-
 // 공지 API가 아직 없어서 mock 데이터로 대체 (백엔드 새로 만들지 않음)
 // body: 상세 보기에 보여줄 문단. 실제 구현된 기능만 적는다.
 const NEWS = [
@@ -151,10 +134,19 @@ function Modal({ onClose, children, labelledBy }) {
 const HOME_MENU_LABEL = { student: '학생 홈', teacher: '내 반 관리', guardian: '우리 아이' }
 const HOME_CTA_LABEL = { student: '학생 홈으로 가기', teacher: '내 반 관리하기', guardian: '우리 아이 학습 확인하기' }
 
+// onAuth(mode): 로그인 화면 열기 ('login' | 'register') / onMenu(key): 메뉴 키를 App의 공통 목적지로 (안내가 있으면 { toast, after })
+// onOpenProject(id): 추천 작품 구경 / onOpenFriendWorks: 학생 홈 친구 작품 목록
+// navIntent: 다른 화면에서 '사용법'을 눌러 왔으면 'guide' — 한 번 열고 onNavIntentDone으로 비운다
+// sessionIssue / onRecheckSession: 로그인 상태 확인 실패 안내와 다시 확인
 export default function HomePage({
-  user, onAuth, onGoDashboard, onOpenStudy, onOpenMyPage, onOpenFree, onLogout, onUserChange, onAccountDeleted, onEditSurvey,
+  user, onAuth, onGoDashboard, onOpenMyPage, onOpenProject, onOpenFriendWorks, onMenu, navIntent, onNavIntentDone,
+  sessionIssue, onRecheckSession, onLogout, onUserChange, onAccountDeleted, onEditSurvey,
 }) {
-  const [guideOpen, setGuideOpen] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(() => navIntent === 'guide')
+  // 사용법을 열라는 요청은 이 화면을 처음 그릴 때 한 번만 쓰고 비운다 (다음 방문에 다시 열리지 않게)
+  useEffect(() => {
+    if (navIntent === 'guide') onNavIntentDone?.()
+  }, [navIntent, onNavIntentDone])
   const [newsItem, setNewsItem] = useState(null)
   const [projects, setProjects] = useState({ list: [], loading: true, failed: false })
   const [toast, setToast] = useState('')
@@ -188,48 +180,25 @@ export default function HomePage({
     return () => { alive = false }
   }, [projectAccess, viewerId])
 
-  // "더 많은 작품 보기": 학생 홈으로 이동한 뒤 "친구 작품" 섹션으로 스크롤한다.
-  // 학생 홈의 친구 작품 섹션에는 앵커(id)가 없어서 제목으로 찾고, 못 찾으면 학생 홈에만 머문다.
-  // 목록이 로딩 중(골격 카드)일 때 스크롤하면 이후 콘텐츠가 늘어나 위치가 어긋나므로, 로딩이 끝나길 잠깐 기다린다.
-  const goFriendWorks = () => {
-    onGoDashboard?.()
-    scrollDashboardTo(() => [...document.querySelectorAll('.dash-section .section-title')]
-      .find((el) => el.textContent.includes('친구 작품'))?.closest('.dash-section'))
+  // 안내 뒤 이어서 할 일(로그인 화면으로)은 잠깐 기다렸다가 — 갑자기 화면이 바뀌어 당황하지 않게
+  const afterTimer = useRef(0)
+  useEffect(() => () => clearTimeout(afterTimer.current), [])
+  const showMenuResult = (r) => {
+    if (r?.toast) showToast(r.toast)
+    if (r?.after) {
+      clearTimeout(afterTimer.current)
+      afterTimer.current = setTimeout(r.after, 1300)
+    }
   }
 
-  // 비로그인이 학생 기능을 눌렀을 때: 갑자기 화면이 바뀌어 당황하지 않게 이유를 알려주고 로그인 화면으로 보낸다
-  const authTimer = useRef(0)
-  useEffect(() => () => clearTimeout(authTimer.current), [])
-  const guideToLogin = (what) => {
-    showToast(`${what}은 로그인하면 이용할 수 있어요. 로그인 화면으로 이동할게요!`)
-    clearTimeout(authTimer.current)
-    authTimer.current = setTimeout(() => onAuth?.(), 1300)
-  }
-
-  // 단계별 학습·자유창작은 로그인한 학생의 기능이다.
-  //  · 비로그인: 이유를 안내한 뒤 로그인 화면으로 (체험 모드는 AuthPage의 "로그인 없이 체험하기"로만 제공)
-  //  · 학생: 학생 홈과 같은 경로로 이동 (로그인 화면으로 보내지 않음)
-  //  · 교사·보호자: 학생 전용 기능이라 안내만 표시
+  // 메뉴(TopNav·푸터): 목적지와 로그인·역할 조건은 App의 공통 규칙(onMenu)을 따른다.
+  // 사용법은 이 화면에 있으므로 바로 연다
   const handleNavigate = (key) => {
-    if (key === 'home') {
-      onGoDashboard?.()
+    if (key === 'guide') {
+      setGuideOpen(true)
       return
     }
-    if (key !== 'study' && key !== 'free') {
-      showToast('이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!')
-      return
-    }
-    const what = key === 'study' ? '단계별 학습' : '자유창작'
-    if (!user) {
-      guideToLogin(what)
-    } else if (!isStudent) {
-      showToast(`${what}은 학생 계정에서만 이용할 수 있어요.`)
-    } else if (key === 'study') {
-      // 챕터 목록은 단계별 학습 화면에 있다
-      (onOpenStudy ?? onGoDashboard)?.()
-    } else {
-      (onOpenFree ?? onGoDashboard)?.()
-    }
+    showMenuResult(onMenu?.(key))
   }
 
   return (
@@ -238,8 +207,8 @@ export default function HomePage({
       <TopNav
         user={null}
         onNavigate={handleNavigate}
-        onLogin={onAuth}
-        onSignup={onAuth}
+        onLogin={() => onAuth?.('login')}
+        onSignup={() => onAuth?.('register')}
         extraMenu={user ? [{ key: 'home', icon: House, label: HOME_MENU_LABEL[role] ?? '내 홈' }] : []}
         right={user
           ? <UserMenu user={user} onLogout={onLogout} onUserChange={onUserChange}
@@ -248,6 +217,14 @@ export default function HomePage({
       />
 
       <main className="home-main">
+        {/* 로그인 상태를 확인하지 못했을 때 (네트워크·서버 오류) — 세션은 남겨 두고 다시 확인할 수 있게 */}
+        {user && sessionIssue && (
+          <div className="empty-msg" role="alert">
+            {sessionIssue}{' '}
+            <button type="button" className="link-btn" onClick={onRecheckSession}>다시 확인</button>
+          </div>
+        )}
+
         {/* ── 히어로 ── */}
         <section className="home-hero">
           <div className="home-hero-text">
@@ -255,7 +232,7 @@ export default function HomePage({
             <h1>코코딩과 함께하는<br />코딩 모험!</h1>
             <p>AI 친구 코코와 함께 블록을 조립하며 코딩을 배워요. 막히는 순간도 코코와 함께 풀면 별이 돼요.</p>
             <div className="home-hero-actions">
-              <button type="button" className="home-btn-primary" onClick={user ? onGoDashboard : onAuth}>
+              <button type="button" className="home-btn-primary" onClick={user ? onGoDashboard : () => onAuth?.('login')}>
                 {user ? (HOME_CTA_LABEL[role] ?? '내 홈으로 가기') : '코딩 모험 시작하기'}
               </button>
               <button type="button" className="home-btn-ghost" onClick={() => setGuideOpen(true)}>코코딩 사용법 알아보기</button>
@@ -311,20 +288,21 @@ export default function HomePage({
             <div className="home-empty">
               <p>{PROJECT_EMPTY_MESSAGE[projectAccess === 'ok' ? (projects.failed ? 'failed' : 'empty') : projectAccess]}</p>
               {projectAccess === 'guest' && (
-                <button type="button" className="home-btn-ghost" onClick={onAuth}>로그인하고 구경하기</button>
+                <button type="button" className="home-btn-ghost" onClick={() => onAuth?.('login')}>로그인하고 구경하기</button>
               )}
             </div>
           ) : (
             <>
               <div className="home-proj-grid">
                 {projects.list.map((p) => (
-                  // 눌러서 학생 홈의 "친구 작품"에서 볼 수 있다 (리메이크·신고는 그곳에 이미 있음)
+                  // 누르면 그 작품을 기존 구경 흐름(에디터 '구경 중')으로 연다. 저장·리메이크 같은 쓰기 요청은 없다
+                  // (리메이크·좋아요·신고는 학생 홈 '친구 작품'에 그대로 있음)
                   <div key={p.id} className="home-proj-card home-proj-card-btn" role="button" tabIndex={0}
-                    onClick={goFriendWorks}
+                    onClick={() => onOpenProject?.(p.id)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goFriendWorks() }
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenProject?.(p.id) }
                     }}
-                    aria-label={`${p.title}, ${p.username}님의 작품 — 친구 작품에서 보기`}>
+                    aria-label={`${p.title}, ${p.username}님의 작품 — 구경하기`}>
                     <Thumb src={p.thumbnail_url} />
                     <div className="home-proj-info">
                       <b title={p.title}>{p.title}</b>
@@ -334,7 +312,7 @@ export default function HomePage({
                 ))}
               </div>
               <div className="home-proj-more">
-                <button type="button" className="home-btn-ghost" onClick={goFriendWorks}>더 많은 작품 보기</button>
+                <button type="button" className="home-btn-ghost" onClick={onOpenFriendWorks}>더 많은 작품 보기</button>
               </div>
             </>
           )}
@@ -353,13 +331,13 @@ export default function HomePage({
               </p>
             </div>
             {!user && (
-              <button type="button" className="home-btn-ghost home-safety-cta" onClick={onAuth}>회원가입하러 가기</button>
+              <button type="button" className="home-btn-ghost home-safety-cta" onClick={() => onAuth?.('register')}>회원가입하러 가기</button>
             )}
           </div>
         </section>
       </main>
 
-      <SiteFooter onNavigate={(key) => (key === 'guide' ? setGuideOpen(true) : handleNavigate(key))} />
+      <SiteFooter onNavigate={handleNavigate} />
 
       {guideOpen && (
         <Modal onClose={() => setGuideOpen(false)} labelledBy="guide-title">

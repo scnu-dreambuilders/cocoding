@@ -30,16 +30,19 @@ const todayISO = () => {
 
 export default function ActivityChart() {
   const [activity, setActivity] = useState(null)
+  const [activityError, setActivityError] = useState('') // 불러오기 실패 — '기록 없음'과 구분한다
+  const [activityKey, setActivityKey] = useState(0)      // 다시 시도 (조회만)
   const [scope, setScope] = useState('all')
   const [ranking, setRanking] = useState(null)
+  const [rankingKey, setRankingKey] = useState(0)
 
   useEffect(() => {
     let alive = true
     api.profile()
       .then((d) => { if (alive) setActivity(d.activity ?? []) })
-      .catch(() => { if (alive) setActivity([]) })
+      .catch((e) => { if (alive) setActivityError(e.message) })
     return () => { alive = false }
-  }, [])
+  }, [activityKey])
 
   useEffect(() => {
     let alive = true
@@ -47,17 +50,21 @@ export default function ActivityChart() {
       .then((d) => { if (alive) setRanking(d) })
       .catch((e) => { if (alive) { setRanking({ error: e.message }) } })
     return () => { alive = false }
-  }, [scope])
+  }, [scope, rankingKey])
 
-  if (!activity) return <div className="skeleton-card profile-skeleton" aria-hidden="true" />
+  const retryActivity = () => { setActivityError(''); setActivityKey((k) => k + 1) }
+  const retryRanking = () => { setRanking(null); setRankingKey((k) => k + 1) }
 
+  if (!activity && !activityError) return <div className="skeleton-card profile-skeleton" aria-hidden="true" />
+
+  const days = activity ?? []
   // 막대 높이 기준: 하루 최대 활동 수 (최소 2로 둬서 막대가 너무 커 보이지 않게)
-  const max = Math.max(2, ...activity.map((d) => d.attended + d.chapters + d.projects))
-  const totals = BARS.map((b) => ({ ...b, total: activity.reduce((n, d) => n + d[b.key], 0) }))
-  const busyDays = activity.filter((d) => d.attended + d.chapters + d.projects > 0).length
+  const max = Math.max(2, ...days.map((d) => d.attended + d.chapters + d.projects))
+  const totals = BARS.map((b) => ({ ...b, total: days.reduce((n, d) => n + d[b.key], 0) }))
+  const busyDays = days.filter((d) => d.attended + d.chapters + d.projects > 0).length
   const today = todayISO()
-  const range = activity.length
-    ? `${dayLabel(activity[0].date)} ~ ${dayLabel(activity[activity.length - 1].date)}`
+  const range = days.length
+    ? `${dayLabel(days[0].date)} ~ ${dayLabel(days[days.length - 1].date)}`
     : ''
 
   return (
@@ -67,6 +74,14 @@ export default function ActivityChart() {
         <span className="section-badge">최근 2주</span>
       </div>
 
+      {activityError ? (
+        <div className="chart-card">
+          <div className="empty-msg" role="alert">
+            학습 기록을 불러오지 못했어요: {activityError}{' '}
+            <button type="button" className="link-btn" onClick={retryActivity}>다시 시도</button>
+          </div>
+        </div>
+      ) : (
       <div className="chart-card">
         <div className="chart-legend">
           {totals.map((b) => (
@@ -79,8 +94,8 @@ export default function ActivityChart() {
 
         <div className="chart-bars" role="img"
           aria-label={`${range} 학습 기록. ${totals.map((b) => `${b.label} ${b.total}회`).join(', ')}. `
-            + `${activity.length}일 중 ${busyDays}일 활동했고, 하루 최대 ${max}회예요.`}>
-          {activity.map((d) => {
+            + `${days.length}일 중 ${busyDays}일 활동했고, 하루 최대 ${max}회예요.`}>
+          {days.map((d) => {
             const sum = d.attended + d.chapters + d.projects
             return (
               <div key={d.date} className={`chart-col ${d.date === today ? 'is-today' : ''}`}
@@ -105,6 +120,7 @@ export default function ActivityChart() {
           <span>{busyDays === 0 ? '아직 기록이 없어요' : `활동한 날 ${busyDays}일 · 하루 최대 ${max}회`}</span>
         </p>
       </div>
+      )}
 
       {/* 랭킹 */}
       <div className="rank-card">
@@ -121,7 +137,10 @@ export default function ActivityChart() {
         {!ranking ? (
           <p className="dash-hint">불러오는 중…</p>
         ) : ranking.error ? (
-          <p className="dash-hint">{ranking.error}</p>
+          <p className="dash-hint" role="alert">
+            {ranking.error}{' '}
+            <button type="button" className="link-btn" onClick={retryRanking}>다시 시도</button>
+          </p>
         ) : ranking.total === 0 ? (
           <p className="dash-hint">아직 견줄 친구가 없어요. 친구를 팔로우하거나 반에 들어가면 보여요.</p>
         ) : (

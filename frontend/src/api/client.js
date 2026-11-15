@@ -4,6 +4,16 @@
 const BASE = import.meta.env.VITE_API_URL ?? '/api'
 const REQUEST_TIMEOUT_MS = 15000
 
+// 던지는 오류에 원인 정보만 덧붙인다 (메시지는 그대로라 기존 catch의 e.message 처리는 바뀌지 않는다)
+//  kind: 'timeout' | 'network' | 'parse'(JSON이 아님) | 'api'(서버가 success:false JSON으로 거절)
+//  status: HTTP 상태 코드 (응답을 받은 경우만)
+function requestError(message, kind, status, cause) {
+  const err = new Error(message, cause ? { cause } : undefined)
+  err.kind = kind
+  if (status !== undefined) err.status = status
+  return err
+}
+
 async function request(path, options = {}) {
   const token = localStorage.getItem('cocooding_token')
   const headers = { 'Content-Type': 'application/json' }
@@ -20,14 +30,14 @@ async function request(path, options = {}) {
       signal: controller.signal,
     })
   } catch (err) {
-    if (err.name === 'AbortError') throw new Error('서버 응답이 너무 오래 걸립니다', { cause: err })
+    if (err.name === 'AbortError') throw requestError('서버 응답이 너무 오래 걸립니다', 'timeout', undefined, err)
     // 개발 중에는 서버가 멀쩡해도 브라우저가 막아서 여기로 오는 경우가 있다 (페이지 주소가
     // backend/.env의 ALLOWED_ORIGINS에 없을 때). 원인을 찾느라 헤매지 않게 주소를 알려준다
     const crossOrigin = /^https?:\/\//.test(BASE) && !BASE.startsWith(window.location.origin)
     const hint = import.meta.env.DEV && crossOrigin
       ? ` (${BASE} 호출 실패 — 백엔드가 켜져 있는지, ALLOWED_ORIGINS에 ${window.location.origin} 주소가 있는지 확인해주세요)`
       : ''
-    throw new Error('서버에 연결할 수 없습니다' + hint, { cause: err })
+    throw requestError('서버에 연결할 수 없습니다' + hint, 'network', undefined, err)
   } finally {
     clearTimeout(timeoutId)
   }
@@ -41,10 +51,10 @@ async function request(path, options = {}) {
   try {
     json = await res.json()
   } catch {
-    throw new Error(res.ok ? '서버 응답을 처리할 수 없습니다' : `서버 오류가 발생했습니다 (${res.status})`)
+    throw requestError(res.ok ? '서버 응답을 처리할 수 없습니다' : `서버 오류가 발생했습니다 (${res.status})`, 'parse', res.status)
   }
 
-  if (!json.success) throw new Error(json.error ?? '오류가 발생했습니다')
+  if (!json.success) throw requestError(json.error ?? '오류가 발생했습니다', 'api', res.status)
   return json.data
 }
 

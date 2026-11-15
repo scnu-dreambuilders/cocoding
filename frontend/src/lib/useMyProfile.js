@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 
 /* 내 프로필 데이터(불러오기·소개말 저장·공개 범위·팔로우 취소) — components/ProfileCard.jsx의 화면 조각들이 함께 쓴다 */
@@ -9,25 +9,42 @@ export const VISIBILITY = [
 ]
 
 // enabled가 true가 될 때마다 새로 불러온다 (마이페이지에 들어올 때마다 최신 상태)
+// loadError: 불러오기 실패 문구 (실패해도 이전에 받은 값은 지우지 않고, 기본값으로 채우지도 않는다)
+// reload(): 조회(GET)만 다시 한다
 export function useMyProfile(showToast, enabled = true) {
   const [me, setMe] = useState(null)
   const [bio, setBio] = useState('')
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const loadSeq = useRef(0) // 요청 번호 — 늦게 온 이전 응답이 최신 값을 덮지 않게
 
   const apply = useCallback((data) => {
     setMe(data)
     setBio(data.bio ?? '')
   }, [])
 
+  const fetchProfile = useCallback(() => {
+    const id = ++loadSeq.current
+    return api.profile()
+      .then((d) => {
+        if (id !== loadSeq.current) return
+        setLoadError('')
+        apply(d)
+      })
+      .catch((e) => { if (id === loadSeq.current) setLoadError(e.message) })
+  }, [apply])
+
   useEffect(() => {
     if (!enabled) return undefined
-    let alive = true
-    api.profile()
-      .then((d) => { if (alive) apply(d) })
-      .catch(() => {})
-    return () => { alive = false }
-  }, [apply, enabled])
+    fetchProfile()
+    return () => { loadSeq.current += 1 } // 화면을 떠나면 진행 중이던 응답은 버린다
+  }, [fetchProfile, enabled])
+
+  const reload = () => {
+    setLoadError('')
+    fetchProfile()
+  }
 
   const saveBio = async () => {
     setBusy(true)
@@ -62,5 +79,5 @@ export function useMyProfile(showToast, enabled = true) {
 
   const cancelEdit = () => { setBio(me?.bio ?? ''); setEditing(false) }
 
-  return { me, bio, setBio, editing, setEditing, busy, saveBio, cancelEdit, setVisibility, unfollow }
+  return { me, bio, setBio, editing, setEditing, busy, saveBio, cancelEdit, setVisibility, unfollow, loadError, reload }
 }

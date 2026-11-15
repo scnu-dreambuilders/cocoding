@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Award, ChevronDown, Lock, Pencil } from 'lucide-react'
 import { VISIBILITY, useMyProfile } from '../lib/useMyProfile'
 import { CocoAvatar } from './Coco'
@@ -271,12 +271,38 @@ export function MyProfileSide({ profile: p, roleLabel, equippedItems, onEditAcco
     return () => cancelAnimationFrame(raf)
   }, [open])
 
-  if (!p.me) return <div className="skeleton-card profile-skeleton" aria-hidden="true" />
+  // 프로필을 한 번도 못 받았으면: 불러오는 중이면 골격 카드, 실패면 안내와 다시 시도 (레벨·숫자를 기본값으로 채우지 않는다)
+  // 불러오는 중·실패·성공 모두 같은 묶음 안 같은 key에 우리 반 카드(children)를 두어,
+  // 프로필을 다시 받아 화면이 바뀌어도 우리 반 카드(입력 중인 코드 포함)를 새로 만들지 않는다
+  if (!p.me) {
+    return (
+      <div className="mypage-side-stack">
+        {p.loadError ? (
+          <div className="profile-card">
+            <div className="empty-msg" role="alert">
+              프로필을 불러오지 못했어요: {p.loadError}{' '}
+              <button type="button" className="link-btn" onClick={p.reload}>다시 시도</button>
+            </div>
+          </div>
+        ) : (
+          <div className="skeleton-card profile-skeleton" aria-hidden="true" />
+        )}
+        <Fragment key="side-extra">{children}</Fragment>
+      </div>
+    )
+  }
   const { me } = p
   const visibilityLabel = VISIBILITY.find((v) => v.id === me.visibility)?.label ?? ''
 
   return (
     <div ref={stackRef} className="mypage-side-stack">
+      {/* 다시 들어왔을 때 새로 불러오기에 실패했으면, 이전에 받은 값이라는 것을 알리고 다시 시도할 수 있게 */}
+      {p.loadError && (
+        <p className="dash-hint" role="alert">
+          프로필을 새로 불러오지 못해 이전 정보를 보여주고 있어요.{' '}
+          <button type="button" className="link-btn" onClick={p.reload}>다시 시도</button>
+        </p>
+      )}
       <section className="profile-card mypage-profile" aria-label="내 프로필">
         <div className="mypage-avatar">
           <CocoAvatar size={110} emotion="happy" items={equippedItems ?? me.equipped} />
@@ -323,7 +349,7 @@ export function MyProfileSide({ profile: p, roleLabel, equippedItems, onEditAcco
         <VisibilityField p={p} hideLegend />
       </Fold>
 
-      {children}
+      <Fragment key="side-extra">{children}</Fragment>
     </div>
   )
 }
