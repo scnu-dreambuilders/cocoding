@@ -721,7 +721,8 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
         <div className="header-brand">
           <button type="button" className="btn btn-ghost editor-back" onClick={handleBack} title="뒤로 가기">
             <IconBack />
-            <span className="editor-back-label">{user ? '대시보드' : '홈'}</span>
+            {/* 로그인했으면 들어온 화면(메인·학생 홈·학습·마이페이지)으로 돌아가므로 공통 문구 */}
+            <span className="editor-back-label">{user ? '돌아가기' : '홈'}</span>
           </button>
           <span className="header-sep" aria-hidden="true">/</span>
           {editTitle && !isChapter ? (

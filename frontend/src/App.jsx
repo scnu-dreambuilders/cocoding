@@ -29,6 +29,20 @@ function readCachedUser() {
 // 설문을 한 번도 하지 않은 학생 (건너뛰면 빈 배열로 저장됨). 선생님·보호자는 설문 없음
 const needsSurvey = (u) => u && (u.role ?? 'student') === 'student' && (u.tags === null || u.tags === undefined)
 
+// 로그인 후 개인 화면들. 모두 StudentHomePage 하나가 view만 바꿔 그린다 (상태 공유)
+//  dashboard: 학생 홈(교사·보호자는 기존 화면) / study: 단계별 학습 / mypage: 마이페이지
+const PERSONAL_PAGES = ['dashboard', 'study', 'mypage']
+
+// 상단 메뉴·푸터의 메뉴 키 → 학생 전용 메뉴 이름 (로그인·역할 안내 문구에 씀)
+const STUDENT_MENU = { study: '단계별 학습', free: '자유창작', popular: '인기 작품' }
+const SOON_MESSAGE = '이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!'
+
+// 앱 시작 시 세션 확인에서 '계정 없음'으로 확정할 수 있는 응답인지.
+// backend/api/auth/me.php는 계정이 없으면 JSON {success:false, error:"사용자를 찾을 수 없습니다."}와 404를 보낸다.
+// 경로 오류(HTML 404)·네트워크·시간 초과·5xx·해석 실패는 여기에 해당하지 않으므로 세션을 지우지 않는다.
+const ACCOUNT_GONE_MESSAGE = '사용자를 찾을 수 없습니다.'
+const isAccountGone = (err) => err?.status === 404 && err?.kind === 'api' && err?.message === ACCOUNT_GONE_MESSAGE
+
 // 비밀번호 재설정 메일 링크(?reset=토큰)로 들어왔는지
 function readResetToken() {
   const token = new URLSearchParams(window.location.search).get('reset')
@@ -41,6 +55,14 @@ export default function App() {
   const [page,      setPage]      = useState(() => (readResetToken() ? 'reset' : readCachedUser() ? 'dashboard' : 'home'))
   const [launch,    setLaunch]    = useState(null)
   const [editorKey, setEditorKey] = useState(0)
+  // 에디터·설문 수정에서 돌아갈 화면 (학습 화면에서 연 챕터는 학습 화면으로, 메인에서 연 에디터는 메인으로)
+  const [backTo, setBackTo] = useState('dashboard')
+  // 로그인 화면을 어느 탭으로 열지 ('login' | 'register') — 회원가입 버튼만 'register'
+  const [authMode, setAuthMode] = useState('login')
+  // 화면을 옮긴 뒤 한 번만 할 일 ('popular': 친구 작품 인기순으로 / 'guide': 사용법 안내 열기). 쓰고 나면 null
+  const [navIntent, setNavIntent] = useState(null)
+  // 앱 시작 시 세션 확인이 인증 문제가 아닌 이유(네트워크·서버 오류 등)로 실패했을 때의 안내
+  const [sessionIssue, setSessionIssue] = useState('')
 
   const saveUser = useCallback((u) => {
     localStorage.setItem('cocooding_user', JSON.stringify(u))
@@ -53,6 +75,9 @@ export default function App() {
     localStorage.removeItem('cocooding_user')
     setUser(null)
     setLaunch(null)
+    setNavIntent(null)
+    setSessionIssue('')
+    setAuthMode('login')
     setPage('auth')
   }, [])
 
@@ -85,15 +110,30 @@ export default function App() {
   }, [user, page, launch])
 
   /* ── Re-validate cached session against the server ───────────── */
-  useEffect(() => {
+  // 401(토큰 만료)은 client.js가 'cocoding:unauthorized' 이벤트로 이미 로그아웃시킨다.
+  // 그 밖에는 '계정 없음'이 확실할 때만 세션을 지우고, 네트워크·시간 초과·서버 오류는 세션을 남긴 채 안내만 한다.
+  // (저장된 사용자 정보는 확인된 것이 아니므로 안내를 띄우고, 실제 작업은 서버가 요청마다 다시 인증한다)
+  const checkSession = useCallback(() => {
     if (!localStorage.getItem('cocooding_token')) return
     api.me()
       .then((fresh) => {
+        setSessionIssue('')
         saveUser(fresh)
         if (needsSurvey(fresh)) setPage((p) => (p === 'dashboard' ? 'survey' : p))
       })
-      .catch(clearSession)
+      .catch((err) => {
+        if (err?.status === 401) return
+        if (isAccountGone(err)) {
+          clearSession()
+          return
+        }
+        setSessionIssue(`로그인 상태를 확인하지 못했어요 (${err?.message ?? '알 수 없는 오류'}). 잠시 후 다시 확인해 주세요.`)
+      })
   }, [saveUser, clearSession])
+
+  useEffect(() => {
+    checkSession()
+  }, [checkSession])
 
   const refreshUser = useCallback(() => {
     api.me().then(saveUser).catch(() => {})
@@ -106,10 +146,19 @@ export default function App() {
   }
 
   const openEditor = useCallback((next) => {
+    // 에디터끼리 이동할 때(다음 챕터 등)는 처음 들어온 화면을 그대로 기억한다
+    // 메인에서 열면 메인으로 (비로그인 체험은 goDashboard가 원래대로 메인으로 보낸다)
+    if (page !== 'editor') setBackTo(PERSONAL_PAGES.includes(page) || page === 'home' ? page : 'dashboard')
     setLaunch(next)
     setEditorKey((k) => k + 1) // 챕터→다음 챕터처럼 에디터끼리 이동해도 새로 마운트
     setPage('editor')
-  }, [])
+  }, [page])
+
+  // 관심사·코딩 수준 수정: 끝나면 연 화면으로 돌아간다 (메인 홈에서 열면 기존처럼 학생 홈)
+  const openSurveyEdit = useCallback(() => {
+    setBackTo(PERSONAL_PAGES.includes(page) ? page : 'dashboard')
+    setPage('survey-edit')
+  }, [page])
 
   const openChapterById = useCallback(async (chapterId) => {
     try {
@@ -127,20 +176,64 @@ export default function App() {
   }, [openEditor])
 
   // 메인 홈에서 로그인한 학생이 자유창작으로 들어갈 때: 학생 홈과 같이 배운 챕터 정보를 함께 넘긴다
-  const openFreeFromHome = useCallback(async () => {
-    let completedChapters = []
+  const loadCompletedChapters = useCallback(async () => {
     try {
       const list = await api.chapters()
-      completedChapters = list.filter((c) => c.status === 'completed').map((c) => Number(c.order_num))
+      return list.filter((c) => c.status === 'completed').map((c) => Number(c.order_num))
     } catch {
-      // 챕터 정보를 못 불러와도 기본 블록으로 자유창작은 열어준다
+      return [] // 챕터 정보를 못 불러와도 기본 블록으로는 열어준다
     }
-    openEditor({ mode: 'free', completedChapters })
-  }, [openEditor])
+  }, [])
+
+  const openFreeFromHome = useCallback(async () => {
+    openEditor({ mode: 'free', completedChapters: await loadCompletedChapters() })
+  }, [openEditor, loadCompletedChapters])
+
+  // 메인 추천 작품 카드: 고른 작품을 기존 구경 흐름(에디터, 남의 작품은 '구경 중' — 저장·공유 없음)으로 연다.
+  // 볼 수 있는지는 서버(projects/view.php)가 공개 여부·보호자 동의로 다시 확인하고, 못 열면 에디터가 안내와 '돌아가기'를 보여준다
+  const openProjectFromHome = useCallback(async (projectId) => {
+    openEditor({ mode: 'free', projectId, completedChapters: await loadCompletedChapters() })
+  }, [openEditor, loadCompletedChapters])
+
+  const openAuth = useCallback((mode = 'login') => {
+    setAuthMode(mode)
+    setPage('auth')
+  }, [])
+
+  // 메뉴 키(TopNav·푸터)를 화면과 상관없이 같은 목적지로 보낸다.
+  // 화면에 띄울 안내가 있으면 { toast, after }를 돌려준다 (after: 안내 뒤 이어서 할 일 — 로그인 화면으로)
+  // 학생 홈·학습·마이페이지 안에서 바로 처리하는 키(자유창작·인기 작품)는 StudentHomePage가 먼저 처리한다
+  const handleMenu = useCallback((key) => {
+    const role = user ? (user.role ?? 'student') : null
+    if (key === 'guide') { setNavIntent('guide'); setPage('home'); return null }
+    if (key === 'qna' || key === 'game') return { toast: SOON_MESSAGE }
+    if (key === 'home') { setPage(user ? 'dashboard' : 'home'); return null }
+    if (key === 'board') {
+      if (!user) return { toast: '토론 게시판은 로그인하면 이용할 수 있어요. 로그인 화면으로 이동할게요!', after: () => openAuth('login') }
+      setPage('board')
+      return null
+    }
+    const what = STUDENT_MENU[key]
+    if (!what) return null
+    if (!user) return { toast: `${what}은 로그인하면 이용할 수 있어요. 로그인 화면으로 이동할게요!`, after: () => openAuth('login') }
+    if (role !== 'student') return { toast: `${what}은 학생 계정에서만 이용할 수 있어요.` }
+    if (key === 'study') setPage('study')
+    else if (key === 'free') openFreeFromHome()
+    else { setNavIntent('popular'); setPage('dashboard') }
+    return null
+  }, [user, openAuth, openFreeFromHome])
+
+  const consumeNavIntent = useCallback(() => setNavIntent(null), [])
+
+  // 메인 '더 많은 작품 보기': 학생 홈의 친구 작품 목록(고정 ID community-section)으로. 정렬은 바꾸지 않는다
+  const openFriendWorks = useCallback(() => {
+    setNavIntent('friends')
+    setPage('dashboard')
+  }, [])
 
   const goDashboard = () => {
     setLaunch(null)
-    setPage(user ? 'dashboard' : 'home')
+    setPage(user ? backTo : 'home')
   }
 
   /* ── Render ───────────────────────────────────── */
@@ -161,28 +254,36 @@ export default function App() {
   }
 
   if ((page === 'survey' || page === 'survey-edit') && user) {
+    const afterSurvey = page === 'survey-edit' ? backTo : 'dashboard'
     return (
       <SurveyPage
         user={user}
         editing={page === 'survey-edit'}
-        onDone={(u) => { saveUser(u); setPage('dashboard') }}
-        onSkip={(u) => { if (u) saveUser(u); setPage('dashboard') }}
+        onDone={(u) => { saveUser(u); setPage(afterSurvey) }}
+        onSkip={(u) => { if (u) saveUser(u); setPage(afterSurvey) }}
       />
     )
   }
 
-  if (page === 'dashboard' && user) {
+  // 학생 홈·단계별 학습·마이페이지는 같은 자리에서 같은 컴포넌트로 그려 상태를 유지한다
+  if (PERSONAL_PAGES.includes(page) && user) {
     return (
       <StudentHomePage
         user={user}
+        view={page}
+        onChangeView={setPage}
         onLogout={logout}
         onOpenEditor={openEditor}
-        onEditSurvey={() => setPage('survey-edit')}
+        onEditSurvey={openSurveyEdit}
         onOpenMyGame={openMyGame}
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
         onGoHome={() => setPage('home')}
-        onOpenBoard={() => setPage('board')}
+        onMenu={handleMenu}
+        navIntent={navIntent}
+        onNavIntentDone={consumeNavIntent}
+        sessionIssue={sessionIssue}
+        onRecheckSession={checkSession}
       />
     )
   }
@@ -191,14 +292,20 @@ export default function App() {
     return (
       <HomePage
         user={user}
-        onAuth={() => setPage('auth')}
-        onGuest={() => openEditor({ mode: 'free' })}
+        onAuth={openAuth}
         onGoDashboard={() => setPage('dashboard')}
-        onOpenFree={openFreeFromHome}
+        onOpenMyPage={() => setPage('mypage')}
+        onOpenProject={openProjectFromHome}
+        onOpenFriendWorks={openFriendWorks}
+        onMenu={handleMenu}
+        navIntent={navIntent}
+        onNavIntentDone={consumeNavIntent}
+        sessionIssue={sessionIssue}
+        onRecheckSession={checkSession}
         onLogout={logout}
         onUserChange={saveUser}
         onAccountDeleted={clearSession}
-        onEditSurvey={() => setPage('survey-edit')}
+        onEditSurvey={openSurveyEdit}
       />
     )
   }
@@ -209,7 +316,7 @@ export default function App() {
         user={user}
         onLogout={logout}
         onGoHome={() => setPage('home')}
-        onNavigate={(key) => (key === 'board' ? setPage('board') : key === 'home' ? setPage('dashboard') : setPage('dashboard'))}
+        onMenu={handleMenu}
       />
     )
   }
@@ -230,6 +337,8 @@ export default function App() {
 
   return (
     <AuthPage
+      key={authMode}
+      initialMode={authMode}
       onLogin={handleLogin}
       onGuest={() => openEditor({ mode: 'free' })}
       onForgotPassword={() => setPage('reset')}
