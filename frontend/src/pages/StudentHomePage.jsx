@@ -13,7 +13,7 @@ import AttendanceCard from '../components/AttendanceCard'
 import ShopPanel from '../components/ShopPanel'
 import SearchBox from '../components/SearchBox'
 import SiteFooter from '../components/SiteFooter'
-import { MyProfileSide } from '../components/ProfileCard'
+import { MyAchievements, MyProfileBand, MyProfileSettings } from '../components/ProfileCard'
 import { useMyProfile } from '../lib/useMyProfile'
 import ProfileModal from '../components/ProfileModal'
 import ActivityChart from '../components/ActivityChart'
@@ -44,8 +44,6 @@ const SECTION_ID = {
   chapters: 'chapters-section',
   projects: 'mypage-projects',
   items: 'mypage-items',
-  shop: 'mypage-shop',
-  attendance: 'dashboard-attendance', // 학생 홈 '오늘의 출석' (AttendanceCard를 감싼 칸)
 }
 
 // 구역으로 스크롤: 고정(sticky) 상단바에 가리지 않게 상단바 실제 높이 + 여백만큼 띄운다
@@ -292,22 +290,10 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
   const openTopic = (t) => onOpenEditor({ mode: 'free', topic: t, completedChapters: completedNos })
   const openBlank = () => onOpenEditor({ mode: 'free', completedChapters: completedNos })
 
-  // 마이페이지: 프로필(레벨·업적·친구)과 연속 출석일은 마이페이지에 들어올 때마다 새로 불러온다
+  // 마이페이지: 프로필(레벨·업적·친구)은 마이페이지에 들어올 때마다 새로 불러온다
   const myProfile = useMyProfile(showToast, page === 'mypage')
-  // 연속 출석: 조회(GET)만 한다. 출석 도장(POST)은 하지 않는다
-  const [streak, setStreak] = useState({ value: null, error: false })
-  const streakSeq = useRef(0)
-  const loadStreak = useCallback(() => {
-    const id = ++streakSeq.current
-    return api.attendance()
-      .then((s) => { if (id === streakSeq.current) setStreak({ value: s.streak ?? 0, error: false }) })
-      .catch(() => { if (id === streakSeq.current) setStreak({ value: null, error: true }) })
-  }, [])
-  useEffect(() => {
-    if (page !== 'mypage') return
-    loadStreak()
-  }, [page, loadStreak])
-  const retryStreak = () => { setStreak({ value: null, error: false }); loadStreak() }
+  // 코코 꾸미기 탭 ('mine' 내 아이템 / 'shop' 상점). 학생 홈의 아이템·코인 숫자를 누르면 해당 탭으로 연다
+  const [decorTab, setDecorTab] = useState('mine')
 
   // 화면(view)을 바꾸면 맨 위에서 시작한다. 다른 화면의 특정 구역으로 가야 할 때는
   // 화면이 바뀐 뒤 그 구역으로 스크롤한다 (scrollTargetRef). 첫 화면 진입 때는 건드리지 않는다.
@@ -329,6 +315,11 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
     const timers = [150, 400, 800].map((ms) => setTimeout(go, ms))
     return () => timers.forEach(clearTimeout)
   }, [page])
+
+  const openDecor = (tab) => {
+    setDecorTab(tab)
+    goToSection('mypage', SECTION_ID.items)
+  }
 
   // focus: 도착한 구역으로 초점도 옮길지 (마이페이지 학습 현황 카드처럼 키보드로 누를 수 있는 바로가기)
   const goToSection = (targetPage, sectionId, { focus = false } = {}) => {
@@ -520,10 +511,10 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
                 <div className="stat-divider" />
                 <StatLink num={itemStatus === 'loading' ? '…' : itemStatus === 'error' ? '–' : items.length} label="아이템"
                   hint={itemStatus === 'error' ? '아이템 수를 불러오지 못했어요 · 마이페이지의 코코 꾸미기로 이동' : '마이페이지의 코코 꾸미기로 이동'}
-                  onGo={() => goToSection('mypage', SECTION_ID.items)} />
+                  onGo={() => openDecor('mine')} />
                 <div className="stat-divider" />
                 <StatLink num={coins} label="코인" hint="마이페이지의 코코 상점으로 이동"
-                  onGo={() => goToSection('mypage', SECTION_ID.shop)} />
+                  onGo={() => openDecor('shop')} />
               </div>
             )}
           </div>
@@ -587,60 +578,15 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
           </div>
         </Section>}
 
-        {/* ── 마이페이지: 왼쪽 내 정보(프로필 카드, 넓은 화면에서 스크롤을 따라오는 sticky) / 오른쪽 학습 현황·활동·나머지 기능 ──
-            좁은 화면에서는 한 열로 프로필 → 학습 현황 → 나머지 순서 (HTML 순서 그대로) */}
+        {/* ── 마이페이지: 위 프로필 띠 / 본문(작품·꾸미기·학습 기록·업적) + 옆 칸(우리 반·친구·공개 범위)
+            좁은 화면에서는 한 열로 프로필 → 본문 → 옆 칸 (HTML 순서 그대로) */}
         {page === 'mypage' && (
           <div className="mypage">
-            <section className="dash-section mypage-head">
-              <div className="section-header"><h2 className="section-title">마이페이지</h2></div>
-            </section>
+            <h2 className="section-title mypage-title">마이페이지</h2>
+            <MyProfileBand profile={myProfile} roleLabel={ROLE_LABEL[role]} equippedItems={equipped}
+              onEditAccount={() => setAccountOpen(true)} onOpenShowroom={() => openDecor('mine')} />
             <div className="mypage-layout">
-              {/* 왼쪽 묶음: 프로필 요약 → 업적·친구·공개 범위(접기) → 우리 반 카드. 넓은 화면에서는 묶음 전체가 sticky */}
-              <div className="mypage-side">
-                <MyProfileSide profile={myProfile} roleLabel={ROLE_LABEL[role]} equippedItems={equipped}
-                  onEditAccount={() => setAccountOpen(true)} onEditSurvey={onEditSurvey}
-                  onOpenShowroom={() => goToSection('mypage', SECTION_ID.items)}
-                  onOpenProfile={setProfileId}>
-                  <div className="profile-card mypage-class-card">
-                    <StudentClasses showToast={showToast} />
-                  </div>
-                </MyProfileSide>
-              </div>
               <div className="mypage-main">
-                {/* 나의 학습 현황: 이미 있는 값만 쓴다 (챕터 완료·내 작품은 학생 홈 요약과 같은 값, 연속 출석은 출석 API) */}
-                <Section title="나의 학습 현황">
-                  <div className="mypage-stats">
-                    {/* 바로가기: 누르면 이동만 한다 (출석·저장 같은 요청 없음). 숫자가 0·불러오는 중·오류여도 누를 수 있다 */}
-                    <button type="button" className="profile-card mypage-stat mypage-stat-btn"
-                      onClick={() => goToSection('study', SECTION_ID.chapters, { focus: true })}
-                      aria-label={`챕터 완료 ${completedNos.length}/${CHAPTER_COUNT} — 단계별 학습의 챕터 목록으로 이동`}
-                      title="단계별 학습의 챕터 목록으로 이동">
-                      <span className="stat-num">{completedNos.length}/{CHAPTER_COUNT}</span><span className="stat-label">챕터 완료</span>
-                    </button>
-                    <button type="button" className="profile-card mypage-stat mypage-stat-btn"
-                      onClick={() => goToSection('mypage', SECTION_ID.projects, { focus: true })}
-                      aria-label={`내 작품 ${load.pr ? '불러오는 중' : err.pr ? '불러오지 못함' : `${projects.length}개`} — 내 포트폴리오로 이동`}
-                      title="내 포트폴리오로 이동">
-                      <span className="stat-num">{load.pr ? '…' : err.pr ? '–' : projects.length}</span><span className="stat-label">내 작품</span>
-                    </button>
-                    <button type="button" className="profile-card mypage-stat mypage-stat-btn"
-                      onClick={() => goToSection('dashboard', SECTION_ID.attendance, { focus: true })}
-                      aria-label={`연속 출석 ${streak.error ? '불러오지 못함' : streak.value == null ? '불러오는 중' : `${streak.value}일`} — 학생 홈의 오늘의 출석으로 이동`}
-                      title="학생 홈의 오늘의 출석으로 이동">
-                      <span className="stat-num">{streak.error ? '–' : streak.value ?? '…'}</span><span className="stat-label">연속 출석(일)</span>
-                    </button>
-                  </div>
-                  {(err.pr || streak.error) && (
-                    <p className="dash-hint" role="alert">
-                      {err.pr && streak.error ? '내 작품 수와 연속 출석을' : err.pr ? '내 작품 수를' : '연속 출석을'} 불러오지 못했어요.{' '}
-                      {err.pr && <button type="button" className="link-btn" onClick={retryProjects}>작품 다시 불러오기</button>}
-                      {err.pr && streak.error && ' · '}
-                      {streak.error && <button type="button" className="link-btn" onClick={retryStreak}>출석 다시 불러오기</button>}
-                    </p>
-                  )}
-                </Section>
-                <ActivityChart />
-
                 {/* ── 내 포트폴리오 (마이페이지) ── */}
                 <Section id={SECTION_ID.projects} title="내 포트폴리오" badge={projects.length ? `${projects.length}개` : null}
                   action={
@@ -689,41 +635,60 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
                   )}
                 </Section>
 
-                {/* ── 코코 꾸미기 (마이페이지) ── */}
-                <Section id={SECTION_ID.items} title="코코 꾸미기" badge={items.length ? `${items.length}개 모음` : null}>
-                  {itemStatus === 'loading' && items.length === 0 ? (
-                    <div className="empty-msg" role="status">아이템을 불러오는 중이에요…</div>
-                  ) : itemStatus === 'error' && items.length === 0 ? (
-                    <div className="empty-msg" role="alert">
-                      아이템을 불러오지 못했어요.{' '}
-                      <button type="button" className="link-btn" onClick={retryItems}>다시 시도</button>
+                {/* ── 코코 꾸미기: 미리보기 하나 + '내 아이템 / 상점' 탭 ── */}
+                <Section id={SECTION_ID.items} title="코코 꾸미기" badge={items.length ? `${items.length}개 모음` : null}
+                  action={
+                    <div className="filter-tabs" role="tablist" aria-label="코코 꾸미기">
+                      {[['mine', '내 아이템'], ['shop', '상점']].map(([v, l]) => (
+                        <button key={v} type="button" role="tab" aria-selected={decorTab === v} className={decorTab === v ? 'on' : ''}
+                          onClick={() => setDecorTab(v)}>{l}</button>
+                      ))}
                     </div>
-                  ) : items.length === 0 ? (
-                    <div className="empty-msg">챕터를 완료하거나 작품을 저장하면 코코를 꾸밀 아이템을 받아요. 아래 상점에서 코인으로 살 수도 있어요!</div>
-                  ) : (
-                    <div className="items-wrap">
-                      <div className="items-preview"><CocoAvatar size={110} emotion="happy" items={equipped} /></div>
-                      <div className="items-grid">
-                        {items.map((it) => (
-                          <button key={it.id} type="button" className={`item-card ${Number(it.equipped) ? 'on' : ''}`} onClick={() => toggleEquip(it)}
-                            aria-pressed={!!Number(it.equipped)} title={Number(it.equipped) ? '벗기기' : '입히기'}>
-                            <span className="item-emoji" aria-hidden="true">{it.emoji}</span>
-                            <span className="item-name">{it.item_name}</span>
-                            <span className="item-type">{ITEM_TYPE_LABEL[it.item_type] ?? it.item_type}</span>
-                          </button>
-                        ))}
-                      </div>
+                  }>
+                  <div className="items-wrap">
+                    <div className="items-preview"><CocoAvatar size={110} emotion="happy" items={equipped} /></div>
+                    <div className="decor-body">
+                      {decorTab === 'shop' ? (
+                        <ShopPanel embedded showToast={showToast} equipped={equipped} onCoinsChange={setCoins}
+                          onBought={() => api.items().then(setItems).catch(() => {})} />
+                      ) : itemStatus === 'loading' && items.length === 0 ? (
+                        <div className="empty-msg" role="status">아이템을 불러오는 중이에요…</div>
+                      ) : itemStatus === 'error' && items.length === 0 ? (
+                        <div className="empty-msg" role="alert">
+                          아이템을 불러오지 못했어요.{' '}
+                          <button type="button" className="link-btn" onClick={retryItems}>다시 시도</button>
+                        </div>
+                      ) : items.length === 0 ? (
+                        <div className="empty-msg">
+                          챕터를 완료하거나 작품을 저장하면 코코를 꾸밀 아이템을 받아요.{' '}
+                          <button type="button" className="link-btn" onClick={() => setDecorTab('shop')}>상점에서 코인으로 살 수도 있어요!</button>
+                        </div>
+                      ) : (
+                        <div className="items-grid">
+                          {items.map((it) => (
+                            <button key={it.id} type="button" className={`item-card ${Number(it.equipped) ? 'on' : ''}`} onClick={() => toggleEquip(it)}
+                              aria-pressed={!!Number(it.equipped)} title={Number(it.equipped) ? '벗기기' : '입히기'}>
+                              <span className="item-emoji" aria-hidden="true">{it.emoji}</span>
+                              <span className="item-name">{it.item_name}</span>
+                              <span className="item-type">{ITEM_TYPE_LABEL[it.item_type] ?? it.item_type}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </Section>
 
-                {/* ── 코코 상점 (마이페이지) ── */}
-                {/* 상점은 불러오는 동안 골격 카드만 그리므로, 바로가기 대상 ID는 감싸는 칸에 둔다 */}
-                <div id={SECTION_ID.shop}>
-                  <ShopPanel showToast={showToast} equipped={equipped} onCoinsChange={setCoins}
-                    onBought={() => api.items().then(setItems).catch(() => {})} />
-                </div>
+                <ActivityChart rankLimit={3} />
+                <MyAchievements profile={myProfile} />
               </div>
+              <aside className="mypage-side" aria-label="내 설정">
+                <MyProfileSettings profile={myProfile} onOpenProfile={setProfileId}>
+                  <div className="profile-card mypage-class-card">
+                    <StudentClasses showToast={showToast} />
+                  </div>
+                </MyProfileSettings>
+              </aside>
             </div>
           </div>
         )}
@@ -847,10 +812,7 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
         </div>
 
         <aside className="dash-col-side" aria-label="내 기록">
-          {/* 마이페이지 '연속 출석' 바로가기의 도착 칸 (AttendanceCard는 그대로, ID만 가진 칸으로 감싼다) */}
-          <div id={SECTION_ID.attendance}>
-            <AttendanceCard showToast={showToast} onCoinsChange={setCoins} />
-          </div>
+          <AttendanceCard showToast={showToast} onCoinsChange={setCoins} />
         </aside>
         </div>}
       </main>

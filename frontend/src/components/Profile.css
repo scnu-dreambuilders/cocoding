@@ -221,6 +221,9 @@
   font-size: 0.8333rem;
 }
 .rank-list li.is-me { background: var(--accent-light); font-weight: 600; }
+/* 위 몇 명만 보일 때 순위가 떨어져 있으면 사이를 점으로 */
+.rank-list li.rank-gap { margin-top: 18px; position: relative; }
+.rank-list li.rank-gap::before { content: '⋮'; position: absolute; top: -18px; left: 14px; color: var(--text-muted); line-height: 18px; }
 .rank-no { min-width: 22px; text-align: center; color: var(--text-h); font-weight: 700; }
 .rank-list li.is-me .rank-no { color: var(--accent); }
 .rank-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-h); }
