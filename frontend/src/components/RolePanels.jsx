@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Check, Play, Puzzle, Trophy, UsersRound } from 'lucide-react'
+import { Check, Lock, Play, Puzzle, RefreshCw, Trophy, UsersRound } from 'lucide-react'
 import { api } from '../api/client'
 import { CHAPTERS } from '../data/chapters'
 import { formatCode } from '../lib/validators'
@@ -358,12 +358,10 @@ export function TeacherPanel({ showToast }) {
               <div><b>{students.filter((s) => s.completed >= chapterCount).length}</b><span>모두 완료</span></div>
             </div>
             <div className="join-code-actions">
-              <button type="button" className="role-btn ghost" onClick={() => setReload((n) => n + 1)} title="새로 들어온 학생·최신 진도 불러오기">↻ 새로고침</button>
+              <button type="button" className="role-btn ghost" onClick={() => setReload((n) => n + 1)} title="새로 들어온 학생·최신 진도 불러오기"><RefreshCw size={14} aria-hidden="true" /> 새로고침</button>
               <button type="button" className="role-btn danger" onClick={removeClass}>반 삭제</button>
             </div>
           </div>
-
-          <TeacherAssignments classId={detail.id} showToast={showToast} />
 
           {students.length === 0 ? (
             <div className="role-empty">
@@ -419,6 +417,8 @@ export function TeacherPanel({ showToast }) {
               </p>
             </div>
           )}
+
+          <TeacherAssignments classId={detail.id} showToast={showToast} />
         </div>
       )}
     </PanelSection>
@@ -443,6 +443,8 @@ export function GuardianPanel({ showToast }) {
   const [preview, setPreview] = useState(null)
   const [agreed, setAgreed] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [childId, setChildId] = useState(null)       // 보고 있는 아이 (없으면 첫째)
+  const [linking, setLinking] = useState(false)      // 이미 연결된 아이가 있을 때 '아이 계정 연결하기'를 펼쳤는지
 
   const load = useCallback(() => {
     api.children().then(setChildren).catch((e) => {
@@ -476,6 +478,7 @@ export function GuardianPanel({ showToast }) {
       showToast(res.message)
       setPreview(null)
       setCode('')
+      setLinking(false)
       load()
     } catch (err) {
       showToast(err.message)
@@ -495,8 +498,30 @@ export function GuardianPanel({ showToast }) {
     }
   }
 
+  const list = children ?? []
+  const child = list.find((c) => c.id === childId) ?? list[0]
+  const showLinkForm = preview || list.length === 0 || linking
+
   return (
-    <PanelSection title="우리 아이" badge={children?.length ? `${children.length}명` : null} className="guardian-panel">
+    <PanelSection title="우리 아이" badge={list.length ? `${list.length}명` : null} className="guardian-panel">
+      {/* 위: 아이 고르기 (둘 이상일 때) + 다른 아이 계정 연결하기 */}
+      {list.length > 0 && (
+        <div className="class-tabs" role="tablist" aria-label="아이 고르기">
+          {list.length > 1 && list.map((c) => (
+            <button key={c.id} type="button" role="tab" aria-selected={child?.id === c.id}
+              className={`class-tab ${child?.id === c.id ? 'on' : ''}`} onClick={() => setChildId(c.id)}>
+              {c.username}
+            </button>
+          ))}
+          {!preview && (
+            <button type="button" className="role-btn ghost guardian-link-toggle" aria-expanded={linking}
+              onClick={() => setLinking((v) => !v)}>
+              {linking ? '연결 취소' : '다른 아이 계정 연결하기'}
+            </button>
+          )}
+        </div>
+      )}
+
       {preview ? (
         <div className="consent-form">
           <h4><b>{preview.username}</b> ({preview.birth_year}년생) 계정이 맞나요?</h4>
@@ -515,7 +540,7 @@ export function GuardianPanel({ showToast }) {
             <button type="button" className="role-btn" onClick={consent} disabled={!agreed || busy}>동의하고 연결</button>
           </div>
         </div>
-      ) : (
+      ) : showLinkForm && (
         <form className="code-form wide" onSubmit={lookup}>
           <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={9}
             placeholder="아이 화면의 동의 코드 (예: ABCD-2345)" aria-label="자녀 동의 코드" />
@@ -523,54 +548,77 @@ export function GuardianPanel({ showToast }) {
         </form>
       )}
 
-      {children && children.length === 0 && !preview && (
+      {children && list.length === 0 && !preview && (
         <div className="role-empty">
           <b>아이 계정을 연결해보세요</b>
-          <span>아이가 로그인하면 대시보드에 <b>동의 코드</b>가 보여요. 코드를 입력하고 동의하면 아이의 학습 진도를 여기서 볼 수 있어요.</span>
+          <span>아이가 로그인하면 학생 홈에 <b>동의 코드</b>가 보여요. 코드를 입력하고 동의하면 아이의 학습 진도를 여기서 볼 수 있어요.</span>
         </div>
       )}
 
-      <div className="children-grid">
-        {(children ?? []).map((c) => (
-          <article key={c.id} className="child-card">
-            <header>
-              <h4>{c.username}</h4>
-              <span className="child-active">최근 활동: {daysAgo(c.last_active)}</span>
-            </header>
-            <div className="child-progress" aria-label={`챕터 ${c.chapter_count}개 중 ${c.completed}개 완료`}>
-              <div className="child-bar"><span style={{ width: `${(c.completed / c.chapter_count) * 100}%` }} /></div>
-              <b>{c.completed}/{c.chapter_count}</b> 챕터 완료
-            </div>
-            <div className="child-chapters"><ChapterCells chapters={c.chapters} /></div>
-            <div className="child-meta">
-              <span>작품 {c.projects}개</span>
-              <span>공개 {c.shared_projects}개</span>
-            </div>
-            {c.projects_list?.length ? (
-              <ul className="child-projects-list">
-                {c.projects_list.map((p) => (
-                  <li key={p.id} className="child-project-row">
-                    <div className="project-thumb" aria-hidden="true">
-                      {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" /> : (p.track === 'chapter' ? <Trophy size={24} /> : <Puzzle size={24} />)}
-                    </div>
-                    <div className="project-info">
-                      <div className="project-title">{p.title}</div>
-                      <div className="project-meta">
-                        <span className={`project-track track-${p.track}`}>{p.track === 'chapter' ? '챕터' : '자유 창작'}</span>
-                        {Number(p.is_public) ? <span className="project-public">공개</span> : <span className="project-private">비공개</span>}
-                        <span className="project-date">{daysAgo(p.updated_at)}</span>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="empty-msg child-projects-empty">아직 만든 프로젝트가 없어요.</p>
-            )}
-            <button type="button" className="role-btn ghost danger-text" onClick={() => unlink(c)}>연결 끊기</button>
-          </article>
-        ))}
-      </div>
+      {!children && <div className="skeleton-card role-skeleton" aria-hidden="true" />}
+
+      {child && <ChildProgress child={child} onUnlink={() => unlink(child)} />}
     </PanelSection>
+  )
+}
+
+/* 보호자: 고른 아이 한 명의 학습 현황 — 요약 숫자 → 챕터별 진도 → 최근 작품 */
+function ChildProgress({ child: c, onUnlink }) {
+  return (
+    <div className="child-detail">
+      <div className="progress-stats">
+        <div className="progress-stat">
+          <b>{c.completed}<small>/{c.chapter_count}</small></b>
+          <span>챕터 완료</span>
+          <div className="child-bar" aria-hidden="true"><span style={{ width: `${(c.completed / c.chapter_count) * 100}%` }} /></div>
+        </div>
+        <div className="progress-stat"><b>{daysAgo(c.last_active)}</b><span>최근 활동</span></div>
+        <div className="progress-stat"><b>{c.projects}<small>개</small></b><span>만든 작품 (공개 {c.shared_projects}개)</span></div>
+      </div>
+
+      <section className="child-block" aria-labelledby={`child-ch-${c.id}`}>
+        <h4 id={`child-ch-${c.id}`}>챕터별 진도</h4>
+        <ol className="chapter-progress-list">
+          {c.chapters.map((ch) => (
+            <li key={ch.order_num} className={`cpl-row cpl-${ch.status}`}>
+              <span className="cpl-no">{ch.order_num}</span>
+              <span className="cpl-title">{CHAPTERS[ch.order_num]?.title ?? `챕터 ${ch.order_num}`}</span>
+              <span className="cpl-state">
+                {ch.status === 'completed' ? <><Check size={14} aria-hidden="true" /> 완료 · 최고 {ch.best_score ?? '-'}점</>
+                  : ch.status === 'in_progress' ? <><Play size={12} aria-hidden="true" /> 도전 중{ch.attempts ? ` · 제출 ${ch.attempts}번` : ''}</>
+                    : <><Lock size={12} aria-hidden="true" /> 아직 잠김</>}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="child-block" aria-labelledby={`child-pj-${c.id}`}>
+        <h4 id={`child-pj-${c.id}`}>최근 작품</h4>
+        {c.projects_list?.length ? (
+          <ul className="child-projects-list">
+            {c.projects_list.map((p) => (
+              <li key={p.id} className="child-project-row">
+                <div className="project-thumb" aria-hidden="true">
+                  {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" /> : (p.track === 'chapter' ? <Trophy size={24} /> : <Puzzle size={24} />)}
+                </div>
+                <div className="project-info">
+                  <div className="project-title">{p.title}</div>
+                  <div className="project-meta">
+                    <span className={`project-track track-${p.track}`}>{p.track === 'chapter' ? '챕터' : '자유 창작'}</span>
+                    {Number(p.is_public) ? <span className="project-public">공개</span> : <span className="project-private">비공개</span>}
+                    <span className="project-date">{daysAgo(p.updated_at)}</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="empty-msg child-projects-empty">아직 만든 작품이 없어요.</p>
+        )}
+      </section>
+
+      <button type="button" className="role-btn ghost danger-text child-unlink" onClick={onUnlink}>{c.username} 계정과 연결 끊기</button>
+    </div>
   )
 }
