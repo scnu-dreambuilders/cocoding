@@ -10,6 +10,7 @@ import PasswordResetPage from './pages/PasswordResetPage'
 import BoardPage from './pages/BoardPage'
 import { api } from './api/client'
 import { CHAPTER_COUNT } from './data/chapters'
+import { BLOCK_INFO } from './blockly/blockInfo'
 
 /* Read any locally-cached session synchronously (lazy initializer) so the
    first render already reflects it — no loading flash, no setState-in-effect. */
@@ -60,12 +61,40 @@ const PATH_PAGE = Object.fromEntries(Object.entries(PAGE_PATH).map(([p, path]) =
 const LOGIN_ONLY = new Set(['dashboard', 'study', 'mypage', 'board', 'survey', 'survey-edit'])
 const STUDENT_ONLY = new Set(['study', 'mypage'])
 
+// 추천 주제로 시작한 새 작품은 주제를 주소에 담아, 새로고침해도 같은 주제로 다시 연다
+const TOPIC_FIELDS = ['title', 'category', 'hint', 'hintBlock', 'costume', 'level']
+function topicQuery(topic) {
+  if (!topic) return ''
+  const q = new URLSearchParams()
+  TOPIC_FIELDS.forEach((k) => { if (topic[k] != null && topic[k] !== '') q.set(k, String(topic[k])) })
+  return `?${q}`
+}
+// 주소에서 읽은 값은 그대로 믿지 않는다: 글자 수를 자르고, 블록·모습은 아는 값만
+function topicOf(search) {
+  const q = new URLSearchParams(search)
+  const text = (k) => (q.get(k) ?? '').slice(0, 60)
+  if (!text('title')) return null
+  const hintBlock = q.get('hintBlock')
+  const costume = q.get('costume')
+  return {
+    title: text('title'),
+    category: text('category') || undefined,
+    hint: text('hint') || undefined,
+    hintBlock: hintBlock && BLOCK_INFO[hintBlock] ? hintBlock : undefined,
+    costume: costume && /^[a-z]{1,20}$/.test(costume) ? costume : undefined,
+    level: Math.min(3, Math.max(1, Number(q.get('level')) || 1)),
+  }
+}
+
 function editorPath(launch, savedId) {
   if (launch.mode === 'chapter') return `/editor/chapter/${launch.chapter.id}`
   if (launch.template === 'mygame') return '/editor/mygame'
   const id = launch.projectId ?? savedId
-  return id ? `/editor/project/${id}` : '/editor/new'
+  return id ? `/editor/project/${id}` : `/editor/new${topicQuery(launch.topic)}`
 }
+
+// 지금 주소 (주제처럼 ?뒤에 붙는 값까지)
+const currentPath = () => window.location.pathname + window.location.search
 
 // 지금 화면의 주소. 비밀번호 재설정은 주소의 토큰을 그대로 둔다 (null)
 function pathOf(page, launch, authMode, savedId) {
@@ -74,13 +103,13 @@ function pathOf(page, launch, authMode, savedId) {
   return PAGE_PATH[page] ?? null
 }
 
-// 주소 → { page, authMode } 또는 편집기라면 { editor: { kind, id } } (편집기는 데이터를 다시 불러와 연다)
-function routeOf(pathname) {
+// 주소 → { page, authMode } 또는 편집기라면 { editor: { kind, id, topic } } (편집기는 데이터를 다시 불러와 연다)
+function routeOf(pathname, search = '') {
   const path = pathname.replace(/\/+$/, '') || '/'
   const m = path.match(/^\/editor\/(chapter|project)\/(\d+)$/)
   if (m) return { editor: { kind: m[1], id: Number(m[2]) } }
   if (path === '/editor/mygame') return { editor: { kind: 'mygame' } }
-  if (path === '/editor/new') return { editor: { kind: 'new' } }
+  if (path === '/editor/new') return { editor: { kind: 'new', topic: topicOf(search) } }
   if (path === '/login') return { page: 'auth', authMode: 'login' }
   if (path === '/signup') return { page: 'auth', authMode: 'register' }
   return { page: PATH_PAGE[path] ?? 'home' }
@@ -115,7 +144,7 @@ export default function App() {
   // 로그인 화면을 어느 탭으로 열지 ('login' | 'register') — 회원가입 버튼만 'register'
   const [authMode, setAuthMode] = useState(() => routeOf(window.location.pathname).authMode ?? 'login')
   // 편집기 주소(/editor/...)로 들어오거나 뒤로 가기로 돌아왔을 때 다시 열어야 할 편집기. 여는 동안은 안내만 보여준다
-  const [restoring, setRestoring] = useState(() => (readResetToken() ? null : routeOf(window.location.pathname).editor ?? null))
+  const [restoring, setRestoring] = useState(() => (readResetToken() ? null : routeOf(window.location.pathname, window.location.search).editor ?? null))
   // 화면을 옮긴 뒤 한 번만 할 일 ('popular': 친구 작품 인기순으로 / 'guide': 사용법 안내 열기). 쓰고 나면 null
   const [navIntent, setNavIntent] = useState(null)
   // 앱 시작 시 세션 확인이 인증 문제가 아닌 이유(네트워크·서버 오류 등)로 실패했을 때의 안내
@@ -124,7 +153,7 @@ export default function App() {
   // 주소 동기화용 — 새 작품을 처음 저장해 생긴 번호, 편집기의 '나가도 될까?' 확인, 뒤로 가기 처리에 쓰는 최신 값
   const savedIdRef = useRef(null)
   const leaveGuardRef = useRef(null)
-  const lastPathRef = useRef(window.location.pathname)
+  const lastPathRef = useRef(currentPath())
   const replaceNextRef = useRef(true) // 첫 화면·주소 보정은 방문 기록을 늘리지 않는다
   const latestRef = useRef({ page, user })
   useEffect(() => { latestRef.current = { page, user } })
@@ -251,8 +280,9 @@ export default function App() {
     }
   }, [])
 
-  const openFreeFromHome = useCallback(async () => {
-    openEditor({ mode: 'free', completedChapters: await loadCompletedChapters() })
+  // extra: 추천 주제처럼 함께 넘길 값 ({ topic })
+  const openFreeFromHome = useCallback(async (extra) => {
+    openEditor({ mode: 'free', ...extra, completedChapters: await loadCompletedChapters() })
   }, [openEditor, loadCompletedChapters])
 
   // 메인 추천 작품 카드: 고른 작품을 기존 구경 흐름(에디터, 남의 작품은 '구경 중' — 저장·공유 없음)으로 연다.
@@ -304,13 +334,13 @@ export default function App() {
 
   /* ── 주소 동기화 ──────────────────────────────── */
   // 편집기 주소를 데이터로 다시 연다 (새로고침·주소 공유·뒤로 가기). 못 열면 각 함수가 학생 홈 등으로 보낸다
-  const restoreEditor = useCallback(async ({ kind, id }) => {
+  const restoreEditor = useCallback(async ({ kind, id, topic }) => {
     if (kind === 'new' && !user) { openEditor({ mode: 'free' }); return } // 로그인 없이 체험
     if (!user) { setAuthMode('login'); setPage('auth'); return }
     if (kind === 'chapter') await openChapterById(id)
     else if (kind === 'mygame') openMyGame()
     else if (kind === 'project') await openProjectFromHome(id)
-    else await openFreeFromHome()
+    else await openFreeFromHome(topic ? { topic } : undefined)
   }, [user, openEditor, openChapterById, openMyGame, openProjectFromHome, openFreeFromHome])
 
   const restoredRef = useRef(null)
@@ -329,7 +359,7 @@ export default function App() {
     const path = pathOf(page, launch, authMode, savedIdRef.current)
     const replace = replaceNextRef.current
     replaceNextRef.current = false
-    if (!path || path === window.location.pathname) return
+    if (!path || path === currentPath()) return
     window.history[replace ? 'replaceState' : 'pushState'](null, '', path)
     lastPathRef.current = path
   }, [page, launch, authMode, restoring])
@@ -342,8 +372,8 @@ export default function App() {
         window.history.pushState(null, '', lastPathRef.current)
         return
       }
-      lastPathRef.current = window.location.pathname
-      const route = routeOf(window.location.pathname)
+      lastPathRef.current = currentPath()
+      const route = routeOf(window.location.pathname, window.location.search)
       if (route.editor) { setRestoring(route.editor); return }
       replaceNextRef.current = true
       setLaunch(null)
