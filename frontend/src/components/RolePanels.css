@@ -241,7 +241,12 @@
   background: var(--panel-bg);
   min-width: 0;
 }
-.progress-stat b { font-size: 1.4rem; line-height: 1.2; color: var(--text-h); }
+.progress-stat b { font-size: 1.4rem; line-height: 1.2; color: var(--text-h); word-break: keep-all; }
+@media (max-width: 480px) {
+  .progress-stats { gap: 8px; }
+  .progress-stat { padding: 12px; }
+  .progress-stat b { font-size: 1.1rem; }
+}
 .progress-stat b small { font-size: 0.9rem; font-weight: 600; color: var(--text); }
 .progress-stat span { font-size: 0.8rem; color: var(--text); }
 .child-bar { height: 8px; border-radius: var(--radius-pill); background: var(--btn-hover); overflow: hidden; margin-top: 4px; }
