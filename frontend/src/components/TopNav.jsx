@@ -1,4 +1,4 @@
-import { BookOpen, Gamepad2, MessageCircleQuestion, MessagesSquare, Palette } from 'lucide-react'
+import { BookOpen, Gamepad2, MessagesSquare, Palette } from 'lucide-react'
 import { BrandLogo } from './icons'
 import './TopNav.css'
 
@@ -14,8 +14,7 @@ import './TopNav.css'
 const MENU = [
   { key: 'study', label: '단계별 학습', icon: BookOpen },
   { key: 'free', label: '자유창작', icon: Palette },
-  { key: 'qna', label: 'Q&A 게시판', icon: MessageCircleQuestion },
-  { key: 'board', label: '토론 게시판', icon: MessagesSquare },
+  { key: 'board', label: '코딩 게시판', icon: MessagesSquare }, // 토론과 질문(Q&A)을 함께 쓰는 게시판
   { key: 'game', label: '게임존', icon: Gamepad2 },
 ]
 

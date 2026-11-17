@@ -1,23 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '../api/client'
+import { api, BOARD_SERVER } from '../api/client'
 import TopNav from '../components/TopNav'
 import SiteFooter from '../components/SiteFooter'
 import TextSizeControl from '../components/TextSizeControl'
 import ProfileModal from '../components/ProfileModal'
+import BoardPostForm from '../components/BoardPostForm'
+import BoardFilters from '../components/BoardFilters'
+import { BOARD_KIND_LABEL, BOARD_STATUS_LABEL, blockLabel, chapterLabel, normalizePost } from '../lib/boardTopics'
 import './BoardPage.css'
 
 /* ════════════════════════════════════════════════
-   토론 게시판 — 코딩 이야기를 나누는 곳
-   글 쓰기·고치기·지우기, 댓글, 신고(3명이면 자동 숨김)
-   (기능정의서 STU-003, 요구사항 SFR-STU-005)
+   코딩 게시판 — 토론과 질문(Q&A)을 한 화면에서
+   · 토론: 글 쓰기·고치기·지우기, 댓글, 신고(3명이면 자동 숨김) — 지금 서버로 동작
+   · 질문: 챕터·블록 태그, 해결 상태, 답변·채택 — 화면은 완성, 서버 API는 연결 전 (api/client.js의 BOARD_SERVER)
+     연결 전 기능은 요청을 보내지 않고 '서버 연결 전' 안내를 띄운다. 성공한 척하거나 다른 곳에 대신 저장하지 않는다.
+   (기능정의서 STU-003, 요구사항 SFR-STU-005, 플로우차트 ver02 '게시판', PR #10 리뷰의 Q&A 요구)
    ════════════════════════════════════════════════ */
 const fmt = (s) => (s ? String(s).slice(5, 16).replace('-', '/') : '')
 
 const LEAVE_MESSAGE = '작성 중인 내용이 사라져요. 나갈까요?'
+const UNSUPPORTED_KEEP = '쓴 내용은 그대로 있어요. 토론으로 올리거나, 서버 연결 뒤에 다시 올려 주세요.'
+
+// 목록 조건 — 상세에 들어갔다 돌아와도 그대로 둔다. 질문 필터(chapter·block·status)는 질문 탭에서만 적용
+const DEFAULT_QUERY = { kind: 'all', q: '', chapter: '', block: '', status: 'all' }
+const apiQuery = (q) => (q.kind === 'question' ? q : { kind: q.kind, q: q.q })
+const hasConditions = (q) => !!q.q || (q.kind === 'question' && (!!q.chapter || !!q.block || q.status !== 'all'))
 
 // 이 화면을 떠나지 않고 안내만 띄우는 메뉴인지 (App의 공통 메뉴 규칙과 같은 기준) — 이런 메뉴에는 이탈 확인을 띄우지 않는다
+// 'qna'·'board'는 둘 다 이 코딩 게시판이다. 게임존은 실제로 화면을 옮기므로 여기 넣지 않는다
 const STUDENT_ONLY_MENU = ['study', 'free', 'popular']
-const staysOnBoard = (key, user) => key === 'qna' || key === 'game' || key === 'board'
+const staysOnBoard = (key, user) => key === 'qna' || key === 'board'
   || ((user?.role ?? 'student') !== 'student' && STUDENT_ONLY_MENU.includes(key))
 
 // 고정 상단바에 가리지 않게 요소 위쪽이 상단바 아래에 오도록 즉시 스크롤
@@ -45,40 +57,24 @@ function Author({ id, onOpenProfile, className = '', children }) {
   )
 }
 
-// onDirtyChange(bool): 처음 값에서 바뀌었는지 (원래 값으로 되돌리면 false) — 이탈 확인에 쓴다
-function PostForm({ initial, onSubmit, onCancel, busy, onDirtyChange }) {
-  const initTitle = initial?.title ?? ''
-  const initBody = initial?.body ?? ''
-  const [title, setTitle] = useState(initTitle)
-  const [body, setBody] = useState(initBody)
-  const titleRef = useRef(null)
-
-  // 폼을 열면 제목 입력란으로 초점 (키보드 사용자가 바로 쓸 수 있게)
-  useEffect(() => { titleRef.current?.focus() }, [])
-
-  const change = (nextTitle, nextBody) => {
-    setTitle(nextTitle)
-    setBody(nextBody)
-    onDirtyChange?.(nextTitle !== initTitle || nextBody !== initBody)
-  }
-
+// 글 종류·해결 상태·챕터·블록 표시 (목록과 상세에서 같이 쓴다)
+function PostBadges({ post }) {
   return (
-    <form className="board-form" onSubmit={(e) => { e.preventDefault(); onSubmit(title, body) }}>
-      <input ref={titleRef} value={title} onChange={(e) => change(e.target.value, body)} maxLength={80}
-        placeholder="제목 (80자까지)" aria-label="제목" required />
-      <textarea value={body} onChange={(e) => change(title, e.target.value)} maxLength={1000} rows={6}
-        placeholder="코딩하면서 궁금했던 것, 만든 작품 이야기를 적어보세요 (1000자까지). 이름·학교·전화번호는 적지 마세요!"
-        aria-label="내용" required />
-      <div className="board-form-foot">
-        <small>{body.length}/1000</small>
-        <div>
-          {onCancel && <button type="button" className="role-btn ghost" onClick={onCancel}>취소</button>}
-          <button type="submit" className="role-btn" disabled={busy || !title.trim() || !body.trim()}>
-            {busy ? '올리는 중…' : initial ? '고치기' : '글 올리기'}
-          </button>
-        </div>
-      </div>
-    </form>
+    <>
+      <span className={`board-kind is-${post.kind}`}>{BOARD_KIND_LABEL[post.kind]}</span>
+      {post.kind === 'question' && (
+        <span className={`board-status is-${post.status}`}>{BOARD_STATUS_LABEL[post.status]}</span>
+      )}
+    </>
+  )
+}
+function PostTags({ post }) {
+  if (post.kind !== 'question' || (!post.chapter && post.blocks.length === 0)) return null
+  return (
+    <span className="board-tags">
+      {chapterLabel(post.chapter) && <span className="board-tag">{chapterLabel(post.chapter)}</span>}
+      {post.blocks.map((b) => <span key={b} className="board-tag is-block">{blockLabel(b)}</span>)}
+    </span>
   )
 }
 
@@ -87,11 +83,15 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   const [profileId, setProfileId] = useState(null) // 글쓴이 프로필 창
   const [list, setList] = useState(null)
   const [page, setPage] = useState(1)
+  const [query, setQuery] = useState(DEFAULT_QUERY)   // 실제로 적용된 목록 조건
+  const [searchInput, setSearchInput] = useState('')   // 검색창에 쓰는 중인 글자 (검색을 눌러야 적용)
   const [openId, setOpenId] = useState(null)
   const [detail, setDetail] = useState(null)
   const [detailNotice, setDetailNotice] = useState('') // 저장은 됐지만 새 내용을 불러오지 못했을 때의 안내
   const [writing, setWriting] = useState(false)
+  const [writeKind, setWriteKind] = useState('discussion') // 새 글 폼을 열 때의 처음 종류
   const [editing, setEditing] = useState(false)
+  const [formNotice, setFormNotice] = useState('')     // 폼을 올리지 못한 이유 (서버 연결 전 등) — 입력은 그대로
   const [comment, setComment] = useState('')
   const [reporting, setReporting] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -102,6 +102,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   const openIdRef = useRef(null)         // 응답이 왔을 때 아직 같은 글을 보고 있는지 확인용
   const writeSessionRef = useRef(0)      // 글쓰기 폼을 열 때마다 +1 — 이전 폼의 저장 결과가 새 폼을 닫지 않게
   const listSeq = useRef(0)              // 목록 요청 번호 — 늦게 온 응답이 최신 목록을 덮지 않게
+  const queryRef = useRef(DEFAULT_QUERY) // 요청을 보낼 때 쓰는 최신 목록 조건
   const listReturnRef = useRef(null)     // 목록으로 돌아올 때 복원할 { y, id } (id가 null이면 목록 제목으로 초점)
   const headRef = useRef(null)           // 목록 제목 (초점 대체 위치)
   const detailRef = useRef(null)
@@ -127,23 +128,28 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     setBusy(false)
   }
 
-  // 지금 화면에 사라질 입력이 있는지: 열린 글쓰기·고치기 폼이 바뀌었거나, 글 상세에서 댓글을 쓰는 중
+  // 지금 화면에 사라질 입력이 있는지: 열린 글쓰기·고치기 폼이 바뀌었거나, 글 상세에서 댓글·답변을 쓰는 중
   const hasDraft = () => formDirtyRef.current || (openIdRef.current != null && comment.trim() !== '')
   // 사라질 입력이 있을 때만 한 번 묻는다. 취소하면 아무것도 바꾸지 않는다
   const confirmLeave = (dirty = hasDraft()) => !dirty || window.confirm(LEAVE_MESSAGE)
 
-  // ── 목록 ──
-  const loadList = useCallback((p) => {
+  // ── 목록 ── 서버에 없는 조건(질문·검색)은 요청 없이 'unsupported'로 와서 '서버 연결 전' 안내를 띄운다
+  const loadList = useCallback((p, q = queryRef.current) => {
     const id = ++listSeq.current
-    api.boardList(p)
+    api.boardList(p, apiQuery(q))
       .then((r) => {
         if (id !== listSeq.current) return
-        setList(r)
+        setList({ posts: (r.posts ?? []).map(normalizePost), hasMore: !!r.hasMore })
         setPage(p)
       })
       .catch((e) => {
         if (id !== listSeq.current) return
-        setList({ posts: [], error: e.message, failedPage: p })
+        if (e.kind === 'unsupported') {
+          setList({ posts: [], unsupported: e.message })
+          setPage(p)
+        } else {
+          setList({ posts: [], error: e.message, failedPage: p })
+        }
       })
   }, [])
 
@@ -156,6 +162,29 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     const p = list?.failedPage ?? page
     setList(null)
     loadList(p)
+  }
+
+  // 탭·검색·필터를 바꾸면 첫 쪽부터 다시 (초점은 지금 누른 탭·칸에 그대로)
+  const changeQuery = (patch) => {
+    const next = { ...queryRef.current, ...patch }
+    queryRef.current = next
+    setQuery(next)
+    setList(null)
+    setPage(1)
+    loadList(1, next)
+  }
+  const applySearch = () => {
+    const q = searchInput.trim()
+    setSearchInput(q)
+    changeQuery({ q })
+  }
+  const clearSearch = () => {
+    setSearchInput('')
+    changeQuery({ q: '' })
+  }
+  const clearConditions = () => {
+    setSearchInput('')
+    changeQuery({ q: '', chapter: '', block: '', status: 'all' })
   }
 
   // ── 글 상세 ── 불러온 글에 postId를 같이 담아서, 지금 열람 중인 글과 다르면 아직 불러오는 중으로 본다
@@ -173,6 +202,9 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   }, [openId, showToast])
 
   const loaded = detail?.postId === openId ? detail : null
+  const post = loaded ? normalizePost(loaded.post) : null
+  const isQuestion = post?.kind === 'question'
+  const replyWord = isQuestion ? '답변' : '댓글'
 
   // 글을 다 불러오면 제목으로 초점 (화면은 열 때 이미 맞춤)
   const loadedId = loaded?.postId
@@ -201,6 +233,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     setReporting(false)
     setComment('')
     setDetailNotice('')
+    setFormNotice('')
     formDirtyRef.current = false
   }
 
@@ -215,6 +248,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     setReporting(false)
     setComment('')
     setDetailNotice('')
+    setFormNotice('')
     setEditing(false)
     setOpenId(id)
     // 상세가 그려진 뒤 상세 맨 위가 상단바 아래에 오도록
@@ -230,29 +264,38 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   const startWriting = () => {
     writeSessionRef.current += 1
     formDirtyRef.current = false
+    setFormNotice('')
+    setWriteKind(queryRef.current.kind === 'question' ? 'question' : 'discussion') // 질문 탭에서 열면 질문으로 시작
     setWriting(true)
   }
 
   const cancelWriting = () => {
     if (!confirmLeave(formDirtyRef.current)) return
     formDirtyRef.current = false
+    setFormNotice('')
     setWriting(false)
   }
 
-  const create = async (title, body) => {
+  // 질문으로 올릴 때만 질문 값을 보낸다 (토론은 지금 서버 형식 그대로)
+  const questionFields = (f) => (f.kind === 'question' ? { chapter: f.chapter, blocks: f.blocks } : undefined)
+
+  const create = async (form) => {
     if (!beginBusy()) return
     const session = writeSessionRef.current
+    setFormNotice('')
     try {
-      await api.createBoardPost(title, body)
+      await api.createBoardPost(form.title, form.body, questionFields(form))
       // 저장하는 사이 폼을 닫고 새로 열었다면 새 폼은 건드리지 않는다
       if (session === writeSessionRef.current) {
         formDirtyRef.current = false
         setWriting(false)
       }
       loadList(1)
-      showToast('글을 올렸어요')
+      showToast(form.kind === 'question' ? '질문을 올렸어요' : '글을 올렸어요')
     } catch (e) {
-      showToast(e.message) // 실패하면 폼과 입력은 그대로
+      // 실패하면 폼과 입력은 그대로. 서버 연결 전 기능은 폼 안에 이유를 남긴다 (토론으로 대신 저장하지 않음)
+      if (e.kind === 'unsupported') setFormNotice(`${e.message} ${UNSUPPORTED_KEEP}`)
+      else showToast(e.message)
     } finally {
       endBusy()
     }
@@ -261,11 +304,12 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   const cancelEditing = () => {
     if (!confirmLeave(formDirtyRef.current)) return
     formDirtyRef.current = false
+    setFormNotice('')
     setEditing(false)
   }
 
-  // 고친 글 다시 불러오기 (조회만)
-  const reloadDetail = async (postId) => {
+  // 저장 뒤 글 다시 불러오기 (조회만) — failText: 불러오지 못했을 때 안내 앞부분
+  const reloadDetail = async (postId, failText = '글은 고쳤지만 고친 내용을') => {
     try {
       const d = await api.boardPost(postId)
       if (openIdRef.current !== postId) return
@@ -273,17 +317,20 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
       setDetailNotice('')
     } catch (e) {
       if (openIdRef.current !== postId) return
-      setDetailNotice(`글은 고쳤지만 고친 내용을 불러오지 못했어요 (${e.message}). 아래는 고치기 전 내용이에요.`)
+      setDetailNotice(`${failText} 불러오지 못했어요 (${e.message}). 아래는 바뀌기 전 내용이에요.`)
     }
   }
 
-  const update = async (title, body) => {
+  const update = async (form) => {
     if (!beginBusy()) return
     const postId = openIdRef.current
+    setFormNotice('')
     try {
-      await api.updateBoardPost(postId, title, body)
+      await api.updateBoardPost(postId, form.title, form.body, questionFields(form))
     } catch (e) {
-      showToast(e.message) // 저장 실패: 폼과 입력은 그대로
+      // 저장 실패: 폼과 입력은 그대로
+      if (e.kind === 'unsupported') setFormNotice(`${e.message} 고친 내용은 그대로 있어요.`)
+      else showToast(e.message)
       endBusy()
       return
     }
@@ -300,7 +347,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
 
   const remove = async () => {
     if (busyRef.current) return
-    if (!window.confirm('이 글을 지울까요? 댓글도 함께 지워져요.')) return
+    if (!window.confirm(`이 글을 지울까요? ${replyWord}도 함께 지워져요.`)) return
     if (!beginBusy()) return
     const postId = openIdRef.current
     try {
@@ -319,6 +366,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     }
   }
 
+  // 댓글(토론)·답변(질문) 쓰기 — 지금 서버의 댓글 요청을 그대로 쓴다
   const addComment = async (e) => {
     e.preventDefault()
     if (!comment.trim() || !beginBusy()) return
@@ -361,6 +409,23 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     endBusy()
   }
 
+  // 답변 채택·채택 취소 (질문 작성자만) — 서버 연결 전이면 안내만 하고 화면은 바꾸지 않는다
+  const toggleAccept = async (answer) => {
+    if (!beginBusy()) return
+    const postId = openIdRef.current
+    try {
+      await api.acceptBoardAnswer(postId, answer.accepted ? null : answer.id)
+    } catch (e) {
+      showToast(e.message)
+      endBusy()
+      return
+    }
+    showToast(answer.accepted ? '채택을 취소했어요' : '답변을 채택했어요')
+    loadList(page)
+    await reloadDetail(postId, '채택은 반영됐지만 바뀐 내용을')
+    endBusy()
+  }
+
   const report = async (reason) => {
     if (!beginBusy()) return
     const postId = openIdRef.current
@@ -380,7 +445,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   }
 
   // ── 화면 밖으로 나가는 길 (메뉴·푸터·로고·로그아웃): 사라질 입력이 있으면 한 번만 묻는다 ──
-  // 상단 메뉴·푸터: 목적지는 App 규칙 그대로. Q&A·게임존, 교사·보호자의 학생 전용 메뉴는 이 화면에 머물며 안내
+  // 상단 메뉴·푸터: 목적지는 App 규칙 그대로. 코딩 게시판 메뉴, 교사·보호자의 학생 전용 메뉴는 이 화면에 머문다
   const handleMenu = (key) => {
     if (!staysOnBoard(key, user) && !confirmLeave()) return
     const r = onMenu?.(key)
@@ -389,7 +454,37 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   const goHome = () => { if (confirmLeave()) onGoHome?.() }
   const logout = () => { if (confirmLeave()) onLogout?.() }
 
-  const emptyLater = list && !list.error && list.posts.length === 0 && page > 1
+  const emptyLater = list && !list.error && !list.unsupported && list.posts.length === 0 && page > 1
+  const filtered = hasConditions(query)
+  const emptyText = filtered ? '조건에 맞는 글이 없어요.'
+    : query.kind === 'question' ? '아직 질문이 없어요. 막힌 문제가 있으면 질문을 올려 보세요!'
+      : query.kind === 'discussion' ? '아직 토론 글이 없어요. 첫 글을 올려 보세요!'
+        : '아직 글이 없어요. 첫 글을 올려 보세요!'
+
+  // 질문 답변: 채택된 답변은 '채택된 답변' 칸에 따로 보여 준다
+  const comments = loaded?.comments ?? []
+  const acceptedAnswers = isQuestion ? comments.filter((c) => c.accepted) : []
+  const otherComments = isQuestion ? comments.filter((c) => !c.accepted) : comments
+
+  const renderComment = (c) => (
+    <div key={c.id} className={`board-comment${c.accepted ? ' is-accepted' : ''}`}>
+      <Author id={c.user_id} onOpenProfile={setProfileId}>{c.username}</Author>
+      <p>
+        {c.accepted && <b className="board-accepted-mark">채택된 답변 </b>}
+        {c.body}
+      </p>
+      <span>{fmt(c.created_at)}</span>
+      {(c.user_id === user?.id || post?.is_mine) && (
+        <button type="button" className="row-remove" onClick={() => removeComment(c.id)} disabled={busy} aria-label={`${replyWord} 지우기`}>×</button>
+      )}
+      {/* 질문 작성자는 다른 사람의 답변을 채택·취소할 수 있다 (자기 답변 채택은 첫 범위에서 제외) */}
+      {isQuestion && post.is_mine && c.user_id !== user?.id && (
+        <button type="button" className="board-link board-accept" onClick={() => toggleAccept(c)} disabled={busy}>
+          {c.accepted ? '채택 취소' : '채택하기'}
+        </button>
+      )}
+    </div>
+  )
 
   return (
     <div className="board-root">
@@ -406,8 +501,8 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
       <main className="board-main">
         <header className="board-head">
           <div>
-            <h2 ref={headRef}>토론 게시판</h2>
-            <p>코딩하면서 궁금한 것, 만든 작품 이야기를 친구들과 나눠요.</p>
+            <h2 ref={headRef}>코딩 게시판</h2>
+            <p>궁금한 점을 묻고, 생각과 작품 이야기를 나눠요.</p>
           </div>
           {!writing && !openId && (
             <button type="button" className="role-btn" onClick={startWriting}>글 쓰기</button>
@@ -415,8 +510,8 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
         </header>
 
         {writing && (
-          <PostForm onSubmit={create} onCancel={cancelWriting} busy={busy}
-            onDirtyChange={(d) => { formDirtyRef.current = d }} />
+          <BoardPostForm defaultKind={writeKind} onSubmit={create} onCancel={cancelWriting} busy={busy}
+            notice={formNotice} onDirtyChange={(d) => { formDirtyRef.current = d }} />
         )}
 
         {/* 글 상세 */}
@@ -427,7 +522,9 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
             {!loaded ? (
               <p className="dash-hint" role="status">불러오는 중…</p>
             ) : editing ? (
-              <PostForm initial={loaded.post} onSubmit={update} onCancel={cancelEditing} busy={busy}
+              <BoardPostForm
+                initial={{ kind: post.kind, title: post.title, body: post.body, chapter: post.chapter, blocks: post.blocks }}
+                onSubmit={update} onCancel={cancelEditing} busy={busy} notice={formNotice}
                 onDirtyChange={(d) => { formDirtyRef.current = d }} />
             ) : (
               <>
@@ -437,15 +534,16 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
                     <button type="button" className="link-btn" onClick={() => reloadDetail(loaded.postId)}>다시 불러오기</button>
                   </p>
                 )}
-                <h3>{loaded.post.title}</h3>
+                <p className="board-badges"><PostBadges post={post} /><PostTags post={post} /></p>
+                <h3>{post.title}</h3>
                 <p className="board-meta">
-                  <Author id={loaded.post.user_id} onOpenProfile={setProfileId}>
-                    {loaded.post.username}
+                  <Author id={post.user_id} onOpenProfile={setProfileId}>
+                    {post.username}
                   </Author>
-                  <span>{fmt(loaded.post.created_at)}</span>
-                  {loaded.post.is_mine ? (
+                  <span>{fmt(post.created_at)}</span>
+                  {post.is_mine ? (
                     <>
-                      <button type="button" className="board-link" onClick={() => { formDirtyRef.current = false; setEditing(true) }}>고치기</button>
+                      <button type="button" className="board-link" onClick={() => { formDirtyRef.current = false; setFormNotice(''); setEditing(true) }}>고치기</button>
                       <button type="button" className="board-link danger" onClick={remove} disabled={busy}>지우기</button>
                     </>
                   ) : (
@@ -461,23 +559,25 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
                   </div>
                 )}
 
-                <p className="board-body">{loaded.post.body}</p>
+                <p className="board-body">{post.body}</p>
 
                 <section className="board-comments">
-                  <h4>댓글 {loaded.comments.length}개</h4>
-                  {loaded.comments.map((c) => (
-                    <div key={c.id} className="board-comment">
-                      <Author id={c.user_id} onOpenProfile={setProfileId}>{c.username}</Author>
-                      <p>{c.body}</p>
-                      <span>{fmt(c.created_at)}</span>
-                      {(c.user_id === user?.id || loaded.post.is_mine) && (
-                        <button type="button" className="row-remove" onClick={() => removeComment(c.id)} disabled={busy} aria-label="댓글 지우기">×</button>
+                  <h4>{replyWord} {comments.length}개</h4>
+                  {isQuestion && (
+                    <div className="board-accepted">
+                      <h5>채택된 답변</h5>
+                      {acceptedAnswers.length > 0 ? acceptedAnswers.map(renderComment) : (
+                        <p className="board-accepted-empty">
+                          아직 채택된 답변이 없어요.{post.is_mine && ' 도움이 된 답변이 있으면 채택해 주세요.'}
+                          {!BOARD_SERVER.accept && ' (채택은 서버 연결 뒤에 쓸 수 있어요)'}
+                        </p>
                       )}
                     </div>
-                  ))}
+                  )}
+                  {otherComments.map(renderComment)}
                   <form className="board-comment-form" onSubmit={addComment}>
                     <input value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500}
-                      placeholder="댓글 쓰기 (500자까지)" aria-label="댓글" />
+                      placeholder={`${replyWord} 쓰기 (500자까지)`} aria-label={replyWord} />
                     <button type="submit" className="role-btn" disabled={busy || !comment.trim()}>등록</button>
                   </form>
                 </section>
@@ -488,11 +588,25 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
 
         {/* 목록 */}
         {!openId && (
+          <BoardFilters query={query} onQuery={changeQuery} searchInput={searchInput} onSearchInput={setSearchInput}
+            onSearch={applySearch} onClearSearch={clearSearch} />
+        )}
+        {!openId && (
           !list ? (
             <>
               <p className="sr-only" role="status">글 목록을 불러오는 중이에요</p>
               <div className="skeleton-card board-skeleton" aria-hidden="true" />
             </>
+          ) : list.unsupported ? (
+            <div className="board-note is-pending" role="status">
+              <p><b>{list.unsupported}</b> 서버가 준비되면 여기에서 볼 수 있어요.</p>
+              <p className="board-note-actions">
+                {query.q && <button type="button" className="link-btn" onClick={clearSearch}>검색어 지우기</button>}
+                {query.kind === 'question' && (
+                  <button type="button" className="link-btn" onClick={() => changeQuery({ kind: 'discussion' })}>토론 글 보기</button>
+                )}
+              </p>
+            </div>
           ) : list.error ? (
             <p className="board-error" role="alert">
               {list.error}{' '}
@@ -507,17 +621,27 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
               </div>
             </>
           ) : list.posts.length === 0 ? (
-            <p className="empty-msg">아직 글이 없어요. 첫 글을 올려보세요!</p>
+            <div className="empty-msg">
+              <p>{emptyText}</p>
+              {filtered && <button type="button" className="link-btn" onClick={clearConditions}>조건 지우기</button>}
+            </div>
           ) : (
             <>
+              {query.kind === 'all' && !BOARD_SERVER.questions && (
+                <p className="board-note">지금은 토론 글만 보여요. 질문 글은 서버 연결 뒤에 함께 보여요.</p>
+              )}
               <ul className="board-list">
                 {list.posts.map((p) => (
                   <li key={p.id}>
                     <button type="button" className="board-row" data-post-id={p.id} onClick={() => openPost(p.id)}>
-                      <span className="board-title">{p.title}</span>
+                      <span className="board-row-top">
+                        <PostBadges post={p} />
+                        <span className="board-title">{p.title}</span>
+                      </span>
+                      <PostTags post={p} />
                       <span className="board-row-meta">
                         {p.username} · {fmt(p.created_at)}
-                        {p.comment_count > 0 && <b> · 댓글 {p.comment_count}</b>}
+                        <b> · {p.kind === 'question' ? '답변' : '댓글'} {p.replyCount}</b>
                       </span>
                     </button>
                   </li>

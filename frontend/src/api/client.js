@@ -6,6 +6,7 @@ const REQUEST_TIMEOUT_MS = 15000
 
 // 던지는 오류에 원인 정보만 덧붙인다 (메시지는 그대로라 기존 catch의 e.message 처리는 바뀌지 않는다)
 //  kind: 'timeout' | 'network' | 'parse'(JSON이 아님) | 'api'(서버가 success:false JSON으로 거절)
+//        | 'unsupported'(서버에 아직 없는 기능 — 요청을 보내지 않음, 코딩 게시판의 BOARD_SERVER 참고)
 //  status: HTTP 상태 코드 (응답을 받은 경우만)
 function requestError(message, kind, status, cause) {
   const err = new Error(message, cause ? { cause } : undefined)
@@ -57,6 +58,14 @@ async function request(path, options = {}) {
   if (!json.success) throw requestError(json.error ?? '오류가 발생했습니다', 'api', res.status)
   return json.data
 }
+
+/* 코딩 게시판에서 서버가 아직 지원하지 않는 기능 — 백엔드 API가 합의·배포되면 해당 값을 true로 바꾼다.
+   true가 되면 boardList·createBoardPost·updateBoardPost·acceptBoardAnswer가 제안 형식으로 요청을 보낸다
+   (kind·chapter·blocks·status·q·accept_answer_id — 실제 계약과 다르면 함께 고칠 것). */
+export const BOARD_SERVER = { questions: false, search: false, accept: false }
+
+// 서버에 연결되지 않은 기능: 요청을 보내지 않고 바로 거절한다 (화면은 kind로 '연결 전' 안내를 구분)
+const unsupported = (message) => Promise.reject(requestError(message, 'unsupported'))
 
 export const api = {
   /* ── Auth ──────────────────────────────────── */
@@ -219,15 +228,50 @@ export const api = {
 
   ranking: (scope = 'all') => request(`/social/ranking.php?scope=${encodeURIComponent(scope)}`),
 
-  /* ── 토론 게시판 ────────────────────────────── */
-  boardList: (page = 1) => request(`/board/index.php?page=${page}`),
+  /* ── 코딩 게시판 (토론 + 질문) ──────────────────
+     지금 서버(board/index.php)로 동작: 토론 목록·상세·쓰기·고치기·지우기·댓글·신고.
+     아직 서버 API가 없음: 질문 구분·챕터·블록 태그·해결 상태·채택·검색·필터 → BOARD_SERVER 참고.
+     꺼져 있는 기능은 요청을 보내지 않고 kind: 'unsupported' 오류로 거절한다 (성공한 척하지 않음). */
+  // query: { kind: 'all'|'question'|'discussion', q, chapter, block, status: 'all'|'open'|'solved' }
+  boardList: (page = 1, query = {}) => {
+    const { kind = 'all', q = '', chapter = '', block = '', status = 'all' } = query
+    const questionOnly = kind === 'question' || chapter !== '' || block !== '' || status !== 'all'
+    if (q && !BOARD_SERVER.search) return unsupported('검색은 아직 서버에 연결되지 않았어요.')
+    if (questionOnly && !BOARD_SERVER.questions) return unsupported('질문 목록은 아직 서버에 연결되지 않았어요.')
+    const params = new URLSearchParams({ page: String(page) })
+    if (BOARD_SERVER.questions) {
+      if (kind !== 'all') params.set('kind', kind)
+      if (chapter) params.set('chapter', chapter)
+      if (block) params.set('block', block)
+      if (status !== 'all') params.set('status', status)
+    }
+    if (q) params.set('q', q)
+    return request(`/board/index.php?${params}`)
+  },
 
   boardPost: (id) => request(`/board/index.php?id=${encodeURIComponent(id)}`),
 
-  createBoardPost: (title, body) => request('/board/index.php', { method: 'POST', body: JSON.stringify({ title, body }) }),
+  // question: 질문으로 올릴 때만 { chapter, blocks } — 토론은 지금 서버 형식({ title, body }) 그대로 보낸다
+  createBoardPost: (title, body, question) => {
+    if (question && !BOARD_SERVER.questions) return unsupported('질문 등록은 아직 서버에 연결되지 않았어요.')
+    const payload = question ? { kind: 'question', title, body, chapter: question.chapter, blocks: question.blocks } : { title, body }
+    return request('/board/index.php', { method: 'POST', body: JSON.stringify(payload) })
+  },
 
-  updateBoardPost: (id, title, body) =>
-    request(`/board/index.php?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ title, body }) }),
+  // question: 질문 글을 고칠 때만 { chapter, blocks } (글 종류는 바꾸지 않는다)
+  updateBoardPost: (id, title, body, question) => {
+    if (question && !BOARD_SERVER.questions) return unsupported('질문 고치기는 아직 서버에 연결되지 않았어요.')
+    const payload = question ? { title, body, chapter: question.chapter, blocks: question.blocks } : { title, body }
+    return request(`/board/index.php?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) })
+  },
+
+  // 질문 작성자의 답변 채택(answerId) · 채택 취소(null) — 규칙과 형식은 백엔드와 합의 전
+  acceptBoardAnswer: (postId, answerId) => {
+    if (!BOARD_SERVER.accept) return unsupported('답변 채택은 아직 서버에 연결되지 않았어요.')
+    return request(`/board/index.php?id=${encodeURIComponent(postId)}`, {
+      method: 'PUT', body: JSON.stringify({ accept_answer_id: answerId }),
+    })
+  },
 
   deleteBoardPost: (id) => request(`/board/index.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 

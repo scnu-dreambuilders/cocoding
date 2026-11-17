@@ -8,6 +8,7 @@ import StudentHomePage from './pages/StudentHomePage'
 const EditorPage = lazy(() => import('./pages/EditorPage'))
 import PasswordResetPage from './pages/PasswordResetPage'
 import BoardPage from './pages/BoardPage'
+import GameZonePage from './pages/GameZonePage'
 import { api } from './api/client'
 import { CHAPTER_COUNT } from './data/chapters'
 
@@ -35,7 +36,6 @@ const PERSONAL_PAGES = ['dashboard', 'study', 'mypage']
 
 // 상단 메뉴·푸터의 메뉴 키 → 학생 전용 메뉴 이름 (로그인·역할 안내 문구에 씀)
 const STUDENT_MENU = { study: '단계별 학습', free: '자유창작', popular: '인기 작품' }
-const SOON_MESSAGE = '이 메뉴는 곧 만나볼 수 있어요. 지금은 준비 중이에요!'
 
 // 앱 시작 시 세션 확인에서 '계정 없음'으로 확정할 수 있는 응답인지.
 // backend/api/auth/me.php는 계정이 없으면 JSON {success:false, error:"사용자를 찾을 수 없습니다."}와 404를 보낸다.
@@ -206,10 +206,11 @@ export default function App() {
   const handleMenu = useCallback((key) => {
     const role = user ? (user.role ?? 'student') : null
     if (key === 'guide') { setNavIntent('guide'); setPage('home'); return null }
-    if (key === 'qna' || key === 'game') return { toast: SOON_MESSAGE }
+    if (key === 'game') { setPage('game'); return null }
     if (key === 'home') { setPage(user ? 'dashboard' : 'home'); return null }
-    if (key === 'board') {
-      if (!user) return { toast: '토론 게시판은 로그인하면 이용할 수 있어요. 로그인 화면으로 이동할게요!', after: () => openAuth('login') }
+    // 토론(board)과 Q&A(qna)는 하나의 코딩 게시판 — 예전 메뉴 키로 불러도 같은 화면으로
+    if (key === 'board' || key === 'qna') {
+      if (!user) return { toast: '코딩 게시판은 로그인하면 이용할 수 있어요. 로그인 화면으로 이동할게요!', after: () => openAuth('login') }
       setPage('board')
       return null
     }
@@ -284,6 +285,18 @@ export default function App() {
         onNavIntentDone={consumeNavIntent}
         sessionIssue={sessionIssue}
         onRecheckSession={checkSession}
+      />
+    )
+  }
+
+  if (page === 'game') {
+    return (
+      <GameZonePage
+        user={user}
+        onMenu={handleMenu}
+        onBack={() => setPage(user ? 'dashboard' : 'home')}
+        onAuth={openAuth}
+        onLogout={logout}
       />
     )
   }
