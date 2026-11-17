@@ -207,6 +207,8 @@ export default function ChapterQuiz({ onLeave, onDirtyChange }) {
               <li key={it.id} className={ok ? 'is-ok' : 'is-bad'}>
                 <p className="quiz-review-mark">{ok ? '맞았어요' : '틀렸어요'} · {QUIZ_TYPE_LABEL[it.type]}</p>
                 {it.setup && <p>{it.setup}</p>}
+                {/* 문제에서 본 블록 순서도 다시 보여 준다 (특히 ‘어떻게 고칠까요?’ 문제는 블록이 있어야 해설을 이해할 수 있다) */}
+                {it.code && <CodeBlocks code={it.code} />}
                 <p><b>{it.question}</b></p>
                 <p>내가 고른 답: {optionText(it, answers[it.id])}</p>
                 {!ok && <p>정답: {optionText(it, it.answerId)}</p>}

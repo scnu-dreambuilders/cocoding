@@ -113,10 +113,10 @@
 .quiz-actions .game-primary:disabled { opacity: .6; cursor: default; }
 .quiz-help { font-size: 0.8rem; color: var(--text); }
 .quiz-review { display: flex; flex-direction: column; gap: 14px; margin: 0; padding-left: 22px; }
-.quiz-review li { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); }
+.quiz-review > li { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); }
 .quiz-review-mark { font-weight: 700; }
-.quiz-review li.is-ok .quiz-review-mark { color: var(--ok); }
-.quiz-review li.is-bad .quiz-review-mark { color: var(--danger); }
+.quiz-review > li.is-ok .quiz-review-mark { color: var(--ok); }
+.quiz-review > li.is-bad .quiz-review-mark { color: var(--danger); }
 .quiz-explain { color: var(--text); }
 
 .game-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 100; width: max-content; max-width: calc(100% - 32px); padding: 14px 20px; border-radius: var(--radius-md); background: var(--text-h); color: var(--panel-bg); }

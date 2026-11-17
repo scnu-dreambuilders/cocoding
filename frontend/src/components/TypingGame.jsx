@@ -237,7 +237,12 @@ export default function TypingGame({ onLeave, onDirtyChange, soundOn = false, on
     }
     advancingRef.current = true
     advancedAtRef.current = e.timeStamp
-    if (soundOn) getSound().success() // 중복 처리 잠금 뒤 한 번만
+    // 중복 처리 잠금 뒤 한 번만. 재진입 뒤 키를 누르지 않고(붙여넣기·마우스) 바로 제출해도 나도록 엔진을 먼저 켠다
+    if (soundOn) {
+      const sound = getSound()
+      sound.setEnabled(true)
+      sound.success()
+    }
     if (qIndex + 1 >= items.length) {
       setView('result')
       return

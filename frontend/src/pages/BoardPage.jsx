@@ -100,7 +100,8 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   const busyRef = useRef(false)          // 처리 함수에서도 중복 요청을 막는다 (버튼 비활성화만 믿지 않음)
   const formDirtyRef = useRef(false)     // 열려 있는 글쓰기·고치기 폼이 바뀌었는지
   const openIdRef = useRef(null)         // 응답이 왔을 때 아직 같은 글을 보고 있는지 확인용
-  const writeSessionRef = useRef(0)      // 글쓰기 폼을 열 때마다 +1 — 이전 폼의 저장 결과가 새 폼을 닫지 않게
+  // 글쓰기·고치기 폼을 열거나 닫을 때마다 +1 — 늦게 끝난 저장 요청이 지금 열린 폼(또는 다른 폼)의 상태를 바꾸지 않게
+  const formSessionRef = useRef(0)
   const listSeq = useRef(0)              // 목록 요청 번호 — 늦게 온 응답이 최신 목록을 덮지 않게
   const queryRef = useRef(DEFAULT_QUERY) // 요청을 보낼 때 쓰는 최신 목록 조건
   const listReturnRef = useRef(null)     // 목록으로 돌아올 때 복원할 { y, id } (id가 null이면 목록 제목으로 초점)
@@ -234,6 +235,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     setComment('')
     setDetailNotice('')
     setFormNotice('')
+    formSessionRef.current += 1 // 고치던 폼이 있었다면 그 저장 결과는 이제 화면을 바꾸지 않는다
     formDirtyRef.current = false
   }
 
@@ -241,6 +243,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
     // 글을 쓰던 중이면 확인 후 쓰기 폼을 닫는다 (폼과 상세가 같이 보이지 않게)
     if (writing) {
       if (!confirmLeave(formDirtyRef.current)) return
+      formSessionRef.current += 1
       setWriting(false)
       formDirtyRef.current = false
     }
@@ -262,7 +265,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
 
   // ── 쓰기·고치기·지우기 ──
   const startWriting = () => {
-    writeSessionRef.current += 1
+    formSessionRef.current += 1
     formDirtyRef.current = false
     setFormNotice('')
     setWriteKind(queryRef.current.kind === 'question' ? 'question' : 'discussion') // 질문 탭에서 열면 질문으로 시작
@@ -271,6 +274,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
 
   const cancelWriting = () => {
     if (!confirmLeave(formDirtyRef.current)) return
+    formSessionRef.current += 1 // 저장 중에 취소했다면 그 결과는 이후 폼을 건드리지 않는다
     formDirtyRef.current = false
     setFormNotice('')
     setWriting(false)
@@ -281,12 +285,12 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
 
   const create = async (form) => {
     if (!beginBusy()) return
-    const session = writeSessionRef.current
+    const session = formSessionRef.current
     setFormNotice('')
     try {
       await api.createBoardPost(form.title, form.body, questionFields(form))
-      // 저장하는 사이 폼을 닫고 새로 열었다면 새 폼은 건드리지 않는다
-      if (session === writeSessionRef.current) {
+      // 저장하는 사이 폼을 닫았거나(취소·다른 글 열기) 다른 폼을 열었다면 지금 화면의 폼은 건드리지 않는다
+      if (session === formSessionRef.current) {
         formDirtyRef.current = false
         setWriting(false)
       }
@@ -294,15 +298,24 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
       showToast(form.kind === 'question' ? '질문을 올렸어요' : '글을 올렸어요')
     } catch (e) {
       // 실패하면 폼과 입력은 그대로. 서버 연결 전 기능은 폼 안에 이유를 남긴다 (토론으로 대신 저장하지 않음)
-      if (e.kind === 'unsupported') setFormNotice(`${e.message} ${UNSUPPORTED_KEEP}`)
-      else showToast(e.message)
+      if (e.kind === 'unsupported') {
+        if (session === formSessionRef.current) setFormNotice(`${e.message} ${UNSUPPORTED_KEEP}`)
+      } else showToast(e.message)
     } finally {
       endBusy()
     }
   }
 
+  const startEditing = () => {
+    formSessionRef.current += 1
+    formDirtyRef.current = false
+    setFormNotice('')
+    setEditing(true)
+  }
+
   const cancelEditing = () => {
     if (!confirmLeave(formDirtyRef.current)) return
+    formSessionRef.current += 1 // 저장 중에 취소했다면 그 결과는 이후 폼을 건드리지 않는다
     formDirtyRef.current = false
     setFormNotice('')
     setEditing(false)
@@ -324,18 +337,21 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
   const update = async (form) => {
     if (!beginBusy()) return
     const postId = openIdRef.current
+    const session = formSessionRef.current
     setFormNotice('')
     try {
       await api.updateBoardPost(postId, form.title, form.body, questionFields(form))
     } catch (e) {
       // 저장 실패: 폼과 입력은 그대로
-      if (e.kind === 'unsupported') setFormNotice(`${e.message} 고친 내용은 그대로 있어요.`)
-      else showToast(e.message)
+      if (e.kind === 'unsupported') {
+        if (session === formSessionRef.current) setFormNotice(`${e.message} 고친 내용은 그대로 있어요.`)
+      } else showToast(e.message)
       endBusy()
       return
     }
     // 저장 성공 — 이후 조회가 실패해도 저장 실패로 보이지 않게 따로 안내한다 (고치기 요청은 다시 보내지 않음)
-    if (openIdRef.current === postId) {
+    // 그사이 취소했거나 다시 고치기를 열었다면 지금 열린 폼과 입력 표시는 건드리지 않는다
+    if (openIdRef.current === postId && session === formSessionRef.current) {
       formDirtyRef.current = false
       setEditing(false)
     }
@@ -543,7 +559,7 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
                   <span>{fmt(post.created_at)}</span>
                   {post.is_mine ? (
                     <>
-                      <button type="button" className="board-link" onClick={() => { formDirtyRef.current = false; setFormNotice(''); setEditing(true) }}>고치기</button>
+                      <button type="button" className="board-link" onClick={startEditing}>고치기</button>
                       <button type="button" className="board-link danger" onClick={remove} disabled={busy}>지우기</button>
                     </>
                   ) : (
