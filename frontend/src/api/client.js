@@ -59,10 +59,16 @@ async function request(path, options = {}) {
   return json.data
 }
 
-/* 코딩 게시판에서 서버가 아직 지원하지 않는 기능 — 백엔드 API가 합의·배포되면 해당 값을 true로 바꾼다.
-   true가 되면 boardList·createBoardPost·updateBoardPost·acceptBoardAnswer가 제안 형식으로 요청을 보낸다
-   (kind·chapter·blocks·status·q·accept_answer_id — 실제 계약과 다르면 함께 고칠 것). */
+/* 코딩 게시판에서 서버가 아직 지원하지 않는 기능 — 지금은 모두 false로 두고 켜지 않는다.
+   값을 켜는 것만으로 연동이 끝나지 않는다. 아래 요청 형식(kind·chapter·blocks·status·q·accept_answer_id)과
+   화면이 기대하는 응답 필드(lib/boardTopics.js normalizePost, BoardPage)는 아직 합의 전 '제안'이다.
+   연결 순서: ① 백엔드와 요청·응답·권한 규칙 합의 → ② 백엔드 구현·배포 확인 → ③ 이 파일의 요청 변환과
+   화면의 응답 처리를 합의 형식에 맞게 조정 → ④ 준비된 기능만 골라 값을 true로 → ⑤ 실제 서버 통합 QA */
 export const BOARD_SERVER = { questions: false, search: false, accept: false }
+
+// 질문 작성·수정 요청의 챕터: 폼의 '선택 안 함'('')은 null, 챕터 '1'~'5'와 'free'는 그대로 보낸다.
+// 목록 필터의 'none'(챕터를 고르지 않은 질문만 조회)과는 뜻이 다르므로 boardList에서는 쓰지 않는다
+const questionChapterForRequest = (chapter) => (chapter === '' || chapter == null ? null : chapter)
 
 // 서버에 연결되지 않은 기능: 요청을 보내지 않고 바로 거절한다 (화면은 kind로 '연결 전' 안내를 구분)
 const unsupported = (message) => Promise.reject(requestError(message, 'unsupported'))
@@ -241,6 +247,7 @@ export const api = {
     const params = new URLSearchParams({ page: String(page) })
     if (BOARD_SERVER.questions) {
       if (kind !== 'all') params.set('kind', kind)
+      // 목록 필터의 챕터: ''(전체 챕터)는 조건을 보내지 않고, '1'~'5'·'free'·'none'(챕터 미선택 질문)은 그대로
       if (chapter) params.set('chapter', chapter)
       if (block) params.set('block', block)
       if (status !== 'all') params.set('status', status)
@@ -254,14 +261,18 @@ export const api = {
   // question: 질문으로 올릴 때만 { chapter, blocks } — 토론은 지금 서버 형식({ title, body }) 그대로 보낸다
   createBoardPost: (title, body, question) => {
     if (question && !BOARD_SERVER.questions) return unsupported('질문 등록은 아직 서버에 연결되지 않았어요.')
-    const payload = question ? { kind: 'question', title, body, chapter: question.chapter, blocks: question.blocks } : { title, body }
+    const payload = question
+      ? { kind: 'question', title, body, chapter: questionChapterForRequest(question.chapter), blocks: question.blocks }
+      : { title, body }
     return request('/board/index.php', { method: 'POST', body: JSON.stringify(payload) })
   },
 
   // question: 질문 글을 고칠 때만 { chapter, blocks } (글 종류는 바꾸지 않는다)
   updateBoardPost: (id, title, body, question) => {
     if (question && !BOARD_SERVER.questions) return unsupported('질문 고치기는 아직 서버에 연결되지 않았어요.')
-    const payload = question ? { title, body, chapter: question.chapter, blocks: question.blocks } : { title, body }
+    const payload = question
+      ? { title, body, chapter: questionChapterForRequest(question.chapter), blocks: question.blocks }
+      : { title, body }
     return request(`/board/index.php?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) })
   },
 
@@ -279,6 +290,9 @@ export const api = {
 
   deleteBoardComment: (id) => request(`/board/index.php?comment_id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
+  // 현재 게시글 신고 API가 구현되어 있다 (3명이면 자동 숨김 — 지금 서버 정책 그대로).
+  // 질문 게시글에도 같은 정책을 적용하는 것은 백엔드 통합 시 반영할 사항이다.
+  // 답변·댓글 신고는 별도 합의가 필요하다 (지금은 화면 버튼도 API도 없다)
   reportBoardPost: (report_id, reason) => request('/board/index.php', { method: 'POST', body: JSON.stringify({ report_id, reason }) }),
 
   /* ── 과제 (추가) ───────────────────────────── */
