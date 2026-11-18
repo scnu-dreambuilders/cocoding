@@ -8,7 +8,8 @@ import './RolePanels.css'
    ════════════════════════════════════════════════ */
 const CONSENT_LABEL = { pending: '보호자 동의 대기', granted: '보호자 동의 완료' }
 
-export default function AccountModal({ user, onClose, onUserChange, onDeleted, showToast }) {
+// onEditSurvey가 있으면 관심사·코딩 수준 수정도 이 창에서 연다 (마이페이지)
+export default function AccountModal({ user, onClose, onUserChange, onDeleted, showToast, onEditSurvey }) {
   const [username, setUsername] = useState(user.username)
   const [affiliation, setAffiliation] = useState(user.affiliation ?? '')
   const [pw, setPw] = useState({ current: '', next: '' })
@@ -99,6 +100,16 @@ export default function AccountModal({ user, onClose, onUserChange, onDeleted, s
             </div>
             {error.affiliation && <p className="form-error" role="alert">{error.affiliation}</p>}
           </form>
+        )}
+
+        {onEditSurvey && (
+          <div className="account-form">
+            <h4>관심사·코딩 수준</h4>
+            <div className="account-row">
+              <span className="account-note">추천 주제와 자유 창작에서 보이는 블록이 바뀌어요.</span>
+              <button type="button" className="role-btn" onClick={() => { onClose(); onEditSurvey() }}>수정하기</button>
+            </div>
+          </div>
         )}
 
         <form className="account-form" onSubmit={savePassword}>

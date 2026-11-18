@@ -7,6 +7,7 @@ import './Attendance.css'
 /* ════════════════════════════════════════════════
    코코 상점 — 출석·학습으로 모은 코인으로 꾸미기 아이템을 산다.
    산 아이템은 바로 위 '코코 꾸미기'에서 입힐 수 있다.
+   embedded: 마이페이지 '코코 꾸미기'의 상점 탭 안에 넣을 때 — 제목·코코 미리보기는 바깥 것을 쓴다
    ════════════════════════════════════════════════ */
 const TYPE_ORDER = ['hat', 'glasses', 'accessory', 'background']
 
@@ -17,7 +18,7 @@ const REASON_LABEL = {
   shop: '상점에서 구매',
 }
 
-export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped }) {
+export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped, embedded = false }) {
   const [shop, setShop] = useState(null)
   const [buying, setBuying] = useState('')
   const [showHistory, setShowHistory] = useState(false)
@@ -55,15 +56,26 @@ export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped
 
   const byType = TYPE_ORDER.map((type) => [type, shop.items.filter((i) => i.item_type === type)]).filter(([, list]) => list.length)
 
+  const coinRow = (
+    <>
+      <span className="coin-badge" aria-label={`내 코인 ${shop.balance}개`}>{shop.balance}코인</span>
+      <button type="button" className="section-action" onClick={() => setShowHistory((v) => !v)}>
+        {showHistory ? '내역 닫기' : '코인 내역'}
+      </button>
+    </>
+  )
+  const Wrap = embedded ? 'div' : 'section'
+
   return (
-    <section className="dash-section shop-section">
-      <div className="section-header">
-        <h3 className="section-title">코코 상점</h3>
-        <span className="coin-badge" aria-label={`내 코인 ${shop.balance}개`}>{shop.balance}코인</span>
-        <button type="button" className="section-action" onClick={() => setShowHistory((v) => !v)}>
-          {showHistory ? '내역 닫기' : '코인 내역'}
-        </button>
-      </div>
+    <Wrap className={embedded ? 'shop-embedded' : 'dash-section shop-section'}>
+      {embedded ? (
+        <div className="shop-coin-row">{coinRow}</div>
+      ) : (
+        <div className="section-header">
+          <h3 className="section-title">코코 상점</h3>
+          {coinRow}
+        </div>
+      )}
 
       <p className="dash-hint">출석 도장, 챕터 완료, 작품 저장으로 코인을 모아 꾸미기 아이템을 살 수 있어요.</p>
 
@@ -81,10 +93,12 @@ export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped
       )}
 
       <div className="shop-wrap">
-        <div className="shop-preview">
-          <CocoAvatar size={110} emotion="happy" items={equipped} />
-          <span>내 코코</span>
-        </div>
+        {!embedded && (
+          <div className="shop-preview">
+            <CocoAvatar size={110} emotion="happy" items={equipped} />
+            <span>내 코코</span>
+          </div>
+        )}
 
         <div className="shop-groups">
           {byType.map(([type, list]) => (
@@ -111,6 +125,6 @@ export default function ShopPanel({ showToast, onBought, onCoinsChange, equipped
           ))}
         </div>
       </div>
-    </section>
+    </Wrap>
   )
 }

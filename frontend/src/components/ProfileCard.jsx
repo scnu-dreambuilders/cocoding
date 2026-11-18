@@ -11,8 +11,8 @@ import './Profile.css'
    데이터(불러오기·저장)는 useMyProfile 하나가 맡고, 화면 조각은 나눠 쓴다.
    (useMyProfile은 lib/useMyProfile.js)
      · ProfileCard        기존 한 장짜리 카드 (예전 모양 그대로)
-     · MyProfileSide      마이페이지 왼쪽 묶음: 프로필 요약(아바타·닉네임·역할·레벨·경험치·소개말·버튼)
-                          + 업적·친구·프로필 공개 범위(접기·펼치기) + 우리 반(children)
+     · MyProfileBand      마이페이지 위 프로필 띠 / MyAchievements 본문 업적
+     · MyProfileSettings  마이페이지 옆 칸: 우리 반(children) + 친구·프로필 공개 범위(접기·펼치기)
    같은 useMyProfile 결과를 나눠 쓰므로 팔로우 취소 등이 모든 조각에 함께 반영된다.
    ════════════════════════════════════════════════ */
 // 받은 좋아요는 99를 넘으면 +99로 (요구사항 24번)
@@ -56,22 +56,12 @@ function ProfileLevel({ me, showStep = false }) {
   )
 }
 
-// friendsToggle({ open, controls, onToggle })이 있으면 '친구 n'을 친구 영역을 펼치는 버튼으로 (마이페이지). 없으면 기존 글자
-function ProfileStats({ me, friendsToggle }) {
-  const friendCount = me.friends?.length ?? 0
+function ProfileStats({ me }) {
   return (
     <div className="profile-stats">
       <span>받은 좋아요 <b>{likeLabel(me.likesReceived)}</b></span>
       <span>팔로워 <b>{me.followers}</b></span>
-      {friendsToggle ? (
-        <button type="button" className="mypage-stat-toggle" aria-expanded={friendsToggle.open}
-          aria-controls={friendsToggle.controls} onClick={friendsToggle.onToggle}>
-          친구 <b>{friendCount}</b>
-          <ChevronDown size={14} className="mypage-fold-icon" aria-hidden="true" />
-        </button>
-      ) : (
-        <span>친구 <b>{friendCount}</b></span>
-      )}
+      <span>친구 <b>{me.friends?.length ?? 0}</b></span>
     </div>
   )
 }
@@ -237,21 +227,85 @@ function Fold({ id, title, summary, open, onToggle, contentRef, children }) {
 
 // 펼침 영역 ID (마이페이지에 하나뿐이라 고정, 다른 곳과 겹치지 않는 이름)
 const FOLD_ID = {
-  achievements: 'mypage-fold-achievements',
   friends: 'mypage-fold-friends',
   visibility: 'mypage-fold-visibility',
 }
 
-/* ════════ 마이페이지 왼쪽 묶음 ════════
-   프로필 요약 카드 → 업적(접기) → 친구(접기) → 프로필 공개 범위(접기) → children(우리 반 카드)
-   roleLabel: '학생' 등 / onEditAccount: 내 정보 창 / onEditSurvey: 관심사 수정 / onOpenShowroom: 코코 꾸미기로
-   equippedItems: 화면이 들고 있는 착용 아이템 (꾸미기에서 바꾸면 아바타도 바로 바뀌도록). 없으면 프로필 값
-   onOpenProfile: 친구 프로필 열기 */
-export function MyProfileSide({ profile: p, roleLabel, equippedItems, onEditAccount, onEditSurvey, onOpenShowroom, onOpenProfile, children }) {
+// 프로필을 한 번도 못 받았을 때: 불러오는 중이면 골격 카드, 실패면 안내와 다시 시도 (레벨·숫자를 기본값으로 채우지 않는다)
+function ProfilePending({ p }) {
+  return p.loadError ? (
+    <div className="profile-card">
+      <div className="empty-msg" role="alert">
+        프로필을 불러오지 못했어요: {p.loadError}{' '}
+        <button type="button" className="link-btn" onClick={p.reload}>다시 시도</button>
+      </div>
+    </div>
+  ) : (
+    <div className="skeleton-card profile-skeleton" aria-hidden="true" />
+  )
+}
+
+/* ════════ 마이페이지 위: 프로필 띠 ════════
+   코코·닉네임·역할·레벨/경험치·소개말·받은 좋아요·팔로워·친구 + '프로필 수정' 하나
+   onEditAccount: 내 정보 창(관심사 수정도 그 안에) / onOpenShowroom: 코코 꾸미기로
+   equippedItems: 화면이 들고 있는 착용 아이템 (꾸미기에서 바꾸면 바로 반영). 없으면 프로필 값 */
+export function MyProfileBand({ profile: p, roleLabel, equippedItems, onEditAccount, onOpenShowroom }) {
+  if (!p.me) return <ProfilePending p={p} />
+  const { me } = p
+  return (
+    <>
+      {/* 다시 들어왔을 때 새로 불러오기에 실패했으면, 이전에 받은 값이라는 것을 알리고 다시 시도할 수 있게 */}
+      {p.loadError && (
+        <p className="dash-hint" role="alert">
+          프로필을 새로 불러오지 못해 이전 정보를 보여주고 있어요.{' '}
+          <button type="button" className="link-btn" onClick={p.reload}>다시 시도</button>
+        </p>
+      )}
+      <section className="profile-card mypage-profile" aria-label="내 프로필">
+        <div className="mypage-avatar">
+          <CocoAvatar size={110} emotion="happy" items={equippedItems ?? me.equipped} />
+          <button type="button" className="btn-icon mypage-avatar-edit" onClick={onOpenShowroom}
+            title="코코 꾸미기" aria-label="코코 꾸미기로 이동"><Pencil size={16} aria-hidden="true" /></button>
+        </div>
+        <div className="mypage-profile-body">
+          <div className="mypage-identity">
+            <b className="profile-name">{me.username}</b>
+            {roleLabel && <span className="mypage-role">{roleLabel}</span>}
+            <span className="section-badge">Lv.{me.level}</span>
+          </div>
+          <ProfileLevel me={me} showStep />
+          <ProfileBio p={p} />
+          <ProfileStats me={me} />
+        </div>
+        <button type="button" className="role-btn mypage-profile-edit" onClick={onEditAccount}>프로필 수정</button>
+      </section>
+    </>
+  )
+}
+
+/* ════════ 마이페이지 본문: 업적 ════════ */
+export function MyAchievements({ profile: p }) {
+  if (!p.me) return null
+  return (
+    <section className="dash-section">
+      <div className="section-header">
+        <h3 className="section-title">업적</h3>
+        <span className="section-badge">{earnedCount(p.me)}/{p.me.allAchievements?.length ?? 0}</span>
+      </div>
+      <div className="profile-card">
+        <AchievementGrid me={p.me} showDesc />
+      </div>
+    </section>
+  )
+}
+
+/* ════════ 마이페이지 옆 칸: 설정 성격인 것 ════════
+   children(우리 반 카드) → 친구(접기) → 프로필 공개 범위(접기). 넓은 화면에서는 묶음 전체가 sticky
+   우리 반 카드는 불러오는 중·실패·성공 모두 같은 key에 두어, 프로필을 다시 받아도 입력 중인 코드가 남는다 */
+export function MyProfileSettings({ profile: p, onOpenProfile, children }) {
   const stackRef = useRef(null)
   useStickyTop(stackRef, !!p.me)
-  const [open, setOpen] = useState({ achievements: false, friends: false, visibility: false })
-  const achievementsBody = useRef(null)
+  const [open, setOpen] = useState({ friends: false, visibility: false })
   const friendsBody = useRef(null)
   const visibilityBody = useRef(null)
   const reveal = useRef(null)   // 방금 펼친 영역: { body, anchor } — 그려진 뒤 화면 밖이면 보이게
@@ -271,85 +325,30 @@ export function MyProfileSide({ profile: p, roleLabel, equippedItems, onEditAcco
     return () => cancelAnimationFrame(raf)
   }, [open])
 
-  // 프로필을 한 번도 못 받았으면: 불러오는 중이면 골격 카드, 실패면 안내와 다시 시도 (레벨·숫자를 기본값으로 채우지 않는다)
-  // 불러오는 중·실패·성공 모두 같은 묶음 안 같은 key에 우리 반 카드(children)를 두어,
-  // 프로필을 다시 받아 화면이 바뀌어도 우리 반 카드(입력 중인 코드 포함)를 새로 만들지 않는다
-  if (!p.me) {
-    return (
-      <div className="mypage-side-stack">
-        {p.loadError ? (
-          <div className="profile-card">
-            <div className="empty-msg" role="alert">
-              프로필을 불러오지 못했어요: {p.loadError}{' '}
-              <button type="button" className="link-btn" onClick={p.reload}>다시 시도</button>
-            </div>
-          </div>
-        ) : (
-          <div className="skeleton-card profile-skeleton" aria-hidden="true" />
-        )}
-        <Fragment key="side-extra">{children}</Fragment>
-      </div>
-    )
-  }
-  const { me } = p
-  const visibilityLabel = VISIBILITY.find((v) => v.id === me.visibility)?.label ?? ''
+  const me = p.me
+  const visibilityLabel = me ? VISIBILITY.find((v) => v.id === me.visibility)?.label ?? '' : ''
 
   return (
     <div ref={stackRef} className="mypage-side-stack">
-      {/* 다시 들어왔을 때 새로 불러오기에 실패했으면, 이전에 받은 값이라는 것을 알리고 다시 시도할 수 있게 */}
-      {p.loadError && (
-        <p className="dash-hint" role="alert">
-          프로필을 새로 불러오지 못해 이전 정보를 보여주고 있어요.{' '}
-          <button type="button" className="link-btn" onClick={p.reload}>다시 시도</button>
-        </p>
-      )}
-      <section className="profile-card mypage-profile" aria-label="내 프로필">
-        <div className="mypage-avatar">
-          <CocoAvatar size={110} emotion="happy" items={equippedItems ?? me.equipped} />
-          <button type="button" className="btn-icon mypage-avatar-edit" onClick={onOpenShowroom}
-            title="코코 꾸미기" aria-label="코코 꾸미기로 이동"><Pencil size={16} aria-hidden="true" /></button>
-        </div>
-        <div className="mypage-identity">
-          <b className="profile-name">{me.username}</b>
-          {roleLabel && <span className="mypage-role">{roleLabel}</span>}
-          <span className="section-badge">Lv.{me.level}</span>
-        </div>
-        <ProfileLevel me={me} showStep />
-        <ProfileBio p={p} />
-        <ProfileStats me={me} friendsToggle={{
-          open: open.friends,
-          controls: FOLD_ID.friends,
-          onToggle: (e) => toggle('friends', friendsBody, e.currentTarget),
-        }} />
-        <div className="mypage-profile-actions">
-          <button type="button" className="role-btn" onClick={onEditAccount}>프로필 수정</button>
-          <button type="button" className="role-btn ghost" onClick={onOpenShowroom}>쇼룸 가기</button>
-          <button type="button" className="role-btn ghost" onClick={onEditSurvey}>관심사·코딩 수준 수정</button>
-        </div>
-      </section>
-
-      <Fold id={FOLD_ID.achievements} title="업적" summary={`${earnedCount(me)}/${me.allAchievements?.length ?? 0}`}
-        open={open.achievements} onToggle={(e) => toggle('achievements', achievementsBody, e.currentTarget)}
-        contentRef={achievementsBody}>
-        <AchievementGrid me={me} showDesc />
-      </Fold>
-
-      <Fold id={FOLD_ID.friends} title="친구" summary={`${me.friends?.length ?? 0}명`}
-        open={open.friends} onToggle={(e) => toggle('friends', friendsBody, e.currentTarget)}
-        contentRef={friendsBody}>
-        <div className="profile-friends">
-          <p className="dash-hint">서로 팔로우하면 친구가 돼요</p>
-          <FriendList p={p} onOpenProfile={onOpenProfile} />
-        </div>
-      </Fold>
-
-      <Fold id={FOLD_ID.visibility} title="프로필 공개 범위" summary={visibilityLabel}
-        open={open.visibility} onToggle={(e) => toggle('visibility', visibilityBody, e.currentTarget)}
-        contentRef={visibilityBody}>
-        <VisibilityField p={p} hideLegend />
-      </Fold>
-
       <Fragment key="side-extra">{children}</Fragment>
+      {me && (
+        <>
+          <Fold id={FOLD_ID.friends} title="친구" summary={`${me.friends?.length ?? 0}명`}
+            open={open.friends} onToggle={(e) => toggle('friends', friendsBody, e.currentTarget)}
+            contentRef={friendsBody}>
+            <div className="profile-friends">
+              <p className="dash-hint">서로 팔로우하면 친구가 돼요</p>
+              <FriendList p={p} onOpenProfile={onOpenProfile} />
+            </div>
+          </Fold>
+
+          <Fold id={FOLD_ID.visibility} title="프로필 공개 범위" summary={visibilityLabel}
+            open={open.visibility} onToggle={(e) => toggle('visibility', visibilityBody, e.currentTarget)}
+            contentRef={visibilityBody}>
+            <VisibilityField p={p} hideLegend />
+          </Fold>
+        </>
+      )}
     </div>
   )
 }
