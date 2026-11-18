@@ -53,7 +53,7 @@ function Celebration() {
    EditorPage
    launch: { mode: 'chapter', chapter } | { mode: 'free', projectId?, topic?, template?, completedChapters? }
    ════════════════════════════════════════════════ */
-export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenChapter, onOpenMyGame }) {
+export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenChapter, onOpenMyGame, registerLeaveGuard, onProjectSaved }) {
   const isChapter = launch.mode === 'chapter'
   const chapterNo = isChapter ? launch.chapter.order_num : null
   const chapter = isChapter ? CHAPTERS[chapterNo] : null
@@ -658,14 +658,26 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
     }
   }
 
-  const handleBack = () => {
-    if (dirty && user && !isChapter && meta.owner && !window.confirm('저장하지 않은 변경이 있어요. 그래도 나갈까요?')) return
+  // 나가도 되는지 확인 (돌아가기 버튼과 브라우저 뒤로 가기가 함께 쓴다)
+  const canLeave = () => {
+    if (dirty && user && !isChapter && meta.owner && !window.confirm('저장하지 않은 변경이 있어요. 그래도 나갈까요?')) return false
     // 게스트는 애초에 저장할 수 없으므로(위 분기는 user가 있어야만 들어옴) 별도로 안내.
     // guestDirtyRef는 초기 시작 블록 로드를 걸러낸, 실제 사용자 편집만 반영하는 값(dirty와 다름)
-    if (guestDirtyRef.current && !user && !isChapter && launch?.mode === 'free' && !window.confirm('홈으로 이동하면 지금 만든 내용이 사라집니다. 이동할까요?')) return
+    if (guestDirtyRef.current && !user && !isChapter && launch?.mode === 'free' && !window.confirm('홈으로 이동하면 지금 만든 내용이 사라집니다. 이동할까요?')) return false
+    return true
+  }
+  const handleBack = () => {
+    if (!canLeave()) return
     stopRun()
     onBack()
   }
+  const canLeaveRef = useRef(canLeave)
+  useEffect(() => { canLeaveRef.current = canLeave })
+  useEffect(() => registerLeaveGuard?.(() => canLeaveRef.current()), [registerLeaveGuard])
+  // 새 작품을 처음 저장하면 주소에 작품 번호를 붙인다 (새로고침해도 이어서 열리게)
+  useEffect(() => {
+    if (!isChapter && meta.id) onProjectSaved?.(meta.id)
+  }, [isChapter, meta.id, onProjectSaved])
 
   /* ── 키보드 ────────────────────────────────── */
   const runRef = useRef(handleRun)

@@ -28,7 +28,8 @@ const todayISO = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export default function ActivityChart() {
+// rankLimit: 랭킹을 위에서 몇 명만 보여줄지 (내 순위는 항상 함께). 없으면 서버가 준 목록 전부
+export default function ActivityChart({ rankLimit }) {
   const [activity, setActivity] = useState(null)
   const [activityError, setActivityError] = useState('') // 불러오기 실패 — '기록 없음'과 구분한다
   const [activityKey, setActivityKey] = useState(0)      // 다시 시도 (조회만)
@@ -154,8 +155,8 @@ export default function ActivityChart() {
                 : <>평균까지 경험치 <b>{-ranking.comparedToAverage}</b> 남았어요. 오늘 한 챕터 어때요?</>}
             </p>
             <ol className="rank-list">
-              {ranking.top.map((t) => (
-                <li key={t.id} className={t.isMe ? 'is-me' : ''}>
+              {ranking.top.filter((t) => !rankLimit || t.rank <= rankLimit || t.isMe).map((t) => (
+                <li key={t.id} className={`${t.isMe ? 'is-me' : ''} ${rankLimit && t.isMe && t.rank > rankLimit + 1 ? 'rank-gap' : ''}`}>
                   <span className="rank-no">{t.rank}</span>
                   <span className="rank-name">{t.username}{t.isMe && ' (나)'}</span>
                   <span className="rank-lv">Lv.{t.level}</span>
