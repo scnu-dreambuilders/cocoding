@@ -11,6 +11,11 @@ class CoinModel {
         'chapter' => 50,     // 챕터 첫 완료
         'project' => 5,      // 자유 창작 첫 저장
     ];
+    // 게임존 보상: 정답 1개당 주는 코인 (경험치는 올리지 않는다 — 레벨은 챕터 진도로만)
+    const GAME_REWARD = [
+        'typing' => 2,   // 타자게임 정답 1개
+        'quiz' => 10,    // 복습 퀴즈 정답 1개 (오답 재도전도 같다)
+    ];
     const STREAK_BONUS = 5;        // 연속 출석 하루당 추가
     const STREAK_BONUS_MAX = 7;    // 7일째부터는 더 늘지 않음
 
@@ -47,6 +52,20 @@ class CoinModel {
         $this->db->prepare("INSERT INTO coin_log (user_id, amount, reason, ref) VALUES (?, ?, ?, ?)")
             ->execute([$user_id, -$amount, $reason, $ref]);
         return true;
+    }
+
+    /* 게임존에서 오늘 이미 보상을 받은 단계. ref 에서 날짜 부분을 떼고 돌려준다
+       (ref 는 'typing:word:0:2026-11-19' 처럼 끝에 날짜가 붙어 있다) */
+    public function gameClaims($user_id, $day) {
+        $stmt = $this->db->prepare("SELECT ref FROM coin_log
+            WHERE user_id = ? AND reason = 'game' AND ref LIKE ?");
+        $stmt->execute([$user_id, '%:' . $day]);
+        $cut = strlen($day) + 1;
+        $claims = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $ref) {
+            $claims[] = substr($ref, 0, -$cut);
+        }
+        return $claims;
     }
 
     public function history($user_id, $limit = 20) {
