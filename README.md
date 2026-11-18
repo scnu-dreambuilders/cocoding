@@ -108,8 +108,7 @@
 | 갱신되는 것 | 내용 |
 | --- | --- |
 | `FTP업로드/public_html/` | 화면 + `backend/` (서버에 올릴 것) |
-| `FTP업로드/2-처음설치용-DB.sql` | `schema.sql` 복사본 |
-| `FTP업로드/3-기존DB-업그레이드.sql` | `migrations/*.sql`을 이어붙인 것 |
+| `FTP업로드/2-DB.sql` | SQL 한 파일. 안에서 `[A]` 처음 설치용(`schema.sql`)과 `[B]` 기존 DB 업그레이드용(`migrations/upgrade.sql`)으로 나뉘며, 상황에 맞는 구역 하나만 실행 |
 
 화면이 서버를 `/backend/api`로 부르도록 빌드됩니다. 이 주소는 `frontend/.env.production.local`에 있습니다.
 

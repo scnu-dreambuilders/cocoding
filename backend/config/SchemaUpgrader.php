@@ -1,7 +1,7 @@
 <?php
 // backend/config/SchemaUpgrader.php
 // 기존 DB를 새 기능에 맞게 자동으로 업그레이드.
-// migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
+// migrations/upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
     const VERSION = '2026-11-18';

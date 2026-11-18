@@ -73,30 +73,51 @@ foreach ($f in $keep.Keys) {
 }
 
 Step 5 "DB 파일 갱신"
-Copy-Item 'schema.sql' "$ftp/2-처음설치용-DB.sql" -Force
-$head = @(
-    '-- ════════════════════════════════════════════════',
-    '-- 기존 DB 업그레이드 — 서버가 첫 접속 때 자동으로 적용하므로 보통은 실행할 필요 없음',
-    '-- DB 계정에 ALTER 권한이 없어서 자동 적용이 안 될 때만 phpMyAdmin에서 실행하세요.',
-    '-- 이미 실행했던 부분이 있으면 그 아래부터 복사해서 실행하면 됩니다.',
-    "-- 만든 날짜: $(Get-Date -Format 'yyyy-MM-dd')",
-    '-- ════════════════════════════════════════════════',
+# SQL은 파일 하나로 둔다. 안에서 [A] 처음 설치 / [B] 기존 DB 업그레이드로 나뉘고,
+# 상황에 맞는 구역 하나만 실행한다. 둘 다 돌리면 CREATE와 ALTER가 충돌한다.
+$bar = '-- ' + ('=' * 60)
+$sql = @(
+    $bar
+    '-- 코코딩 DB'
+    $bar
+    '--'
+    '--  ▶ 처음 설치하는 경우           → [A] 구역만 실행'
+    '--  ▶ 예전부터 쓰던 DB를 올리는 경우 → [B] 구역만 실행'
+    '--'
+    '--  두 구역을 다 실행하면 안 됩니다. [A]가 만든 테이블에 [B]가 다시'
+    '--  컬럼을 추가하려 해서 오류가 납니다.'
+    '--'
+    '--  [B]는 서버가 첫 접속 때 자동으로 적용하므로 보통 실행할 필요가 없습니다.'
+    '--  DB 계정에 ALTER 권한이 없어 자동 적용이 안 될 때만 phpMyAdmin에서 돌리세요.'
+    '--'
+    "--  만든 날짜: $(Get-Date -Format 'yyyy-MM-dd')"
+    $bar
     ''
+    ''
+    $bar
+    '-- [A] 처음 설치용 — 빈 DB에 테이블을 만든다'
+    $bar
+    ''
+    (Get-Content 'schema.sql' -Raw -Encoding UTF8).TrimEnd()
+    ''
+    ''
+    $bar
+    '-- [B] 기존 DB 업그레이드용 — 이미 쓰고 있던 DB를 지금 코드에 맞춘다'
+    $bar
+    ''
+    (Get-Content 'migrations/upgrade.sql' -Raw -Encoding UTF8).TrimEnd()
 )
-$body = foreach ($m in (Get-ChildItem 'migrations/*.sql' | Sort-Object Name)) {
-    ''
-    '-- ════════════════════════════════════════════════'
-    "-- $($m.Name)"
-    '-- ════════════════════════════════════════════════'
-    (Get-Content $m.FullName -Raw -Encoding UTF8)
+Set-Content "$ftp/2-DB.sql" $sql -Encoding UTF8
+# 전에 두 개로 나눠 두던 파일은 헷갈리니 지운다
+foreach ($old in @('2-처음설치용-DB.sql', '3-기존DB-업그레이드.sql')) {
+    if (Test-Path "$ftp/$old") { Remove-Item "$ftp/$old" -Force; Write-Host "      정리: $old" }
 }
-Set-Content "$ftp/3-기존DB-업그레이드.sql" ($head + $body) -Encoding UTF8
-Write-Host "      2-처음설치용-DB.sql, 3-기존DB-업그레이드.sql 갱신"
+Write-Host "      2-DB.sql 갱신 ([A] 처음 설치 + [B] 기존 DB 업그레이드)"
 
 Step 6 "확인"
 $must = @("$web/index.html", "$web/.htaccess", "$web/backend/api/auth/login.php",
           "$web/backend/grader/grade.mjs", "$web/backend/config/Logger.php",
-          "$web/backend/.htaccess", "$ftp/2-처음설치용-DB.sql")
+          "$web/backend/.htaccess", "$ftp/2-DB.sql")
 foreach ($f in $must) { if (-not (Test-Path $f)) { Fail "$f 가 없습니다" } }
 if (Test-Path "$web/backend/tools") { Fail "tools 폴더가 섞여 들어갔습니다" }
 if (-not (Test-Path "$web/backend/.env")) {
