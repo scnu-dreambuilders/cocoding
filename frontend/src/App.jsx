@@ -54,7 +54,7 @@ function readResetToken() {
    화면은 지금처럼 page 값 하나로 바꾸고, 주소는 그 값을 따라간다 (새로고침·뒤로 가기·주소 공유용).
    react-router로 옮기면 이 표가 그대로 라우트 정의가 된다. */
 const PAGE_PATH = {
-  home: '/', dashboard: '/home', study: '/study', mypage: '/mypage', board: '/board',
+  home: '/', dashboard: '/home', study: '/study', mypage: '/mypage', board: '/board', game: '/gamezone',
   survey: '/survey', 'survey-edit': '/survey/edit',
 }
 const PATH_PAGE = Object.fromEntries(Object.entries(PAGE_PATH).map(([p, path]) => [path, p]))
