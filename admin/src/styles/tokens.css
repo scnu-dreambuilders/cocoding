@@ -1,0 +1,89 @@
+/* 코코딩 브랜드 토큰 — frontend/src/index.css 에서 관리자 화면에 필요한 것만 복사했다.
+   frontend 원본은 바꾸지 않고, 두 앱은 서로 의존하지 않는다. 원본 색을 바꾸면 여기도 함께 맞춘다.
+   관리자 화면은 본문 글꼴만 쓴다 (제목용 HS산토끼체는 쓰지 않음, 글꼴 파일도 가져오지 않음). */
+:root {
+  --sans: 'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, 'Courier New', monospace;
+
+  --sky-50: #f3fafa;
+  --sky-100: #e4f2f3;
+  --sky-200: #c8e4e6;
+  --sky-300: #a6d3d8;
+  --teal-400: #82bfc5;
+  --teal-600: #3b8991;
+  --teal-700: #2c6e75;
+  --teal-800: #24565c;
+  --star-100: #feefc0;
+  --star-300: #fdd260;
+  --star-400: #f6b92f;
+  --star-700: #8a5a06;
+  --ink-600: #7a5a46;
+  --ink-700: #6b4a36;
+  --ink-900: #472917;
+
+  --text: var(--ink-700);
+  --text-h: var(--ink-900);
+  --text-muted: var(--ink-600);
+  --bg: var(--sky-50);
+  --header-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --tabs-bg: var(--sky-100);
+  --border: var(--sky-200);
+  --border-strong: var(--teal-600);
+  --btn-hover: var(--sky-100);
+
+  --accent: var(--teal-700);
+  --on-accent: #ffffff;
+  --accent-light: var(--sky-100);
+  --accent-text: var(--teal-800);
+  --focus: var(--teal-700);
+  --cta: var(--star-300);
+  --cta-hover: var(--star-400);
+  --on-cta: var(--ink-900);
+  --cta-edge: var(--ink-900);
+
+  --ok: #1f7447;
+  --ok-bg: #ddf3e5;
+  --warn: var(--star-700);
+  --warn-bg: var(--star-100);
+  --danger: #b03c27;
+  --danger-bg: #ffe8e1;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-pill: 999px;
+  --shadow-card: 0 2px 10px rgba(71, 41, 23, 0.1);
+
+  font: 16px/1.5 var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #c9e0e2;
+    --text-h: #f2f9f9;
+    --text-muted: #96b7bb;
+    --bg: #0e2225;
+    --header-bg: #132d31;
+    --panel-bg: #17353a;
+    --tabs-bg: #112a2e;
+    --border: #28484d;
+    --border-strong: #6a979d;
+    --btn-hover: rgba(255, 255, 255, 0.08);
+    --accent: var(--teal-400);
+    --on-accent: var(--ink-900);
+    --accent-light: #284b50;
+    --accent-text: var(--sky-200);
+    --focus: var(--teal-400);
+    --ok: #7fd6a4;
+    --ok-bg: #163a2b;
+    --warn: var(--star-300);
+    --warn-bg: #4a3a12;
+    --danger: #ff9f8c;
+    --danger-bg: #4a2420;
+    --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
+}
