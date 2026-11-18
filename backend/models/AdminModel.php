@@ -192,6 +192,45 @@ class AdminModel {
         return $stmt->rowCount() > 0;
     }
 
+    /* 신고된 것의 내용. 운영자가 숨길지 복구할지 판단하려면 내용을 봐야 한다.
+       작품은 blocks_data(수백 KB) 를 빼고, 보이는 것(제목·무대 캡처)만 준다 */
+    public function reportedContent($kind, $id) {
+        if ($kind === 'project') {
+            $stmt = $this->db->prepare("SELECT p.id, p.title, p.track, p.is_public, p.report_hidden,
+                    p.thumbnail_url, p.created_at, p.updated_at, u.id AS user_id, u.username
+                FROM projects p JOIN users u ON u.id = p.user_id WHERE p.id = ?");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            if (!$row) return null;
+            $row['id'] = (int)$row['id'];
+            $row['user_id'] = (int)$row['user_id'];
+            $row['is_public'] = (int)$row['is_public'] === 1;
+            $row['hidden'] = (int)$row['report_hidden'] === 1;
+            unset($row['report_hidden']);
+            return ['project' => $row];
+        }
+
+        $stmt = $this->db->prepare("SELECT p.id, p.kind, p.title, p.body, p.chapter, p.hidden,
+                p.created_at, u.id AS user_id, u.username
+            FROM board_posts p JOIN users u ON u.id = p.user_id WHERE p.id = ?");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+        if (!$row) return null;
+        $row['id'] = (int)$row['id'];
+        $row['user_id'] = (int)$row['user_id'];
+        $row['hidden'] = (int)$row['hidden'] === 1;
+
+        $c = $this->db->prepare("SELECT c.id, c.body, c.created_at, u.id AS user_id, u.username
+            FROM board_comments c JOIN users u ON u.id = c.user_id
+            WHERE c.post_id = ? ORDER BY c.created_at ASC");
+        $c->execute([$id]);
+        return ['post' => $row, 'comments' => array_map(function ($x) {
+            $x['id'] = (int)$x['id'];
+            $x['user_id'] = (int)$x['user_id'];
+            return $x;
+        }, $c->fetchAll())];
+    }
+
     public function targetExists($kind, $id) {
         $sql = $kind === 'project'
             ? "SELECT 1 FROM projects WHERE id = ?"
@@ -201,7 +240,228 @@ class AdminModel {
         return (bool)$stmt->fetchColumn();
     }
 
+    /* ── 공지사항 ─────────────────────────────── */
+
+    // 관리자 목록: 초안(published=0)까지 다 보여준다
+    public function notices($page) {
+        $limit = self::PAGE_SIZE + 1;
+        $offset = max(0, ((int)$page - 1) * self::PAGE_SIZE);
+        $stmt = $this->db->prepare("SELECT n.*, u.username AS author
+            FROM notices n LEFT JOIN users u ON u.id = n.created_by
+            ORDER BY n.pinned DESC, n.id DESC LIMIT ? OFFSET ?");
+        $stmt->bindValue(1, $limit, PDO::PARAM_INT);
+        $stmt->bindValue(2, $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        return [
+            'notices' => array_map([self::class, 'castNotice'], array_slice($rows, 0, self::PAGE_SIZE)),
+            'hasMore' => count($rows) > self::PAGE_SIZE,
+        ];
+    }
+
+    public function notice($id) {
+        $stmt = $this->db->prepare("SELECT n.*, u.username AS author
+            FROM notices n LEFT JOIN users u ON u.id = n.created_by WHERE n.id = ?");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+        return $row ? self::castNotice($row) : null;
+    }
+
+    private static function castNotice($n) {
+        $n['id'] = (int)$n['id'];
+        $n['pinned'] = (int)$n['pinned'] === 1;
+        $n['published'] = (int)$n['published'] === 1;
+        $n['created_by'] = $n['created_by'] === null ? null : (int)$n['created_by'];
+        return $n;
+    }
+
+    public function createNotice(array $f, $adminId) {
+        $stmt = $this->db->prepare("INSERT INTO notices (title, body, pinned, published, audience, created_by)
+            VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$f['title'], $f['body'], $f['pinned'] ? 1 : 0, $f['published'] ? 1 : 0, $f['audience'], $adminId]);
+        return (int)$this->db->lastInsertId();
+    }
+
+    public function updateNotice($id, array $changes) {
+        if (!$changes) return [];
+        $sets = [];
+        $args = [];
+        foreach ($changes as $col => $v) { $sets[] = "$col = ?"; $args[] = $v; }
+        $args[] = $id;
+        $this->db->prepare("UPDATE notices SET " . implode(', ', $sets) . " WHERE id = ?")->execute($args);
+        return array_keys($changes);
+    }
+
+    public function deleteNotice($id) {
+        $stmt = $this->db->prepare("DELETE FROM notices WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /* ── 챕터 ─────────────────────────────────── */
+
+    public function chapters() {
+        $rows = $this->db->query("SELECT * FROM chapters ORDER BY order_num, id")->fetchAll();
+        return array_map([self::class, 'castChapter'], $rows);
+    }
+
+    public function chapter($id) {
+        $stmt = $this->db->prepare("SELECT * FROM chapters WHERE id = ?");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+        return $row ? self::castChapter($row) : null;
+    }
+
+    // new_blocks·required_blocks 는 DB에 JSON 글자로 들어 있다. 화면이 쓰기 쉽게 배열로 바꿔준다
+    private static function castChapter($c) {
+        $c['id'] = (int)$c['id'];
+        $c['order_num'] = (int)$c['order_num'];
+        foreach (['new_blocks', 'required_blocks'] as $k) {
+            $decoded = is_string($c[$k]) ? json_decode($c[$k], true) : $c[$k];
+            $c[$k] = is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
+        }
+        return $c;
+    }
+
+    public function updateChapter($id, array $changes) {
+        if (!$changes) return [];
+        $sets = [];
+        $args = [];
+        foreach ($changes as $col => $v) { $sets[] = "$col = ?"; $args[] = $v; }
+        $args[] = $id;
+        $this->db->prepare("UPDATE chapters SET " . implode(', ', $sets) . " WHERE id = ?")->execute($args);
+        return array_keys($changes);
+    }
+
+    // 이 챕터를 이미 하고 있는 학생이 몇 명인지 (내용을 고치기 전에 알려주려고)
+    public function chapterUsage($id) {
+        $stmt = $this->db->prepare("SELECT
+                SUM(status = 'completed') AS done,
+                SUM(status = 'in_progress') AS doing,
+                COUNT(*) AS total
+            FROM user_chapter_progress WHERE chapter_id = ?");
+        $stmt->execute([$id]);
+        $r = $stmt->fetch();
+        return [
+            'completed' => (int)$r['done'],
+            'inProgress' => (int)$r['doing'],
+            'total' => (int)$r['total'],
+        ];
+    }
+
+    /* ── 선생님 반 ────────────────────────────── */
+
+    public function classes($page, $q = '') {
+        $where = '1 = 1';
+        $args = [];
+        if ($q !== '') {
+            $like = '%' . addcslashes($q, '%_\\') . '%';
+            $where = '(c.name LIKE ? OR u.username LIKE ?)';
+            $args = [$like, $like];
+        }
+        $limit = self::PAGE_SIZE + 1;
+        $offset = max(0, ((int)$page - 1) * self::PAGE_SIZE);
+        $stmt = $this->db->prepare("SELECT c.id, c.name, c.join_code, c.created_at,
+                u.id AS teacher_id, u.username AS teacher,
+                (SELECT COUNT(*) FROM class_members m WHERE m.class_id = c.id) AS students,
+                (SELECT COUNT(*) FROM class_assignments a WHERE a.class_id = c.id) AS assignments
+            FROM classes c JOIN users u ON u.id = c.teacher_id
+            WHERE $where ORDER BY c.id DESC LIMIT ? OFFSET ?");
+        $i = 1;
+        foreach ($args as $a) { $stmt->bindValue($i++, $a); }
+        $stmt->bindValue($i++, $limit, PDO::PARAM_INT);
+        $stmt->bindValue($i, $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        $items = array_map(function ($c) {
+            foreach (['id', 'teacher_id', 'students', 'assignments'] as $k) { $c[$k] = (int)$c[$k]; }
+            return $c;
+        }, array_slice($rows, 0, self::PAGE_SIZE));
+        return ['classes' => $items, 'hasMore' => count($rows) > self::PAGE_SIZE];
+    }
+
+    public function classDetail($id) {
+        $stmt = $this->db->prepare("SELECT c.*, u.username AS teacher FROM classes c
+            JOIN users u ON u.id = c.teacher_id WHERE c.id = ?");
+        $stmt->execute([$id]);
+        $class = $stmt->fetch();
+        if (!$class) return null;
+        $class['id'] = (int)$class['id'];
+        $class['teacher_id'] = (int)$class['teacher_id'];
+
+        $members = $this->db->prepare("SELECT m.id, m.joined_at, u.id AS user_id, u.username, u.level, u.suspended
+            FROM class_members m JOIN users u ON u.id = m.student_id WHERE m.class_id = ? ORDER BY u.username");
+        $members->execute([$id]);
+
+        $assignments = $this->db->prepare("SELECT a.*,
+                (SELECT COUNT(*) FROM assignment_done d WHERE d.assignment_id = a.id) AS done
+            FROM class_assignments a WHERE a.class_id = ? ORDER BY a.id DESC");
+        $assignments->execute([$id]);
+
+        return [
+            'class' => $class,
+            'members' => array_map(function ($m) {
+                foreach (['id', 'user_id', 'level'] as $k) { $m[$k] = (int)$m[$k]; }
+                $m['suspended'] = (int)$m['suspended'] === 1;
+                return $m;
+            }, $members->fetchAll()),
+            'assignments' => array_map(function ($a) {
+                $a['id'] = (int)$a['id'];
+                $a['done'] = (int)$a['done'];
+                return $a;
+            }, $assignments->fetchAll()),
+        ];
+    }
+
+    public function deleteClass($id) {
+        $stmt = $this->db->prepare("DELETE FROM classes WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function deleteAssignment($id) {
+        $stmt = $this->db->prepare("DELETE FROM class_assignments WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /* ── 코인·경험치 손보기 ────────────────────
+       잘못 지급된 코인을 되돌리거나, 행사로 더 줄 때 쓴다.
+       users 표를 바로 고치지 않고 coin_log 를 거쳐서, 나중에 "왜 늘었나"를 되짚을 수 있게 한다. */
+    public function adjustCoins($userId, $delta, $adminId) {
+        // coin_log 에는 (user_id, reason, ref) 유니크 키가 있다. 같은 초에 두 번 조정하면
+        // 시각만으로는 ref 가 겹쳐서 중복 키 오류가 난다. 무작위 꼬리를 붙여 겹치지 않게 한다
+        $ref = 'by:' . $adminId . ':' . date('YmdHis') . ':' . bin2hex(random_bytes(3));
+        $this->db->prepare("INSERT INTO coin_log (user_id, amount, reason, ref) VALUES (?, ?, 'admin', ?)")
+            ->execute([$userId, $delta, $ref]);
+        // 코인이 음수가 되지 않게 막는다
+        $this->db->prepare("UPDATE users SET coins = GREATEST(0, coins + ?) WHERE id = ?")
+            ->execute([$delta, $userId]);
+        $stmt = $this->db->prepare("SELECT coins FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function adjustXp($userId, $delta) {
+        $this->db->prepare("UPDATE users SET xp = GREATEST(0, xp + ?) WHERE id = ?")->execute([$delta, $userId]);
+        $stmt = $this->db->prepare("SELECT xp FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function emailTaken($email, $exceptId) {
+        $stmt = $this->db->prepare("SELECT 1 FROM users WHERE email = ? AND id <> ? LIMIT 1");
+        $stmt->execute([$email, $exceptId]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    public function setPassword($userId, $plain) {
+        $this->db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+            ->execute([password_hash($plain, PASSWORD_DEFAULT), $userId]);
+    }
+
     /* ── 통계 ─────────────────────────────────── */
+
 
     public function stats() {
         $num = function ($sql) {

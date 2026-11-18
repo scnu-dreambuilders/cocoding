@@ -379,6 +379,19 @@ class SchemaUpgrader {
         if (self::column($db, 'users', 'suspended_reason') === null) {
             $db->exec("ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(100) NULL AFTER suspended");
         }
+        $db->exec("CREATE TABLE IF NOT EXISTS notices (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(80) NOT NULL,
+            body VARCHAR(2000) NOT NULL,
+            pinned TINYINT(1) NOT NULL DEFAULT 0,
+            published TINYINT(1) NOT NULL DEFAULT 1,
+            audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+            created_by INT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_show (published, pinned, id),
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         $db->exec("CREATE TABLE IF NOT EXISTS settings (
             name VARCHAR(40) PRIMARY KEY,
             value VARCHAR(200) NOT NULL,

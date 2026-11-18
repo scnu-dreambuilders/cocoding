@@ -61,7 +61,7 @@ foreach ($resets as $name) {
 }
 
 if ($saved) {
-    Logger::audit('admin.settings', ['by' => $adminId, 'saved' => $saved]);
+    Logger::admin('admin.settings', ['by' => $adminId, 'saved' => $saved]);
 }
 
 $message = $saved

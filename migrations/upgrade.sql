@@ -329,3 +329,20 @@ CREATE TABLE IF NOT EXISTS settings (
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 공지사항 — 관리자 웹에서 쓰고 학생 화면에 보인다
+CREATE TABLE IF NOT EXISTS notices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(80) NOT NULL,
+    body VARCHAR(2000) NOT NULL,
+    -- pinned: 맨 위에 고정. published: 꺼두면 학생에게 안 보인다 (초안)
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    published TINYINT(1) NOT NULL DEFAULT 1,
+    -- 누구에게 보일지. all 이면 모두, 그 밖에는 그 역할에게만
+    audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_show (published, pinned, id),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

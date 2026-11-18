@@ -189,6 +189,23 @@ CREATE TABLE coin_log (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 공지사항 (관리자 웹에서 쓰고, 학생·선생님·보호자 화면에 보인다)
+CREATE TABLE notices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(80) NOT NULL,
+    body VARCHAR(2000) NOT NULL,
+    -- pinned: 맨 위에 고정. published: 꺼두면 학생에게 안 보인다 (초안)
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    published TINYINT(1) NOT NULL DEFAULT 1,
+    -- 누구에게 보일지. all 이면 모두, 그 밖에는 그 역할에게만
+    audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_show (published, pinned, id),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- 운영 기준값 (관리자 웹에서 고친다)
 -- 여기에 행이 없으면 코드에 적힌 기본값(config/Settings.php의 DEFAULTS)을 쓴다.
 -- 그래서 표가 비어 있어도 서비스는 그대로 돌아간다
@@ -674,4 +691,21 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_by INT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 공지사항 — 관리자 웹에서 쓰고 학생 화면에 보인다
+CREATE TABLE IF NOT EXISTS notices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(80) NOT NULL,
+    body VARCHAR(2000) NOT NULL,
+    -- pinned: 맨 위에 고정. published: 꺼두면 학생에게 안 보인다 (초안)
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    published TINYINT(1) NOT NULL DEFAULT 1,
+    -- 누구에게 보일지. all 이면 모두, 그 밖에는 그 역할에게만
+    audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_show (published, pinned, id),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

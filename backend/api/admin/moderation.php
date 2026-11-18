@@ -2,7 +2,7 @@
 // backend/api/admin/moderation.php — 관리자 웹: 신고된 글·작품 관리
 //
 // GET   ?target=post|project&page=1        신고가 쌓인 것 + 이미 숨겨진 것 목록
-// GET   ?target=post|project&id=N          신고 이유 모아보기
+// GET   ?target=post|project&id=N          신고 이유 + 글 내용(댓글 포함) 또는 작품 정보
 // PATCH ?target=post|project&id=N { "hidden": true|false }   숨기기 / 복구
 //
 // 정한 규칙
@@ -32,11 +32,13 @@ $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($method === 'GET') {
     if ($id) {
         if (!$model->targetExists($target, $id)) Response::error("그런 글이 없어요.", 404);
+        // 숨긴 뒤에도 내용을 볼 수 있어야 복구할지 판단할 수 있다.
+        // 작품은 blocks_data 를 빼고 제목·무대 캡처만 준다 (수백 KB 를 실어 보내지 않는다)
         Response::success([
             'target' => $target,
             'id' => $id,
             'reasons' => $model->reportReasons($target, $id),
-        ]);
+        ] + ($model->reportedContent($target, $id) ?: []));
     }
     $page = min(500, max(1, (int)($_GET['page'] ?? 1)));
     Response::success($model->reported($target, $page) + [
@@ -58,7 +60,7 @@ if (!is_array($data) || !array_key_exists('hidden', $data) || !is_bool($data['hi
 }
 
 $model->setHidden($target, $id, $data['hidden']);
-Logger::audit('admin.moderation', [
+Logger::admin('admin.moderation', [
     'by' => $adminId,
     'target' => $target,
     'id' => $id,
