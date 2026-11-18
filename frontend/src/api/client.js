@@ -44,7 +44,10 @@ async function request(path, options = {}) {
   }
 
   // 토큰이 만료되거나 로그아웃된 경우 → 앱에 알려서 로그인 화면으로 (App.jsx)
-  if (res.status === 401 && token) {
+  // 단, 이 요청을 보낼 때 쓴 토큰이 지금도 저장된 토큰일 때만. 이미 로그아웃했거나 다른 토큰으로
+  // 다시 로그인했다면 이전 요청의 401이 지금 세션을 정리하지 않는다 (오류는 아래에서 그대로 호출자에게 간다)
+  const currentToken = localStorage.getItem('cocooding_token')
+  if (res.status === 401 && token && currentToken && currentToken === token) {
     window.dispatchEvent(new Event('cocoding:unauthorized'))
   }
 
@@ -59,11 +62,13 @@ async function request(path, options = {}) {
   return json.data
 }
 
-/* 코딩 게시판에서 서버가 아직 지원하지 않는 기능 — 지금은 모두 false로 두고 켜지 않는다.
-   값을 켜는 것만으로 연동이 끝나지 않는다. 아래 요청 형식(kind·chapter·blocks·status·q·accept_answer_id)과
-   화면이 기대하는 응답 필드(lib/boardTopics.js normalizePost, BoardPage)는 아직 합의 전 '제안'이다.
-   연결 순서: ① 백엔드와 요청·응답·권한 규칙 합의 → ② 백엔드 구현·배포 확인 → ③ 이 파일의 요청 변환과
-   화면의 응답 처리를 합의 형식에 맞게 조정 → ④ 준비된 기능만 골라 값을 true로 → ⑤ 실제 서버 통합 QA */
+/* 코딩 게시판의 질문·검색·채택 연결 스위치.
+   백엔드는 구현됨(board/index.php — 커밋 dde5364): 요청 형식(kind·chapter·blocks·status·q·accept_answer_id)과
+   응답 필드(posts·hasMore, post.kind·status·chapter·blocks·is_mine, comments[].accepted)가 이 파일·화면과 맞는다.
+   그래도 아직 false로 둔다. 대상 서버의 DB가 2026-11-19 스키마로 올라갔는지(첫 API 요청 때 SchemaUpgrader가
+   자동 적용) 확인하고, 실제 서버 통합 QA(질문 등록·검색·필터·채택)를 통과한 기능부터 하나씩 true로 바꾼다.
+   값을 켜는 것만으로 연동이 끝나지 않는다: ① 합의 ② 백엔드 구현·배포 확인 ③ 요청·응답 처리 조정
+   ④ 준비된 기능별로 활성화 ⑤ 실제 서버 통합 QA — 지금은 ①②③까지 끝난 상태다 */
 export const BOARD_SERVER = { questions: false, search: false, accept: false }
 
 // 질문 작성·수정 요청의 챕터: 폼의 '선택 안 함'('')은 null, 챕터 '1'~'5'와 'free'는 그대로 보낸다.
@@ -235,8 +240,8 @@ export const api = {
   ranking: (scope = 'all') => request(`/social/ranking.php?scope=${encodeURIComponent(scope)}`),
 
   /* ── 코딩 게시판 (토론 + 질문) ──────────────────
-     지금 서버(board/index.php)로 동작: 토론 목록·상세·쓰기·고치기·지우기·댓글·신고.
-     아직 서버 API가 없음: 질문 구분·챕터·블록 태그·해결 상태·채택·검색·필터 → BOARD_SERVER 참고.
+     지금 연결됨: 토론 목록·상세·쓰기·고치기·지우기·댓글·신고.
+     백엔드는 있지만 아직 끔: 질문 구분·챕터·블록 태그·해결 상태·채택·검색·필터 → BOARD_SERVER 참고.
      꺼져 있는 기능은 요청을 보내지 않고 kind: 'unsupported' 오류로 거절한다 (성공한 척하지 않음). */
   // query: { kind: 'all'|'question'|'discussion', q, chapter, block, status: 'all'|'open'|'solved' }
   boardList: (page = 1, query = {}) => {
@@ -294,6 +299,16 @@ export const api = {
   // 질문 게시글에도 같은 정책을 적용하는 것은 백엔드 통합 시 반영할 사항이다.
   // 답변·댓글 신고는 별도 합의가 필요하다 (지금은 화면 버튼도 API도 없다)
   reportBoardPost: (report_id, reason) => request('/board/index.php', { method: 'POST', body: JSON.stringify({ report_id, reason }) }),
+
+  /* ── 게임존 코인 보상 (games/reward.php) ──────────
+     로그인한 사용자만. 같은 단계는 하루 한 번 (타자: 단계·세트별, 퀴즈: 단계·first/retry별), 경험치는 오르지 않는다.
+     GET  → { balance, claimed: ['typing:word:0', ...], reward: { typing, quiz } }  (정답 1개당 코인)
+     POST → { awarded, already, balance, message }
+       타자 { game: 'typing', stage: 'word'|'block', set: 0|1, correct: 0~5 }
+       퀴즈 { game: 'quiz', stage: '1'~'5'|'review', round: 'first'|'retry', correct: 0~5 } */
+  gameRewards: () => request('/games/reward.php'),
+
+  claimGameReward: (payload) => request('/games/reward.php', { method: 'POST', body: JSON.stringify(payload) }),
 
   /* ── 과제 (추가) ───────────────────────────── */
   assignmentDetail: (id) => request(`/classes/assignments.php?id=${encodeURIComponent(id)}`),

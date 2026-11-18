@@ -12,7 +12,8 @@ import './BoardPage.css'
 /* ════════════════════════════════════════════════
    코딩 게시판 — 토론과 질문(Q&A)을 한 화면에서
    · 토론: 글 쓰기·고치기·지우기, 댓글, 신고(3명이면 자동 숨김) — 지금 서버로 동작
-   · 질문: 챕터·블록 태그, 해결 상태, 답변·채택 — 화면은 완성, 서버 API는 연결 전 (api/client.js의 BOARD_SERVER)
+   · 질문: 챕터·블록 태그, 해결 상태, 답변·채택 — 백엔드는 구현됨(board/index.php). 실제 서버 QA 전까지
+     api/client.js의 BOARD_SERVER가 꺼져 있어 요청을 보내지 않는다
      연결 전 기능은 요청을 보내지 않고 '서버 연결 전' 안내를 띄운다. 성공한 척하거나 다른 곳에 대신 저장하지 않는다.
    (기능정의서 STU-003, 요구사항 SFR-STU-005, 플로우차트 ver02 '게시판', PR #10 리뷰의 Q&A 요구)
    ════════════════════════════════════════════════ */
@@ -493,8 +494,9 @@ export default function BoardPage({ user, onLogout, onMenu, onGoHome }) {
       {(c.user_id === user?.id || post?.is_mine) && (
         <button type="button" className="row-remove" onClick={() => removeComment(c.id)} disabled={busy} aria-label={`${replyWord} 지우기`}>×</button>
       )}
-      {/* 질문 작성자는 다른 사람의 답변을 채택·취소할 수 있다 (자기 답변 채택은 첫 범위에서 제외) */}
-      {isQuestion && post.is_mine && c.user_id !== user?.id && (
+      {/* 질문 작성자는 답변을 채택·취소할 수 있다. 서버 규칙에 맞춰 자기 답변도 채택할 수 있다
+          (스스로 해결한 질문을 '해결됨'으로 표시하는 방법) */}
+      {isQuestion && post.is_mine && (
         <button type="button" className="board-link board-accept" onClick={() => toggleAccept(c)} disabled={busy}>
           {c.accepted ? '채택 취소' : '채택하기'}
         </button>

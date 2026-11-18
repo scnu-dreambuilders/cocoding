@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import HomePage      from './pages/HomePage'
 import AuthPage      from './pages/AuthPage'
 import SurveyPage    from './pages/SurveyPage'
@@ -133,6 +133,9 @@ function initialPage() {
   return allowedPage(route.page, user)
 }
 
+// 잔액은 0 이상의 정수일 때만 믿는다 (모르는 값을 0으로 보여 주지 않는다)
+const validCoins = (c) => Number.isInteger(c) && c >= 0
+
 export default function App() {
   const [user,      setUser]      = useState(readCachedUser)
   const [resetToken, setResetToken] = useState(readResetToken)
@@ -158,22 +161,49 @@ export default function App() {
   const latestRef = useRef({ page, user })
   useEffect(() => { latestRef.current = { page, user } })
 
+  /* ── 로그인 세션과 사용자 상태 ───────────────
+     userRef: 지금 사용자 — setUser를 부르는 두 곳(saveUser·clearSession)에서 상태와 같이 바꿔 늘 일치시킨다.
+     sessionRef: 로그인·로그아웃마다 +1. 같은 계정으로 다시 로그인해도 번호가 달라서
+       이전 세션에서 보낸 요청의 성공·실패 응답은 지금 세션에 반영하지 않는다 (토큰도 함께 비교, 화면·로그에는 쓰지 않음) */
+  const userRef = useRef(user)
+  const sessionRef = useRef(0)
+  // 서버에서 사용자(잔액)를 다시 읽는 요청의 순번 — 늦게 시작한 조회가 이긴다 (오래된 조회가 최신 잔액을 덮지 않게)
+  const readSeqRef = useRef(0)
+  const coinsReadSeqRef = useRef(0) // 지금 화면 잔액을 정한 조회의 순번
+  const coinRefreshRef = useRef({ running: null, again: false }) // 잔액 다시 읽기 (진행 중에 또 요청되면 끝난 뒤 한 번 더)
+
   const saveUser = useCallback((u) => {
     localStorage.setItem('cocooding_user', JSON.stringify(u))
+    userRef.current = u
     setUser(u)
+  }, [])
+
+  // 지금 세션 표시 (요청을 보낼 때 기억해 두고, 응답이 왔을 때 같은 세션인지 본다)
+  const sessionTag = useCallback(() => (userRef.current
+    ? { no: sessionRef.current, token: localStorage.getItem('cocooding_token') }
+    : null), [])
+  const isSessionCurrent = useCallback((tag) => !!tag && !!userRef.current
+    && tag.no === sessionRef.current && tag.token === localStorage.getItem('cocooding_token'), [])
+
+  // 새 세션 시작·끝: 번호를 올리고 이전 세션의 잔액 다시 읽기 상태는 버린다 (이전 요청은 응답이 와도 무시됨)
+  const beginSession = useCallback(() => {
+    sessionRef.current += 1
+    coinRefreshRef.current = { running: null, again: false }
   }, [])
 
   // 로컬 세션만 지우기 (토큰이 이미 무효일 때)
   const clearSession = useCallback(() => {
+    beginSession()
     localStorage.removeItem('cocooding_token')
     localStorage.removeItem('cocooding_user')
+    userRef.current = null
     setUser(null)
     setLaunch(null)
     setNavIntent(null)
     setSessionIssue('')
     setAuthMode('login')
     setPage('auth')
-  }, [])
+  }, [beginSession])
 
   // 로그아웃 버튼: 서버에서도 토큰을 무효화
   // (토큰 만료처럼 자동으로 세션이 지워질 때는 clearSession만 써서 로그인 화면으로 보낸다)
@@ -207,15 +237,87 @@ export default function App() {
   // 401(토큰 만료)은 client.js가 'cocoding:unauthorized' 이벤트로 이미 로그아웃시킨다.
   // 그 밖에는 '계정 없음'이 확실할 때만 세션을 지우고, 네트워크·시간 초과·서버 오류는 세션을 남긴 채 안내만 한다.
   // (저장된 사용자 정보는 확인된 것이 아니므로 안내를 띄우고, 실제 작업은 서버가 요청마다 다시 인증한다)
+  // 서버에서 읽은 사용자(fresh)를 반영한다. 더 늦게 시작한 조회가 이미 잔액을 정했다면 coins는 지금 값을 둔다.
+  // coinsOnly: 잔액만 바꾸고 나머지 필드는 지금(최신) 사용자 그대로
+  const applyRead = useCallback((seq, fresh, { coinsOnly = false } = {}) => {
+    const current = userRef.current
+    const newer = seq > coinsReadSeqRef.current && validCoins(fresh?.coins)
+    if (newer) coinsReadSeqRef.current = seq
+    const coins = newer ? fresh.coins : current?.coins
+    if (coinsOnly) {
+      if (current && newer && current.coins !== coins) saveUser({ ...current, coins })
+      return
+    }
+    saveUser({ ...fresh, coins })
+  }, [saveUser])
+
+  // 사용자 다시 읽기 (편집기·보호자 동의 확인용). 이전 세션의 응답·오류는 지금 화면을 바꾸지 않는다
+  // 결과: { status: 'ok', user } | { status: 'stale' } | { status: 'error', message }
+  const refreshUser = useCallback(() => {
+    const tag = sessionTag()
+    if (!tag) return Promise.resolve({ status: 'stale' })
+    const seq = ++readSeqRef.current
+    return api.me().then(
+      (fresh) => {
+        if (!isSessionCurrent(tag)) return { status: 'stale' }
+        applyRead(seq, fresh)
+        return { status: 'ok', user: userRef.current }
+      },
+      (err) => (isSessionCurrent(tag) ? { status: 'error', message: err?.message ?? '알 수 없는 오류' } : { status: 'stale' }),
+    )
+  }, [sessionTag, isSessionCurrent, applyRead])
+
+  // 잔액 다시 읽기 — 출석·구매·과제·게임 보상 같은 쓰기가 끝난 뒤 부른다 (쓰기 응답의 balance는 쓰지 않는다)
+  // 진행 중에 또 요청되면 끝난 뒤 한 번 더 읽는다. 실패해도 진행 상태는 풀린다.
+  // 결과: { ok: true } | { ok: false, stale: true } | { ok: false, message }
+  const refreshCoins = useCallback((tag = sessionTag()) => {
+    if (!isSessionCurrent(tag)) return Promise.resolve({ ok: false, stale: true })
+    const state = coinRefreshRef.current
+    if (state.running) {
+      state.again = true
+      return state.running
+    }
+    const run = async () => {
+      let result
+      do {
+        state.again = false
+        if (!isSessionCurrent(tag)) return { ok: false, stale: true }
+        const seq = ++readSeqRef.current
+        try {
+          const fresh = await api.me()
+          if (!isSessionCurrent(tag)) return { ok: false, stale: true }
+          applyRead(seq, fresh, { coinsOnly: true })
+          result = validCoins(fresh?.coins) ? { ok: true } : { ok: false, message: '잔액 정보가 올바르지 않아요' }
+        } catch (err) {
+          if (!isSessionCurrent(tag)) return { ok: false, stale: true }
+          result = { ok: false, message: err?.message ?? '알 수 없는 오류' }
+        }
+      } while (state.again)
+      return result
+    }
+    state.running = run().finally(() => { state.running = null })
+    return state.running
+  }, [sessionTag, isSessionCurrent, applyRead])
+
+  // 게임존에 넘기는 세션·잔액 도구 (함수는 모두 고정이라 한 번만 만든다)
+  const coinSync = useMemo(() => ({ session: sessionTag, isCurrent: isSessionCurrent, refresh: refreshCoins }),
+    [sessionTag, isSessionCurrent, refreshCoins])
+  // 학생 홈의 출석·상점·과제가 잔액이 바뀌었을 수 있다고 알릴 때 (받은 값은 쓰지 않고 다시 읽는다)
+  const coinsMaybeChanged = useCallback(() => { refreshCoins() }, [refreshCoins])
+
   const checkSession = useCallback(() => {
     if (!localStorage.getItem('cocooding_token')) return
+    const tag = sessionTag()
+    const seq = ++readSeqRef.current
     api.me()
       .then((fresh) => {
+        if (!isSessionCurrent(tag)) return // 그사이 로그아웃·다시 로그인했다면 이 응답은 버린다
         setSessionIssue('')
-        saveUser(fresh)
+        applyRead(seq, fresh)
         if (needsSurvey(fresh)) setPage((p) => (p === 'dashboard' ? 'survey' : p))
       })
       .catch((err) => {
+        if (!isSessionCurrent(tag)) return // 이전 세션의 실패는 지금 세션을 지우거나 안내를 띄우지 않는다
         if (err?.status === 401) return
         if (isAccountGone(err)) {
           clearSession()
@@ -223,18 +325,15 @@ export default function App() {
         }
         setSessionIssue(`로그인 상태를 확인하지 못했어요 (${err?.message ?? '알 수 없는 오류'}). 잠시 후 다시 확인해 주세요.`)
       })
-  }, [saveUser, clearSession])
+  }, [sessionTag, isSessionCurrent, applyRead, clearSession])
 
   useEffect(() => {
     checkSession()
   }, [checkSession])
 
-  const refreshUser = useCallback(() => {
-    api.me().then(saveUser).catch(() => {})
-  }, [saveUser])
-
   /* ── Navigation ──────────────────────────────── */
   const handleLogin = (userData) => {
+    beginSession() // 새 로그인 세션 — 같은 계정이어도 이전 세션의 요청 결과는 반영하지 않는다
     saveUser(userData)
     setPage(needsSurvey(userData) ? 'survey' : 'dashboard')
   }
@@ -446,6 +545,8 @@ export default function App() {
         onEditSurvey={openSurveyEdit}
         onOpenMyGame={openMyGame}
         onUserChange={saveUser}
+        onCoinsMaybeChanged={coinsMaybeChanged}
+        onRefreshUser={refreshUser}
         onAccountDeleted={clearSession}
         onGoHome={() => setPage('home')}
         onMenu={handleMenu}
@@ -465,6 +566,7 @@ export default function App() {
         onBack={() => setPage(user ? 'dashboard' : 'home')}
         onAuth={openAuth}
         onLogout={logout}
+        coinSync={coinSync}
       />
     )
   }

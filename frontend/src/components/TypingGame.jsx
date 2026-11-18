@@ -6,7 +6,7 @@ import { canPlayTypingSound, createTypingSound, isTypingKey } from '../lib/typin
 /* ════════════════════════════════════════════════
    게임존 타자게임 — 한글 낱말·블록 구문 따라 입력하기
    단계 선택 → 짧은 안내 → 연습(5문제) → 결과
-   점수·속도·정확도는 재지 않고, 기록 저장·보상 요청도 하지 않는다.
+   점수·속도·정확도는 재지 않고, 연습 기록도 저장하지 않는다. 세트를 끝내면 코인 요청은 GameZonePage가 한다.
    ════════════════════════════════════════════════ */
 
 const STAGE_ICON = { word: BookOpen, block: Puzzle }
@@ -86,7 +86,8 @@ function SoundToggle({ on, onToggle }) {
 
 // onLeave: 게임존 첫 화면으로 / onDirtyChange(bool): 버리면 사라질 진행이 있는지 (게임존의 메뉴·로고·로그인 이동 확인용)
 // soundOn·onSoundChange: 효과음 설정 (게임존에 머무는 동안 GameZonePage가 기억, 저장하지 않음)
-export default function TypingGame({ onLeave, onDirtyChange, soundOn = false, onSoundChange }) {
+// renderReward(completion): 결과 화면의 코인 안내 (GameZonePage가 요청·표시를 맡는다)
+export default function TypingGame({ onLeave, onDirtyChange, soundOn = false, onSoundChange, renderReward }) {
   const [view, setView] = useState('stages') // 'stages' | 'guide' | 'practice' | 'result'
   const [stageId, setStageId] = useState(null)
   const [setIndex, setSetIndex] = useState(0)
@@ -105,6 +106,8 @@ export default function TypingGame({ onLeave, onDirtyChange, soundOn = false, on
   const advancedAtRef = useRef(-Infinity) // 마지막으로 다음 문제로 넘어간 이벤트 시각 (연속 클릭·Enter 방지)
   const headingRef = useRef(null)
   const inputRef = useRef(null)
+  const completionSeq = useRef(0) // 결과(완료)마다 새 번호 — 코인 요청을 결과 하나에 한 번만
+  const [completion, setCompletion] = useState(null) // 이번 결과로 보낼 코인 요청 { id, payload, label, rule }
   const soundRef = useRef(null) // 효과음 엔진 — 사용자 동작 때 처음 만들고, 화면을 떠나면 정리
 
   const stage = TYPING_STAGES.find((s) => s.id === stageId) ?? null
@@ -244,6 +247,14 @@ export default function TypingGame({ onLeave, onDirtyChange, soundOn = false, on
       sound.success()
     }
     if (qIndex + 1 >= items.length) {
+      // 세트를 끝까지 맞혀야 결과로 오므로 맞힌 개수는 이 세트의 문제 수다
+      completionSeq.current += 1
+      setCompletion({
+        id: `typing-${completionSeq.current}`,
+        payload: { game: 'typing', stage: stageId, set: setIndex, correct: items.length },
+        label: `${stage.name} ${setIndex + 1}세트`,
+        rule: '타자게임 코인은 같은 단계·세트마다 하루에 한 번 받아요.',
+      })
       setView('result')
       return
     }
@@ -283,7 +294,7 @@ export default function TypingGame({ onLeave, onDirtyChange, soundOn = false, on
           })}
         </div>
         <button type="button" className="game-option" onClick={onLeave}>게임존으로 돌아가기</button>
-        <p>연습 결과는 저장되지 않으며 코인·경험치 보상은 없어요.</p>
+        <p>로그인하면 맞힌 문제 수만큼 코인을 받아요 (같은 단계·세트는 하루에 한 번). 경험치는 오르지 않고, 연습 기록은 저장하지 않아요.</p>
       </section>
     )
   }
@@ -324,7 +335,8 @@ export default function TypingGame({ onLeave, onDirtyChange, soundOn = false, on
           <button type="button" className="game-option" onClick={backToStages}>단계 선택</button>
           <button type="button" className="game-option" onClick={onLeave}>게임존으로</button>
         </div>
-        <p className="typing-result-note">연습 결과는 저장되지 않으며 코인·경험치 보상은 없어요.</p>
+        {renderReward?.(completion)}
+        <p className="typing-result-note">연습 기록은 저장하지 않아요.</p>
       </section>
     )
   }

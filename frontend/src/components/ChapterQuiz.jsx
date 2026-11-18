@@ -9,7 +9,8 @@ import {
 /* ════════════════════════════════════════════════
    게임존 챕터별 복습 퀴즈
    챕터 선택 → 5문제(보기 고르기 → 정답 확인 → 해설 → 직접 다음) → 결과 → 다시 풀기
-   제한시간·자동 전환·점수 저장·보상 없음. 실제 챕터 완료·잠금과도 무관하다.
+   제한시간·자동 전환·풀이 기록 저장 없음. 실제 챕터 완료·잠금과도 무관하다.
+   결과 화면에서 코인 요청은 GameZonePage가 한다 (단계·처음 풀이/다시 풀기별 하루 한 번, 경험치 없음).
    ════════════════════════════════════════════════ */
 
 // '이동과 방향 – 캐릭터를 움직여보자' → '이동과 방향'
@@ -63,7 +64,8 @@ function ChapterCard({ id, chip, title, summary, srName, onStart }) {
 }
 
 // onLeave: 게임존 첫 화면으로 / onDirtyChange(bool): 버리면 사라질 진행이 있는지 (게임존의 메뉴·로고·로그인 이동 확인용)
-export default function ChapterQuiz({ onLeave, onDirtyChange }) {
+// renderReward(completion): 결과 화면의 코인 안내 (GameZonePage가 요청·표시를 맡는다)
+export default function ChapterQuiz({ onLeave, onDirtyChange, renderReward }) {
   const [view, setView] = useState('chapters') // 'chapters' | 'play' | 'result'
   const [mode, setMode] = useState(null)       // { kind: 'chapter', no } | { kind: 'review' }
   const [round, setRound] = useState('first')  // 'first' | 'retry'
@@ -75,6 +77,8 @@ export default function ChapterQuiz({ onLeave, onDirtyChange }) {
   const [focusKey, setFocusKey] = useState(0)
 
   const advancedFromRef = useRef(-1) // 같은 문제에서 '다음'이 두 번 처리되지 않게
+  const completionSeq = useRef(0)    // 결과(완료)마다 새 번호 — 코인 요청을 결과 하나에 한 번만
+  const [completion, setCompletion] = useState(null) // 이번 결과로 보낼 코인 요청 { id, payload, label, rule }
   const headingRef = useRef(null)
   const nextRef = useRef(null)
 
@@ -157,6 +161,18 @@ export default function ChapterQuiz({ onLeave, onDirtyChange }) {
       if (round === 'first') {
         setFirstResult({ total: questions.length, correct: correctCount })
       }
+      completionSeq.current += 1
+      setCompletion({
+        id: `quiz-${completionSeq.current}`,
+        payload: {
+          game: 'quiz',
+          stage: mode.kind === 'review' ? 'review' : String(mode.no),
+          round,
+          correct: correctCount, // 이번 풀이(처음 풀이 또는 틀린 문제 다시 풀기)에서 맞힌 개수
+        },
+        label: `${modeLabel(mode)} ${round === 'retry' ? '틀린 문제 다시 풀기' : '처음 풀이'}`,
+        rule: '퀴즈 코인은 같은 단계의 처음 풀이와 틀린 문제 다시 풀기가 각각 하루에 한 번이에요.',
+      })
       setView('result')
       return
     }
@@ -183,7 +199,7 @@ export default function ChapterQuiz({ onLeave, onDirtyChange }) {
             summary="챕터마다 한 문제씩 골라 풀어요." srName="전체 복습" onStart={startReview} />
         </div>
         <button type="button" className="game-option" onClick={onLeave}>게임존으로 돌아가기</button>
-        <p>퀴즈 결과는 저장되지 않으며 코인·경험치 보상은 없어요. 챕터 진행에도 영향을 주지 않아요.</p>
+        <p>로그인하면 맞힌 문제 수만큼 코인을 받아요 (같은 단계의 처음 풀이·다시 풀기는 각각 하루에 한 번). 경험치는 오르지 않고, 풀이 기록은 저장하지 않으며 챕터 진행에도 영향을 주지 않아요.</p>
       </section>
     )
   }
@@ -226,7 +242,8 @@ export default function ChapterQuiz({ onLeave, onDirtyChange }) {
         </button>
         <button type="button" className="game-option" onClick={toChapters}>다른 챕터 고르기</button>
         <button type="button" className="game-option" onClick={onLeave}>게임존으로 돌아가기</button>
-        <p>퀴즈 결과는 저장되지 않으며 코인·경험치 보상은 없어요.</p>
+        {renderReward?.(completion)}
+        <p>풀이 기록은 저장하지 않아요.</p>
       </section>
     )
   }
