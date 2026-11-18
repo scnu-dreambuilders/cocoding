@@ -178,6 +178,18 @@ svg.lucide {
 .stars svg { fill: var(--tabs-bg); color: var(--border-strong); }
 .stars svg.on { fill: var(--star-400); color: var(--star-700); }
 
+/* 화면을 불러오는 동안 (App.jsx — 편집기 내려받기·주소로 다시 열기). 편집기 CSS보다 먼저 보이므로 여기 둔다 */
+.app-loading {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 1rem;
+}
+
 /* 제목 글꼴 — 1.4rem 이상 큰 제목에만. 굵기가 한 종류라 굵게 만들지 않는다 */
 .font-display {
   font-family: var(--display);
