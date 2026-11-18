@@ -4,7 +4,7 @@
 // migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-11-04b';
+    const VERSION = '2026-11-18';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -58,6 +58,14 @@ class SchemaUpgrader {
         $stmt->execute([$table, $column]);
         $type = $stmt->fetchColumn();
         return $type === false ? null : strtolower($type);
+    }
+
+    /* enum 값 목록까지 보려면 DATA_TYPE('enum')이 아니라 COLUMN_TYPE이 필요하다 */
+    private static function columnType(PDO $db, $table, $column) {
+        $stmt = $db->prepare("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $stmt->execute([$table, $column]);
+        $type = $stmt->fetchColumn();
+        return $type === false ? null : strtolower((string)$type);
     }
 
     private static function hasIndex(PDO $db, $table, $index) {
@@ -118,8 +126,18 @@ class SchemaUpgrader {
         }
 
         /* ── 2026-09-18 계정 유형 · 보호자 동의 · 반 · 리메이크 허용 ── */
-        if (self::column($db, 'users', 'role') === null) {
+        // 컬럼이 이미 있으면 ADD를 건너뛰기 때문에, 아주 예전 DB에 남아 있는
+        // enum('student','admin') 같은 옛 정의가 그대로 유지돼 선생님·보호자 가입이
+        // "Data truncated for column 'role'" 로 실패했다. 값 목록을 따로 확인해서 넓혀준다.
+        $roleType = self::columnType($db, 'users', 'role');
+        if ($roleType === null) {
             $db->exec("ALTER TABLE users ADD COLUMN role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student' AFTER password_hash");
+        } elseif (strpos($roleType, "'teacher'") === false || strpos($roleType, "'guardian'") === false) {
+            // 옛 admin 계정이 있으면 지우지 않고 권한이 가장 가까운 선생님으로 옮긴다.
+            // 좁히기 전에 잠깐 둘 다 허용해야 UPDATE가 통과한다.
+            $db->exec("ALTER TABLE users MODIFY role ENUM('student', 'teacher', 'guardian', 'admin') NOT NULL DEFAULT 'student'");
+            $db->exec("UPDATE users SET role = 'teacher' WHERE role = 'admin'");
+            $db->exec("ALTER TABLE users MODIFY role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student'");
         }
         if (self::column($db, 'users', 'birth_year') === null) {
             $db->exec("ALTER TABLE users ADD COLUMN birth_year SMALLINT NULL AFTER role");
