@@ -9,7 +9,7 @@ import { COCO_IMG } from './coco'
    이 파일은 화면 전용이라 서버 재채점기 번들에 들어가지 않는다.
    ════════════════════════════════════════════════ */
 export const COSTUMES = {
-  coco:  { name: '코코',   image: COCO_IMG.calm, glyph: '🐨' },
+  coco:  { name: '코코',   image: COCO_IMG.calm },
   ball:  { name: '공',     glyph: '⚽' },
   coin:  { name: '동전',   glyph: '🪙' },
   ghost: { name: '유령',   glyph: '👻' },
@@ -33,7 +33,7 @@ export const COSTUMES = {
   fashion:   { name: '원피스',   glyph: '👗' },
 }
 
-export const DEFAULT_GLYPH = '❓'
+export const DEFAULT_GLYPH = '?'
 
 /* 캐릭터를 그릴 그림 — 없으면 null (그때는 글자로 그린다) */
 export function costumeImage(sprite) {

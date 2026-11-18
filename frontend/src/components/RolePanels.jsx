@@ -94,10 +94,23 @@ export function StudentClasses({ showToast }) {
   const [list, setList] = useState([])
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
+  const [listStatus, setListStatus] = useState('loading') // 반 목록: 'loading' | 'ok' | 'error'
+  const [listError, setListError] = useState('')
+  const [listKey, setListKey] = useState(0)               // 다시 시도 (목록 조회만)
 
   useEffect(() => {
-    api.classes().then(setList).catch(() => setList([]))
-  }, [])
+    let alive = true
+    api.classes()
+      .then((l) => { if (alive) { setList(l); setListStatus('ok') } })
+      .catch((e) => { if (alive) { setListError(e.message); setListStatus('error') } })
+    return () => { alive = false }
+  }, [listKey])
+
+  const retryList = () => {
+    setListStatus('loading')
+    setListError('')
+    setListKey((k) => k + 1)
+  }
 
   const join = async (e) => {
     e.preventDefault()
@@ -140,7 +153,14 @@ export function StudentClasses({ showToast }) {
           <button type="submit" className="role-btn" disabled={busy || !code.trim()}>반 들어가기</button>
         </form>
       </div>
-      {list.length === 0 && <p className="dash-hint">반에 들어가면 선생님이 내 챕터 진도를 볼 수 있어요. 이메일이나 태어난 해는 보이지 않아요.</p>}
+      {listStatus === 'loading' && list.length === 0 && <p className="dash-hint" role="status">우리 반 목록을 불러오는 중이에요…</p>}
+      {listStatus === 'error' && (
+        <p className="dash-hint" role="alert">
+          우리 반 목록을 불러오지 못했어요: {listError}{' '}
+          <button type="button" className="link-btn" onClick={retryList}>다시 시도</button>
+        </p>
+      )}
+      {listStatus === 'ok' && list.length === 0 && <p className="dash-hint">반에 들어가면 선생님이 내 챕터 진도를 볼 수 있어요. 이메일이나 태어난 해는 보이지 않아요.</p>}
     </PanelSection>
   )
 }
@@ -302,7 +322,7 @@ export function TeacherPanel({ showToast }) {
       {classes && classes.length === 0 && (
         <div className="role-empty">
           <b>반을 만들어보세요!</b>
-          <span>반을 만들면 참여 코드가 생겨요. 학생들이 대시보드의 <b>우리 반</b>에 코드를 입력하면 챕터 진도를 한눈에 볼 수 있어요.</span>
+          <span>반을 만들면 참여 코드가 생겨요. 학생들이 마이페이지의 <b>우리 반</b>에 코드를 입력하면 챕터 진도를 한눈에 볼 수 있어요.</span>
         </div>
       )}
 

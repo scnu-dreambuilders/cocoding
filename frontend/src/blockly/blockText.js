@@ -58,7 +58,7 @@ export const BLOCK_NAME = {
 
 /* ── 마우스를 올렸을 때 나오는 한 줄 설명 ──────── */
 export const BLOCK_TOOLTIP = {
-  when_start:       t('▶ 실행 버튼을 누르면 아래 블록들이 실행돼요'),
+  when_start:       t('실행 버튼을 누르면 아래 블록들이 실행돼요'),
   when_key:         t('고른 키를 누를 때마다 아래 블록들이 실행돼요'),
   when_clicked:     t('무대에서 캐릭터를 클릭하면 실행돼요'),
   move_x:           t('캐릭터를 좌우로 움직여요 (+는 오른쪽, -는 왼쪽)'),
@@ -123,9 +123,9 @@ export const BLOCK_DESC = {
   hide:             t('캐릭터를 안 보이게 해. 숨긴 캐릭터는 다른 캐릭터에 닿지 않아.'),
   change_size:      t('숫자만큼 크기가 바뀌어. -를 넣으면 작아져.'),
   set_size:         t('100이 원래 크기야. 10~300 사이로 넣어봐.'),
-  play_sound:       t('고른 소리를 재생해. 🎵 소리 버튼에서 직접 녹음할 수도 있어!'),
+  play_sound:       t('고른 소리를 재생해. 소리 버튼에서 직접 녹음할 수도 있어!'),
   repeat_n:         t('안에 넣은 블록을 숫자만큼 반복해. 횟수에는 0 이상의 숫자를 넣어줘.'),
-  forever:          t('■ 정지 버튼을 누를 때까지 안의 블록을 계속 반복해.'),
+  forever:          t('정지 버튼을 누를 때까지 안의 블록을 계속 반복해.'),
   wait:             t('숫자(초)만큼 기다렸다가 다음 블록을 실행해.'),
   stop_all:         t('모든 실행을 멈춰. 게임이 끝났을 때 써봐.'),
   if_then:          t('육각형 칸에 조건 블록(예: 벽에 닿았는가?)을 끼워야 해!'),
@@ -174,7 +174,7 @@ export const soundOptions = () => SOUND_IDS.map((id) => [SOUND_LABEL[id], id])
 /* ── 블록에 적히는 글자 ──────────────────────────
    %1, %2는 숫자나 블록을 끼우는 칸이다. 순서와 개수를 바꾸면 블록이 깨진다. */
 export const BLOCK_LABEL = {
-  when_start:        t('▶ 시작 버튼을 눌렀을 때'),
+  when_start:        t('시작 버튼을 눌렀을 때'),
   when_key_suffix:   t('키를 눌렀을 때'),
   when_clicked:      t('캐릭터를 클릭했을 때'),
   when_receive_suffix: t('메시지를 받았을 때'),
@@ -216,10 +216,10 @@ export const BLOCK_LABEL = {
 /* ── 드롭다운의 고정 항목과 Blockly 기본 문구 ──── */
 export const DROPDOWN_TEXT = {
   noSprite:     t('(캐릭터 없음)'),
-  wall:         t('🧱 벽'),
+  wall:         t('벽'),
   defaultScene: t('장면 1'),
-  builtinSound: t('🔔'),
-  recordedSound: t('🎤'),
+  builtinSound: t('효과음 ·'),
+  recordedSound: t('내 녹음 ·'),
 }
 export const BLOCKLY_TEXT = {
   randomInt:       t('%1 부터 %2 사이의 무작위 수'),
@@ -227,7 +227,7 @@ export const BLOCKLY_TEXT = {
   newVariableTitle: t('새 변수 이름 (예: 점수, 목숨)'),
 }
 /* 이벤트 블록에 붙지 않은 블록 묶음에 '코드 보기'에서 다는 설명 */
-export const UNCONNECTED_NOTE = t('⚠ 이벤트 블록에 연결되지 않아서 실행되지 않아요')
+export const UNCONNECTED_NOTE = t('이벤트 블록에 연결되지 않아서 실행되지 않아요')
 
 /* '코드 보기' 패널에서 이름을 못 찾았을 때 대신 보여줄 말 */
 export const CODE_FALLBACK = {
