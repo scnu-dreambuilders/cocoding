@@ -78,7 +78,7 @@ $projectId = $projectModel->create($userId, $title, $blocksData, 'free', null, $
 
 // 자유 창작 보상: 저장 → 포트폴리오 등록 → 꾸미기 아이템 1개 + 코인 (둘 다 하루 제한)
 $reward = (new ItemModel())->grantRandomFreeReward($userId);
-$coinsEarned = (new CoinModel())->grant($userId, CoinModel::REWARD['project'], 'project', (string)$projectId);
+$coinsEarned = (new CoinModel())->grant($userId, CoinModel::amount('project'), 'project', (string)$projectId);
 $progressModel = new ProgressModel();
 if ($coinsEarned > 0) $progressModel->addXp($userId, ProgressModel::XP['project']);
 

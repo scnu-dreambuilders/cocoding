@@ -32,7 +32,7 @@ require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/BoardModel.php';
 require_once __DIR__ . '/../../config/Logger.php';
 
-const POST_COOLDOWN_SECONDS = 5;
+require_once __DIR__ . '/../../config/Settings.php';
 
 $payload = Auth::requireUser();
 Auth::requireSharing($payload); // 보호자 동의 전에는 게시판을 쓸 수 없다
@@ -98,8 +98,9 @@ if ($method === 'POST') {
 
     // 새 글
     RateLimiter::limit("board:post:$userId", 30, 3600, "글을 너무 많이 썼어요. 잠시 후 다시 해주세요.");
-    if ($board->secondsSinceLastPost($userId) < POST_COOLDOWN_SECONDS) {
-        Response::error("조금 전에 글을 썼어요. " . POST_COOLDOWN_SECONDS . "초 뒤에 다시 올려주세요.", 429);
+    $cooldown = Settings::int('board.post_cooldown');
+    if ($cooldown > 0 && $board->secondsSinceLastPost($userId) < $cooldown) {
+        Response::error("조금 전에 글을 썼어요. {$cooldown}초 뒤에 다시 올려주세요.", 429);
     }
     $error = BoardModel::validate($data['title'] ?? null, $data['body'] ?? null);
     if ($error) Response::error($error);

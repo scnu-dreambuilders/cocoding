@@ -80,7 +80,7 @@ try {
 
     $rewardGranted = $itemModel->grant($userId, $chapter['reward_item']);
     // 챕터를 처음 통과했을 때만 코인 지급 (coin_log의 ref로 중복 방지)
-    $coinsEarned = (new CoinModel())->grant($userId, CoinModel::REWARD['chapter'], 'chapter', (string)$chapterId);
+    $coinsEarned = (new CoinModel())->grant($userId, CoinModel::amount('chapter'), 'chapter', (string)$chapterId);
     $progressModel = new ProgressModel();
     if ($coinsEarned > 0) $progressModel->addXp($userId, ProgressModel::XP['chapter']); // 처음 통과했을 때만
 

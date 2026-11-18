@@ -42,6 +42,11 @@ CREATE TABLE users (
     xp INT NOT NULL DEFAULT 0,    -- 경험치 (레벨 계산용)
     bio VARCHAR(50) NULL,         -- 자기소개 (학생만)
     profile_visibility ENUM('public','friends','private') NOT NULL DEFAULT 'public',
+    -- 운영자(관리자 웹) 권한. 학생·선생님·보호자와는 다른 축이라 role과 따로 둔다
+    is_admin TINYINT(1) NOT NULL DEFAULT 0,
+    -- 정지된 계정은 로그인은 되지만 API를 쓸 수 없다 (사유는 화면에 보여준다)
+    suspended TINYINT(1) NOT NULL DEFAULT 0,
+    suspended_reason VARCHAR(100) NULL,
     token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -182,6 +187,17 @@ CREATE TABLE coin_log (
     UNIQUE KEY uniq_ref (user_id, reason, ref),
     INDEX idx_user_time (user_id, created_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 운영 기준값 (관리자 웹에서 고친다)
+-- 여기에 행이 없으면 코드에 적힌 기본값(config/Settings.php의 DEFAULTS)을 쓴다.
+-- 그래서 표가 비어 있어도 서비스는 그대로 돌아간다
+CREATE TABLE settings (
+    name VARCHAR(40) PRIMARY KEY,
+    value VARCHAR(200) NOT NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- 비밀번호 재설정 링크 (토큰 원본은 메일로만 가고, DB에는 해시만)
@@ -636,3 +652,26 @@ ALTER TABLE board_posts ADD INDEX idx_chapter (kind, chapter);
 ALTER TABLE board_posts
     ADD CONSTRAINT fk_board_accepted FOREIGN KEY (accepted_comment_id)
     REFERENCES board_comments(id) ON DELETE SET NULL;
+
+-- ============================================================
+-- [2026-11-20] 2026-11-20_admin.sql
+-- ============================================================
+
+-- 관리자 웹(회원·기준값 관리)을 위한 추가
+-- 관리자는 학생·선생님·보호자와 다른 축이라 role 을 늘리지 않고 따로 플래그를 둔다.
+-- role 을 늘리면 기존 역할 분기(선생님 반, 보호자 연결 등)가 전부 영향을 받는다.
+ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER profile_visibility;
+
+-- 정지된 계정은 로그인은 되지만 API 를 쓸 수 없다. 사유는 화면에 보여준다
+ALTER TABLE users ADD COLUMN suspended TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin;
+ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(100) NULL AFTER suspended;
+
+-- 운영 기준값. 행이 없으면 코드의 기본값(config/Settings.php DEFAULTS)을 쓰므로
+-- 표가 비어 있어도 서비스는 그대로 돌아간다
+CREATE TABLE IF NOT EXISTS settings (
+    name VARCHAR(40) PRIMARY KEY,
+    value VARCHAR(200) NOT NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

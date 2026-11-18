@@ -4,7 +4,7 @@
 // migrations/upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-11-19';
+    const VERSION = '2026-11-20';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -368,6 +368,24 @@ class SchemaUpgrader {
                            FOREIGN KEY (accepted_comment_id) REFERENCES board_comments(id) ON DELETE SET NULL");
             }
         }
+
+        /* ── 2026-11-20 관리자 웹: 운영자 권한 · 계정 정지 · 기준값 ── */
+        if (self::column($db, 'users', 'is_admin') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER profile_visibility");
+        }
+        if (self::column($db, 'users', 'suspended') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN suspended TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin");
+        }
+        if (self::column($db, 'users', 'suspended_reason') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(100) NULL AFTER suspended");
+        }
+        $db->exec("CREATE TABLE IF NOT EXISTS settings (
+            name VARCHAR(40) PRIMARY KEY,
+            value VARCHAR(200) NOT NULL,
+            updated_by INT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 챕터가 예전 블록 id(move-x처럼 하이픈)로 되어 있으면 새 내용으로 교체
         $chapters = [

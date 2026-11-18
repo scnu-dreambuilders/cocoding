@@ -51,7 +51,10 @@ foreach ($f in @('.htaccess', 'backend/.htaccess')) {
     if (Test-Path "$web/$f") {
         $old = Get-Content "$web/$f" -Raw -Encoding UTF8
         $src = if ($f -eq '.htaccess') { 'frontend/public/.htaccess' } else { 'backend/.htaccess' }
-        if ((Get-Content $src -Raw -Encoding UTF8) -ne $old) {
+        # 줄끝(CRLF/LF)만 다른 것은 같은 내용으로 본다. git이 체크아웃할 때 줄끝을 바꿔서
+        # 내용이 같은데도 다르다고 알리는 일을 막는다
+        $norm = { param($t) ($t -replace "`r`n", "`n").TrimEnd("`n") }
+        if ((& $norm (Get-Content $src -Raw -Encoding UTF8)) -ne (& $norm $old)) {
             $keepOld = $old
             Write-Host "      [알림] $f 가 저장소 내용과 다릅니다. 덮어쓰기 전 사본을 FTP업로드/변경전-설정사본/ 에 남깁니다." -ForegroundColor Yellow
             $differs += @{ path = $f; text = $keepOld }

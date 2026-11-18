@@ -306,3 +306,26 @@ ALTER TABLE board_posts
     ADD CONSTRAINT fk_board_accepted FOREIGN KEY (accepted_comment_id)
     REFERENCES board_comments(id) ON DELETE SET NULL;
 
+-- ============================================================
+-- [2026-11-20] 2026-11-20_admin.sql
+-- ============================================================
+
+-- 관리자 웹(회원·기준값 관리)을 위한 추가
+-- 관리자는 학생·선생님·보호자와 다른 축이라 role 을 늘리지 않고 따로 플래그를 둔다.
+-- role 을 늘리면 기존 역할 분기(선생님 반, 보호자 연결 등)가 전부 영향을 받는다.
+ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER profile_visibility;
+
+-- 정지된 계정은 로그인은 되지만 API 를 쓸 수 없다. 사유는 화면에 보여준다
+ALTER TABLE users ADD COLUMN suspended TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin;
+ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(100) NULL AFTER suspended;
+
+-- 운영 기준값. 행이 없으면 코드의 기본값(config/Settings.php DEFAULTS)을 쓰므로
+-- 표가 비어 있어도 서비스는 그대로 돌아간다
+CREATE TABLE IF NOT EXISTS settings (
+    name VARCHAR(40) PRIMARY KEY,
+    value VARCHAR(200) NOT NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

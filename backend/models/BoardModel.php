@@ -11,6 +11,7 @@
 // 해결 상태(status)는 따로 저장하지 않고 accepted_comment_id 가 있는지로 정한다.
 // 채택 = 해결로 보기 때문이다. 답변 없이 해결 처리하는 버튼은 화면에도 없다.
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../config/Settings.php';
 
 class BoardModel {
     const MAX_TITLE = 80;
@@ -295,7 +296,7 @@ class BoardModel {
 
         $count = $this->db->prepare("SELECT COUNT(*) FROM board_reports WHERE post_id = ?");
         $count->execute([$post_id]);
-        $hidden = (int)$count->fetchColumn() >= self::REPORTS_TO_HIDE;
+        $hidden = (int)$count->fetchColumn() >= Settings::int('report.hide_count');
         if ($hidden) {
             $this->db->prepare("UPDATE board_posts SET hidden = 1 WHERE id = ?")->execute([$post_id]);
         }
