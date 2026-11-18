@@ -1,10 +1,10 @@
 <?php
 // backend/config/SchemaUpgrader.php
 // 기존 DB를 새 기능에 맞게 자동으로 업그레이드.
-// migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
+// migrations/upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-11-04b';
+    const VERSION = '2026-11-20';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -58,6 +58,20 @@ class SchemaUpgrader {
         $stmt->execute([$table, $column]);
         $type = $stmt->fetchColumn();
         return $type === false ? null : strtolower($type);
+    }
+
+    /* enum 값 목록까지 보려면 DATA_TYPE('enum')이 아니라 COLUMN_TYPE이 필요하다 */
+    private static function columnType(PDO $db, $table, $column) {
+        $stmt = $db->prepare("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $stmt->execute([$table, $column]);
+        $type = $stmt->fetchColumn();
+        return $type === false ? null : strtolower((string)$type);
+    }
+
+    private static function hasConstraint(PDO $db, $table, $name) {
+        $stmt = $db->prepare("SELECT 1 FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? LIMIT 1");
+        $stmt->execute([$table, $name]);
+        return (bool)$stmt->fetchColumn();
     }
 
     private static function hasIndex(PDO $db, $table, $index) {
@@ -118,8 +132,18 @@ class SchemaUpgrader {
         }
 
         /* ── 2026-09-18 계정 유형 · 보호자 동의 · 반 · 리메이크 허용 ── */
-        if (self::column($db, 'users', 'role') === null) {
+        // 컬럼이 이미 있으면 ADD를 건너뛰기 때문에, 아주 예전 DB에 남아 있는
+        // enum('student','admin') 같은 옛 정의가 그대로 유지돼 선생님·보호자 가입이
+        // "Data truncated for column 'role'" 로 실패했다. 값 목록을 따로 확인해서 넓혀준다.
+        $roleType = self::columnType($db, 'users', 'role');
+        if ($roleType === null) {
             $db->exec("ALTER TABLE users ADD COLUMN role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student' AFTER password_hash");
+        } elseif (strpos($roleType, "'teacher'") === false || strpos($roleType, "'guardian'") === false) {
+            // 옛 admin 계정이 있으면 지우지 않고 권한이 가장 가까운 선생님으로 옮긴다.
+            // 좁히기 전에 잠깐 둘 다 허용해야 UPDATE가 통과한다.
+            $db->exec("ALTER TABLE users MODIFY role ENUM('student', 'teacher', 'guardian', 'admin') NOT NULL DEFAULT 'student'");
+            $db->exec("UPDATE users SET role = 'teacher' WHERE role = 'admin'");
+            $db->exec("ALTER TABLE users MODIFY role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student'");
         }
         if (self::column($db, 'users', 'birth_year') === null) {
             $db->exec("ALTER TABLE users ADD COLUMN birth_year SMALLINT NULL AFTER role");
@@ -313,6 +337,68 @@ class SchemaUpgrader {
         if (self::column($db, 'users', 'affiliation') === null) {
             $db->exec("ALTER TABLE users ADD COLUMN affiliation VARCHAR(50) NULL AFTER consent_at");
         }
+
+        /* ── 2026-11-19 코딩 게시판: 토론 + 질문 (PR #13) ── */
+        // board_posts 가 아직 없는 DB(아주 예전)는 여기서 건드리지 않는다. schema.sql 이 만든다.
+        if (self::column($db, 'board_posts', 'id') !== null) {
+            // 종류가 오지 않은 옛 글은 기본값 그대로 discussion 으로 남는다
+            if (self::column($db, 'board_posts', 'kind') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN kind ENUM('discussion', 'question') NOT NULL DEFAULT 'discussion' AFTER user_id");
+            }
+            if (self::column($db, 'board_posts', 'chapter') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN chapter VARCHAR(8) NULL AFTER body");
+            }
+            if (self::column($db, 'board_posts', 'blocks') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN blocks JSON NULL AFTER chapter");
+            }
+            if (self::column($db, 'board_posts', 'accepted_comment_id') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN accepted_comment_id INT NULL AFTER blocks");
+            }
+            if (!self::hasIndex($db, 'board_posts', 'idx_kind')) {
+                $db->exec("ALTER TABLE board_posts ADD INDEX idx_kind (kind, hidden, created_at)");
+            }
+            if (!self::hasIndex($db, 'board_posts', 'idx_chapter')) {
+                $db->exec("ALTER TABLE board_posts ADD INDEX idx_chapter (kind, chapter)");
+            }
+            // 채택한 답변이 지워지면 자동으로 미해결로 돌아가게.
+            // board_comments 가 있어야 걸 수 있다
+            if (self::column($db, 'board_comments', 'id') !== null
+                && !self::hasConstraint($db, 'board_posts', 'fk_board_accepted')) {
+                $db->exec("ALTER TABLE board_posts ADD CONSTRAINT fk_board_accepted
+                           FOREIGN KEY (accepted_comment_id) REFERENCES board_comments(id) ON DELETE SET NULL");
+            }
+        }
+
+        /* ── 2026-11-20 관리자 웹: 운영자 권한 · 계정 정지 · 기준값 ── */
+        if (self::column($db, 'users', 'is_admin') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER profile_visibility");
+        }
+        if (self::column($db, 'users', 'suspended') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN suspended TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin");
+        }
+        if (self::column($db, 'users', 'suspended_reason') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(100) NULL AFTER suspended");
+        }
+        $db->exec("CREATE TABLE IF NOT EXISTS notices (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(80) NOT NULL,
+            body VARCHAR(2000) NOT NULL,
+            pinned TINYINT(1) NOT NULL DEFAULT 0,
+            published TINYINT(1) NOT NULL DEFAULT 1,
+            audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+            created_by INT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_show (published, pinned, id),
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $db->exec("CREATE TABLE IF NOT EXISTS settings (
+            name VARCHAR(40) PRIMARY KEY,
+            value VARCHAR(200) NOT NULL,
+            updated_by INT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+        ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 챕터가 예전 블록 id(move-x처럼 하이픈)로 되어 있으면 새 내용으로 교체
         $chapters = [

@@ -4,7 +4,12 @@
 //
 //   access-2026-11-09.log  어떤 요청이 들어와서 어떤 응답이 나갔는지
 //   audit-2026-11-09.log   로그인·가입·탈퇴·신고처럼 나중에 확인할 일이 생기는 일
+//   admin-2026-11-09.log   관리자 웹에서 한 일 (회원 상태 변경·기준값·숨김 처리 등)
 //   error-2026-11-09.log   오류와 예외
+//
+// 관리자 동작을 audit 과 섞지 않고 따로 쌓는다. 운영자가 무엇을 했는지 되짚을 때
+// 학생들의 로그인·가입 기록 사이에서 찾아내지 않아도 되고, 관리자 기록만 따로
+// 더 오래 보관하도록 정책을 바꾸기도 쉽다.
 //
 // 개인정보는 남기지 않는다. 이름·이메일·질문 내용은 기록하지 않고,
 // 사용자는 번호(uid)로, 접속 지점은 되돌릴 수 없는 해시로만 남긴다.
@@ -47,6 +52,12 @@ class Logger {
     /* 오류·예외 */
     public static function error($event, array $fields = []) {
         self::write('error', $event, $fields);
+    }
+
+    /* 관리자 웹에서 한 일. audit 과 섞이지 않게 admin-날짜.log 로 따로 쌓는다.
+       누가 했는지(by)와 대상 번호만 남기고, 이메일·닉네임·비밀번호는 절대 남기지 않는다 */
+    public static function admin($event, array $fields = []) {
+        self::write('admin', $event, $fields);
     }
 
     /* 요청이 끝날 때 접근 기록을 남긴다 (shutdown에서 자동 호출) */
