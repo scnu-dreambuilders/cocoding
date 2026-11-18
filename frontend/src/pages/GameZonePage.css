@@ -103,7 +103,7 @@
 .quiz-options { display: flex; flex-direction: column; gap: 10px; }
 .quiz-options .game-option { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; text-align: left; }
 .game-option.is-selected { border-width: 2px; border-color: var(--accent); background: var(--accent-light); }
-.quiz-tag { font-size: 0.8rem; font-weight: 700; }
+.quiz-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 0.8rem; font-weight: 700; }
 .quiz-feedback:empty { display: none; }
 .quiz-feedback { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: var(--radius-md); }
 .quiz-feedback.is-ok { background: var(--ok-bg); color: var(--ok); }

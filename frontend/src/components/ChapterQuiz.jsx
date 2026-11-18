@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check } from 'lucide-react'
 import { CHAPTER_TEXT } from '../data/chapterText'
 import {
   QUIZ_CHAPTER_NOS, QUIZ_CHAPTER_SUMMARY, QUIZ_SET_SIZE, QUIZ_TYPE_LABEL,
@@ -256,7 +257,7 @@ export default function ChapterQuiz({ onLeave, onDirtyChange }) {
             return (
               <button key={o.id} type="button" className={`game-option${state}`} aria-pressed={isPicked}
                 disabled={confirmed} onClick={() => choose(o.id)}>
-                {!confirmed && isPicked && <span className="quiz-tag">✓ 선택함</span>}
+                {!confirmed && isPicked && <span className="quiz-tag"><Check size={14} strokeWidth={3} aria-hidden="true" /> 선택함</span>}
                 {confirmed && isAnswer && <span className="quiz-tag">정답</span>}
                 {confirmed && isPicked && !isAnswer && <span className="quiz-tag">내가 고른 답 · 오답</span>}
                 {o.text}
