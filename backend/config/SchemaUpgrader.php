@@ -4,7 +4,7 @@
 // migrations/*.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-11-04b';
+    const VERSION = '2026-11-19';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -58,6 +58,12 @@ class SchemaUpgrader {
         $stmt->execute([$table, $column]);
         $type = $stmt->fetchColumn();
         return $type === false ? null : strtolower($type);
+    }
+
+    private static function hasConstraint(PDO $db, $table, $name) {
+        $stmt = $db->prepare("SELECT 1 FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? LIMIT 1");
+        $stmt->execute([$table, $name]);
+        return (bool)$stmt->fetchColumn();
     }
 
     private static function hasIndex(PDO $db, $table, $index) {
@@ -312,6 +318,37 @@ class SchemaUpgrader {
         /* ── 2026-09-30 교사 소속 정보 ── */
         if (self::column($db, 'users', 'affiliation') === null) {
             $db->exec("ALTER TABLE users ADD COLUMN affiliation VARCHAR(50) NULL AFTER consent_at");
+        }
+
+        /* ── 2026-11-19 코딩 게시판: 토론 + 질문 (PR #13) ── */
+        // board_posts 가 아직 없는 DB(아주 예전)는 여기서 건드리지 않는다. schema.sql 이 만든다.
+        if (self::column($db, 'board_posts', 'id') !== null) {
+            // 종류가 오지 않은 옛 글은 기본값 그대로 discussion 으로 남는다
+            if (self::column($db, 'board_posts', 'kind') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN kind ENUM('discussion', 'question') NOT NULL DEFAULT 'discussion' AFTER user_id");
+            }
+            if (self::column($db, 'board_posts', 'chapter') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN chapter VARCHAR(8) NULL AFTER body");
+            }
+            if (self::column($db, 'board_posts', 'blocks') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN blocks JSON NULL AFTER chapter");
+            }
+            if (self::column($db, 'board_posts', 'accepted_comment_id') === null) {
+                $db->exec("ALTER TABLE board_posts ADD COLUMN accepted_comment_id INT NULL AFTER blocks");
+            }
+            if (!self::hasIndex($db, 'board_posts', 'idx_kind')) {
+                $db->exec("ALTER TABLE board_posts ADD INDEX idx_kind (kind, hidden, created_at)");
+            }
+            if (!self::hasIndex($db, 'board_posts', 'idx_chapter')) {
+                $db->exec("ALTER TABLE board_posts ADD INDEX idx_chapter (kind, chapter)");
+            }
+            // 채택한 답변이 지워지면 자동으로 미해결로 돌아가게.
+            // board_comments 가 있어야 걸 수 있다
+            if (self::column($db, 'board_comments', 'id') !== null
+                && !self::hasConstraint($db, 'board_posts', 'fk_board_accepted')) {
+                $db->exec("ALTER TABLE board_posts ADD CONSTRAINT fk_board_accepted
+                           FOREIGN KEY (accepted_comment_id) REFERENCES board_comments(id) ON DELETE SET NULL");
+            }
         }
 
         // 챕터가 예전 블록 id(move-x처럼 하이픈)로 되어 있으면 새 내용으로 교체
