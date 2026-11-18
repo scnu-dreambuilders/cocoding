@@ -1,4 +1,16 @@
-<FilesMatch "^(\.env|\..*|.*\.sql|.*\.md|.*\.log)$">
-    Require all denied
+# 코코딩 백엔드 — 웹에서 열 수 있는 것은 api/ 아래의 .php 뿐
+Options -Indexes
+
+# .env, 숨김 파일, SQL, 설명 문서, 데이터 파일, 로그 차단
+<FilesMatch "^(\.env.*|\..*|.*\.sql|.*\.md|.*\.json|.*\.example|.*\.log)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
-RedirectMatch 403 ^/?(.*/)?tools/
+
+# 내부 폴더(설정·모델·데이터·도구) 직접 접근 차단
+RedirectMatch 403 ^/?(.*/)?backend/(config|models|data|tools|grader)/

@@ -101,6 +101,25 @@
 
 ---
 
+## 내 컴퓨터에 DB 맞추기
+
+처음 받았거나, 남이 올린 변경에 DB 칸이 추가됐을 때 쓴다. 둘 중 아무거나 하면 된다.
+
+**1. 자동 (권장)** — `setup-db.bat`을 두 번 누른다. 접속 정보를 물어보고, DB가 없으면 만들고 있으면 새 기능에 맞게 고친 뒤 `backend/.env`에 저장한다.
+
+**2. 손으로** — `DB.sql` 한 파일을 phpMyAdmin·HeidiSQL·MySQL Workbench 같은 곳에서 연다. 안이 두 구역으로 나뉘어 있으니 **내 상황에 맞는 구역 하나만** 실행한다. 둘 다 돌리면 `[A]`가 만든 테이블에 `[B]`가 또 컬럼을 넣으려 해서 오류가 난다.
+
+| 내 상황 | 실행할 구역 |
+| --- | --- |
+| DB가 아예 없다 | `[A] 처음 설치용` |
+| 쓰던 DB가 있는데 코드가 새 칸을 찾는다 | `[B] 기존 DB 업그레이드용` |
+
+`DB.sql`은 `schema.sql`과 `migrations/upgrade.sql`을 이어붙인 것으로, `build-deploy.bat`을 돌릴 때마다 다시 만들어진다. 직접 고치지 말고 원본 두 파일을 고친다.
+
+서버는 첫 요청에서 `backend/config/SchemaUpgrader.php`가 같은 내용을 자동으로 적용하므로, 보통은 둘 다 안 해도 화면을 켜는 것만으로 맞춰진다. DB 계정에 `ALTER` 권한이 없을 때만 위 방법이 필요하다.
+
+---
+
 ## 배포하기 (FTP)
 
 `build-deploy.bat`을 두 번 누르면 저장소 바깥의 `FTP업로드/public_html` 폴더가 최신 코드로 갱신됩니다. 그 안의 내용을 FTP로 서버 `public_html`에 덮어쓰면 됩니다.
@@ -108,6 +127,7 @@
 | 갱신되는 것 | 내용 |
 | --- | --- |
 | `FTP업로드/public_html/` | 화면 + `backend/` (서버에 올릴 것) |
+| `DB.sql` (저장소) | 위 "내 컴퓨터에 DB 맞추기"에서 쓰는 파일. 배포본의 `2-DB.sql`과 같은 내용 |
 | `FTP업로드/2-DB.sql` | SQL 한 파일. 안에서 `[A]` 처음 설치용(`schema.sql`)과 `[B]` 기존 DB 업그레이드용(`migrations/upgrade.sql`)으로 나뉘며, 상황에 맞는 구역 하나만 실행 |
 
 화면이 서버를 `/backend/api`로 부르도록 빌드됩니다. 이 주소는 `frontend/.env.production.local`에 있습니다.

@@ -39,8 +39,27 @@ if ($LASTEXITCODE -ne 0) { Pop-Location; Fail "채점기 빌드 실패" }
 Pop-Location
 
 Step 3 "서버 설정 따로 빼두기"
+$differs = @()
+# backend/.env 만 지킨다. 실제 서비스 비밀값(DB 비밀번호, JWT_SECRET, API 키)이
+# 들어 있고 저장소에 올리지 않는 파일이라 여기 사본이 유일하다.
+#
+# .htaccess 두 개는 이제 저장소가 들고 있어서 지키지 않는다.
+#   웹 루트  → frontend/public/.htaccess (빌드하면 dist 로 복사됨)
+#   backend/ → backend/.htaccess
+# 서버에서 직접 고친 .htaccess 가 있으면 이 빌드가 덮어쓴다.
+foreach ($f in @('.htaccess', 'backend/.htaccess')) {
+    if (Test-Path "$web/$f") {
+        $old = Get-Content "$web/$f" -Raw -Encoding UTF8
+        $src = if ($f -eq '.htaccess') { 'frontend/public/.htaccess' } else { 'backend/.htaccess' }
+        if ((Get-Content $src -Raw -Encoding UTF8) -ne $old) {
+            $keepOld = $old
+            Write-Host "      [알림] $f 가 저장소 내용과 다릅니다. 덮어쓰기 전 사본을 FTP업로드/변경전-설정사본/ 에 남깁니다." -ForegroundColor Yellow
+            $differs += @{ path = $f; text = $keepOld }
+        }
+    }
+}
 $keep = @{}
-foreach ($f in @('.htaccess', 'backend/.env', 'backend/.htaccess')) {
+foreach ($f in @('backend/.env')) {
     if (Test-Path "$web/$f") {
         $keep[$f] = Get-Content "$web/$f" -Raw -Encoding UTF8
         Write-Host "      보관: $f"
@@ -70,6 +89,17 @@ foreach ($f in $keep.Keys) {
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     Set-Content "$web/$f" $keep[$f] -NoNewline -Encoding UTF8
     Write-Host "      되돌림: $f"
+}
+
+# 저장소와 달랐던 .htaccess 는 비교할 수 있게 사본을 남긴다.
+# public_html 안에 두면 그대로 서버에 올라가므로 웹 루트 밖에 둔다.
+if ($differs.Count -gt 0) {
+    $bakDir = "$ftp/변경전-설정사본"
+    if (-not (Test-Path $bakDir)) { New-Item -ItemType Directory -Path $bakDir -Force | Out-Null }
+    foreach ($d in $differs) {
+        $name = ($d.path -replace '[\/]', '_')
+        Set-Content "$bakDir/$name" $d.text -NoNewline -Encoding UTF8
+    }
 }
 
 Step 5 "DB 파일 갱신"
@@ -107,12 +137,15 @@ $sql = @(
     ''
     (Get-Content 'migrations/upgrade.sql' -Raw -Encoding UTF8).TrimEnd()
 )
-Set-Content "$ftp/2-DB.sql" $sql -Encoding UTF8
+# 저장소에도 같은 파일을 둔다. FTP업로드 폴더는 git 밖이라 팀원이 볼 수 없어서,
+# 로컬 DB를 손으로 맞출 때 쓸 수 있도록 저장소 루트에 DB.sql 로 함께 쓴다.
+Set-Content 'DB.sql' $sql -Encoding UTF8
+Copy-Item 'DB.sql' "$ftp/2-DB.sql" -Force
 # 전에 두 개로 나눠 두던 파일은 헷갈리니 지운다
 foreach ($old in @('2-처음설치용-DB.sql', '3-기존DB-업그레이드.sql')) {
     if (Test-Path "$ftp/$old") { Remove-Item "$ftp/$old" -Force; Write-Host "      정리: $old" }
 }
-Write-Host "      2-DB.sql 갱신 ([A] 처음 설치 + [B] 기존 DB 업그레이드)"
+Write-Host "      DB.sql(저장소) · 2-DB.sql(배포본) 갱신 — [A] 처음 설치 + [B] 기존 DB 업그레이드"
 
 Step 6 "확인"
 $must = @("$web/index.html", "$web/.htaccess", "$web/backend/api/auth/login.php",
