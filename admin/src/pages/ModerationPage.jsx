@@ -141,23 +141,23 @@ function Detail({ target, id, onClose, onChanged, onForbidden }) {
 
           <div className="btn-row">
             <button type="button" className={`btn ${hidden ? 'primary' : 'danger'}`} disabled={busy} onClick={() => { setDialogError(''); setDialog(true) }}>
-              {hidden ? '다시 보이게 하기' : '숨기기'}
+              {hidden ? '신고 숨김 해제' : '숨기기'}
             </button>
           </div>
-          <p className="small muted">글을 지우는 기능은 없어요. 숨기면 작성자 말고는 볼 수 없고, 복구해도 신고 기록은 남아요.</p>
+          <p className="small muted">삭제하지 않고 신고 숨김 상태만 바꿔요. 숨김을 해제해도 신고 기록은 남아요.{data.project && ' 작품의 기존 공개 범위는 유지되며, 비공개 작품을 공개로 바꾸는 기능은 아니에요.'}</p>
         </>
       )}
 
       {dialog && item && (
         <ConfirmDialog
-          title={hidden ? '다시 보이게 할까요?' : '숨길까요?'}
-          confirmLabel={hidden ? '다시 보이게 하기' : '숨기기'} danger={!hidden}
+          title={hidden ? '신고 숨김을 해제할까요?' : '숨길까요?'}
+          confirmLabel={hidden ? '신고 숨김 해제' : '숨기기'} danger={!hidden}
           busy={busy} error={dialogError} onCancel={() => { if (!busyRef.current) setDialog(null) }} onConfirm={toggle}
         >
           <p><b>{item.title || '(제목 없음)'}</b></p>
           <p style={{ marginTop: 6 }}>
             {hidden
-              ? '다른 사람들이 다시 볼 수 있게 돼요. 신고 기록은 지워지지 않고, 새 신고가 기준에 닿으면 다시 자동으로 숨겨질 수 있어요.'
+              ? `${data.project ? '작품의 신고 숨김만 해제해요. 기존 공개 범위는 유지되며 비공개 작품은 공개되지 않아요.' : '게시글의 신고 숨김을 해제해요.'} 신고 기록은 남고, 새 신고에 따라 다시 숨겨질 수 있어요.`
               : '작성자 말고는 볼 수 없게 돼요. 나중에 다시 보이게 할 수 있어요.'}
           </p>
         </ConfirmDialog>

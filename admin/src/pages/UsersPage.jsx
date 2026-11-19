@@ -10,12 +10,12 @@ const STATES = [['', '모든 상태'], ['suspended', '정지된 계정'], ['admi
 const PAGE_SIZE = 20
 
 // 검색어는 '찾기'를 눌렀을 때만 적용한다 — 칸에 적는 동안에는 목록을 다시 부르지 않는다
-function SearchBox({ initial, onSearch }) {
+function SearchBox({ initial, onSearch, inputRef }) {
   const [text, setText] = useState(initial)
   return (
     <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); onSearch(text.trim()) }}>
       <label className="sr-only" htmlFor="user-q">닉네임 또는 이메일</label>
-      <input id="user-q" type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="닉네임 또는 이메일" maxLength={100} />
+      <input ref={inputRef} id="user-q" type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder="닉네임 또는 이메일" maxLength={100} />
       <button type="submit" className="btn"><Search size={16} aria-hidden="true" /> 찾기</button>
     </form>
   )
@@ -29,6 +29,8 @@ export default function UsersPage({ params, onForbidden }) {
 
   const [result, setResult] = useState({ key: '', loading: true, data: null, error: null })
   const seq = useRef(0)
+  const searchRef = useRef(null)
+  const restoreSearchFocus = useRef(false)
   const key = `${q}|${role}|${state}|${page}`
   const [reload, setReload] = useState(0)
 
@@ -52,6 +54,18 @@ export default function UsersPage({ params, onForbidden }) {
   const set = (patch) => go('/users', { q, role, state, page: 1, ...patch })
   const listQuery = buildHash('', { q, role, state, page: page > 1 ? page : '' }).replace(/^#\??/, '')
 
+  const search = (text) => {
+    // 검색어 변경으로 SearchBox가 다시 만들어져도 초점을 잃지 않는다.
+    restoreSearchFocus.current = text !== q || page !== 1
+    searchRef.current?.focus({ preventScroll: true })
+    set({ q: text })
+  }
+  useEffect(() => {
+    if (!restoreSearchFocus.current) return
+    restoreSearchFocus.current = false
+    searchRef.current?.focus({ preventScroll: true })
+  }, [q, page])
+
   useEffect(() => {
     if (data) return restoreListPosition()
   }, [data])
@@ -66,7 +80,7 @@ export default function UsersPage({ params, onForbidden }) {
       </div>
 
       <div className="toolbar">
-        <SearchBox key={q} initial={q} onSearch={(text) => set({ q: text })} />
+        <SearchBox key={q} initial={q} inputRef={searchRef} onSearch={search} />
         <div className="tabs" role="group" aria-label="계정 유형">
           {ROLES.map(([v, label]) => (
             <button key={v || 'all'} type="button" aria-pressed={role === v} onClick={() => set({ role: v })}>{label}</button>
