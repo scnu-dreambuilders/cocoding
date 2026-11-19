@@ -22,7 +22,8 @@
 // 정한 규칙
 //   · 운영자는 자기 계정의 운영자 권한을 뺄 수 없고, 자기 계정을 정지·탈퇴시킬 수 없다.
 //     실수로 관리자 웹에 아무도 못 들어가는 상태를 만들지 않기 위해서다.
-//   · 마지막 운영자의 권한도 뺄 수 없다 (위와 같은 이유).
+//   · 지금 들어올 수 있는 운영자가 한 명뿐이면, 그 사람의 권한을 빼거나 정지할 수 없다.
+//     정지된 운영자는 로그인해도 막히므로 머릿수에서 빼고 센다 (위와 같은 이유).
 //   · 역할을 선생님으로 바꿀 때 소속이 비어 있으면 그대로 둔다. 소속은 선생님이 직접 적는 값이다.
 //   · 정지를 풀면 사유도 함께 지운다.
 //   · 모든 변경은 운영 기록(admin-날짜.log)에 남는다. 이메일·닉네임·비밀번호는 남기지 않고
@@ -89,14 +90,18 @@ if (array_key_exists('role', $data)) {
     $changes['role'] = $data['role'];
 }
 
+// 이 회원이 "지금 관리자 웹에 들어올 수 있는 운영자" 인지.
+// 권한을 빼든 정지를 걸든, 이런 사람이 마지막 한 명이면 아무도 못 들어오게 된다.
+$targetUsable = !empty($target['is_admin']) && empty($target['suspended']);
+
 if (array_key_exists('is_admin', $data)) {
     if (!is_bool($data['is_admin'])) Response::error("운영자 권한은 true/false 로 보내주세요.", 400);
     if ($data['is_admin'] === false) {
         if ($id === $adminId) {
             Response::error("자기 운영자 권한은 뺄 수 없어요. 다른 운영자에게 부탁해주세요.", 400);
         }
-        if ($target['is_admin'] && $model->adminCount() <= 1) {
-            Response::error("운영자가 한 명뿐이라 권한을 뺄 수 없어요.", 400);
+        if ($targetUsable && $model->usableAdminCount() <= 1) {
+            Response::error("지금 들어올 수 있는 운영자가 이분뿐이라 권한을 뺄 수 없어요. 다른 분을 먼저 운영자로 지정해주세요.", 400);
         }
     }
     $changes['is_admin'] = $data['is_admin'] ? 1 : 0;
@@ -106,6 +111,9 @@ if (array_key_exists('suspended', $data)) {
     if (!is_bool($data['suspended'])) Response::error("정지 여부는 true/false 로 보내주세요.", 400);
     if ($data['suspended'] && $id === $adminId) {
         Response::error("자기 계정은 정지할 수 없어요.", 400);
+    }
+    if ($data['suspended'] && $targetUsable && $model->usableAdminCount() <= 1) {
+        Response::error("지금 들어올 수 있는 운영자가 이분뿐이라 정지할 수 없어요. 다른 분을 먼저 운영자로 지정해주세요.", 400);
     }
     $changes['suspended'] = $data['suspended'] ? 1 : 0;
     if (!$data['suspended']) {

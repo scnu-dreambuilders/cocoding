@@ -1,6 +1,7 @@
 <?php
 // backend/config/Database.php
 require_once __DIR__ . '/Env.php';
+require_once __DIR__ . '/AppTime.php';
 require_once __DIR__ . '/SchemaUpgrader.php';
 
 // DB에 아예 접속하지 못한 경우 — Bootstrap에서 설정 안내 메시지로 바꿔서 응답
@@ -12,11 +13,20 @@ class Database {
 
     public static function connect($host, $port, $dbname, $user, $pass) {
         $dsn = "mysql:host=$host;port=$port;charset=utf8mb4" . ($dbname !== null ? ";dbname=$dbname" : '');
-        return new PDO($dsn, $user, $pass, [
+        $conn = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
+        // PHP와 DB가 같은 "오늘"을 쓰게 맞춘다. 서버 설정이 UTC여도 결과가 같아진다.
+        // (TIMESTAMP 값은 안에 UTC로 담겨 있어서, 시차를 바꿔도 저장된 시각 자체는 그대로다)
+        AppTime::apply();
+        try {
+            $conn->exec("SET time_zone = '" . AppTime::dbOffset() . "'");
+        } catch (Throwable $e) {
+            // 시차 설정을 못 해도 서비스는 돌아가야 한다 (기록은 Bootstrap에서 남는다)
+        }
+        return $conn;
     }
 
     private function __construct() {

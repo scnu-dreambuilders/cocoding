@@ -21,12 +21,13 @@ $email = isset($argv[2]) ? strtolower(trim($argv[2])) : '';
 $db = Database::getInstance();
 
 function showAdmins(PDO $db) {
-    $rows = $db->query("SELECT id, username, email, role FROM users WHERE is_admin = 1 ORDER BY id");
+    $rows = $db->query("SELECT id, username, email, role, suspended FROM users WHERE is_admin = 1 ORDER BY id");
     $found = false;
     echo "지금 운영자:\n";
     foreach ($rows as $r) {
         $found = true;
-        echo "  #{$r['id']}  {$r['username']}  <{$r['email']}>  ({$r['role']})\n";
+        $mark = (int)$r['suspended'] === 1 ? '  <- 정지 상태라 로그인해도 들어가지 못합니다' : '';
+        echo "  #{$r['id']}  {$r['username']}  <{$r['email']}>  ({$r['role']}){$mark}\n";
     }
     if (!$found) echo "  (없음)\n";
 }
@@ -44,7 +45,7 @@ if (!in_array($action, ['지정', '해제', 'grant', 'revoke'], true) || $email 
     exit(1);
 }
 
-$stmt = $db->prepare("SELECT id, username, email, is_admin FROM users WHERE email = ?");
+$stmt = $db->prepare("SELECT id, username, email, is_admin, suspended FROM users WHERE email = ?");
 $stmt->execute([$email]);
 $user = $stmt->fetch();
 if (!$user) {
@@ -63,11 +64,14 @@ if (!$grant && (int)$user['is_admin'] === 0) {
     exit(0);
 }
 
-// 마지막 운영자를 해제하면 관리자 웹에 아무도 들어갈 수 없다
+// 마지막 운영자를 해제하면 관리자 웹에 아무도 들어갈 수 없다.
+// 정지된 운영자는 로그인해도 막히므로 머릿수에서 뺀다. 넣고 세면 "두 명이니 괜찮다" 고
+// 판단해 놓고 실제로 들어갈 수 있는 사람은 0명이 되는 일이 생긴다.
 if (!$grant) {
-    $count = (int)$db->query("SELECT COUNT(*) FROM users WHERE is_admin = 1")->fetchColumn();
-    if ($count <= 1) {
-        echo "운영자가 한 명뿐입니다. 해제하면 관리자 웹에 아무도 들어갈 수 없습니다.\n";
+    $usable = (int)$db->query("SELECT COUNT(*) FROM users WHERE is_admin = 1 AND suspended = 0")->fetchColumn();
+    $targetUsable = (int)$user['is_admin'] === 1 && (int)$user['suspended'] === 0;
+    if ($targetUsable && $usable <= 1) {
+        echo "지금 관리자 웹에 들어갈 수 있는 운영자가 이분뿐입니다. 해제하면 아무도 들어갈 수 없습니다.\n";
         echo "다른 사람을 먼저 운영자로 지정하세요.\n";
         exit(1);
     }

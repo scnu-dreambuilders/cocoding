@@ -5,6 +5,7 @@
 // 다른 모델과 달리 여기서는 이메일을 그대로 돌려준다. 운영자가 회원을 찾는 데 필요하기 때문이다.
 // 대신 운영 기록(Logger)에는 절대 남기지 않는다 — 기록에는 번호(uid)만 들어간다.
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/UserModel.php';
 
 class AdminModel {
     const PAGE_SIZE = 20;
@@ -129,6 +130,13 @@ class AdminModel {
     // 지금 운영자가 몇 명인지 (마지막 운영자가 스스로 권한을 빼는 것을 막으려고)
     public function adminCount() {
         return (int)$this->db->query("SELECT COUNT(*) FROM users WHERE is_admin = 1")->fetchColumn();
+    }
+
+    // 지금 실제로 관리자 웹에 들어올 수 있는 운영자 수.
+    // 정지된 운영자는 로그인해도 막히니 머릿수에서 뺀다 — 안 빼면 "운영자 두 명" 으로 보이지만
+    // 한 명은 정지 상태라, 남은 한 명의 권한을 빼는 순간 아무도 못 들어오게 된다.
+    public function usableAdminCount() {
+        return (int)$this->db->query("SELECT COUNT(*) FROM users WHERE is_admin = 1 AND suspended = 0")->fetchColumn();
     }
 
     /* ── 신고·숨김 ───────────────────────────── */
@@ -467,17 +475,30 @@ class AdminModel {
         $num = function ($sql) {
             return (int)$this->db->query($sql)->fetchColumn();
         };
-        $byRole = [];
+        // 한 명도 없는 유형도 0으로 보낸다. 빼고 보내면 화면이 받는 항목 수가 그때그때 달라진다
+        $byRole = array_fill_keys(UserModel::ROLES, 0);
         foreach ($this->db->query("SELECT role, COUNT(*) AS n FROM users GROUP BY role") as $r) {
             $byRole[$r['role']] = (int)$r['n'];
         }
-        // 최근 7일 가입자 (날짜별) — 화면에서 막대그래프로 그릴 수 있게
-        $signups = [];
+        // 최근 7일 가입자 (날짜별) — 화면에서 막대그래프로 그릴 수 있게.
+        // 기준 날짜는 DB의 오늘을 쓴다. 보는 사람 PC의 시계가 달라도 같은 그림이 되도록,
+        // 가입이 없던 날도 0으로 채워서 항상 7칸을 보낸다.
+        $today = (string)$this->db->query("SELECT CURDATE()")->fetchColumn();
+        $counts = [];
         foreach ($this->db->query("SELECT DATE(created_at) AS day, COUNT(*) AS n FROM users
                 WHERE created_at >= CURDATE() - INTERVAL 6 DAY GROUP BY day ORDER BY day") as $r) {
-            $signups[] = ['day' => $r['day'], 'count' => (int)$r['n']];
+            $counts[(string)$r['day']] = (int)$r['n'];
+        }
+        $signups = [];
+        $cursor = new DateTime($today);
+        $cursor->modify('-6 day');
+        for ($i = 0; $i < 7; $i++) {
+            $day = $cursor->format('Y-m-d');
+            $signups[] = ['day' => $day, 'count' => isset($counts[$day]) ? $counts[$day] : 0];
+            $cursor->modify('+1 day');
         }
         return [
+            'today' => $today,
             'users' => [
                 'total' => $num("SELECT COUNT(*) FROM users"),
                 'byRole' => $byRole,

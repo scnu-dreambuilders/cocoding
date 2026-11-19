@@ -17,6 +17,7 @@
 //
 // 기록하다 실패해도 서비스는 그대로 돌아가야 하므로 모든 쓰기는 조용히 넘어간다.
 require_once __DIR__ . '/Env.php';
+require_once __DIR__ . '/AppTime.php';
 
 class Logger {
     const DEFAULT_RETENTION_DAYS = 30;
@@ -111,7 +112,8 @@ class Logger {
     /* ── 도우미 ─────────────────────────────────── */
     /* 기록 시각은 우리 시간대로 적는다. 서버 전체 설정은 건드리지 않는다 */
     private static function now() {
-        $tz = trim((string)Env::get('LOG_TIMEZONE', '')) ?: self::DEFAULT_TIMEZONE;
+        // LOG_TIMEZONE 을 따로 적지 않으면 서비스 기준 시간대(APP_TIMEZONE)를 그대로 쓴다
+        $tz = trim((string)Env::get('LOG_TIMEZONE', '')) ?: AppTime::zoneName();
         try {
             return new DateTime('now', new DateTimeZone($tz));
         } catch (Throwable $e) {
