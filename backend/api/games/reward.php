@@ -12,7 +12,8 @@
 //   { success: true, data: { balance, claimed: ["typing:word:0", ...], reward: { typing, quiz } } }
 //
 // 정한 규칙
-//   · 타자게임 정답 1개는 2코인, 복습 퀴즈 정답 1개는 10코인 (CoinModel::GAME_REWARD).
+//   · 타자게임 정답 1개는 2코인, 복습 퀴즈 정답 1개는 10코인이 기본이다.
+//     관리자 웹의 운영 기준값(coin.game.typing, coin.game.quiz)으로 바꿀 수 있다.
 //     퀴즈는 첫 도전(first)이든 오답 재도전(retry)이든 똑같이 10코인이다.
 //   · 경험치(xp)는 올리지 않는다. 레벨과 랭킹은 챕터 진도로만 올라가야 한다.
 //   · 한 세트가 5문제라서 correct는 0부터 5까지만 받는다.
@@ -40,16 +41,10 @@ $QUIZ_ROUNDS = ['first', 'retry'];
 $TYPING_SETS = [0, 1];
 $MAX_CORRECT = 5; // 한 세트는 5문제
 
-// 오늘 날짜(우리 시간대). Logger가 쓰는 LOG_TIMEZONE을 그대로 따른다
+// 오늘 날짜. 출석과 같은 기준 시간대(APP_TIMEZONE)를 쓴다.
+// 따로 계산하면 출석의 하루와 게임 보상의 하루가 어긋날 수 있다
 function gameToday() {
-    $tz = trim((string)Env::get('LOG_TIMEZONE', ''));
-    if ($tz === '') $tz = 'Asia/Seoul';
-    try {
-        $now = new DateTime('now', new DateTimeZone($tz));
-    } catch (Throwable $e) {
-        $now = new DateTime('now', new DateTimeZone('Asia/Seoul'));
-    }
-    return $now->format('Y-m-d');
+    return AppTime::today();
 }
 
 // 숫자·글자 어느 쪽으로 와도 같게 보도록 글자로 맞춘다 (예: 퀴즈 3단계는 3도 "3"도 된다)
@@ -77,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     Response::success([
         'balance' => $coins->balance($userId),
         'claimed' => $coins->gameClaims($userId, $today),
-        'reward' => CoinModel::GAME_REWARD,
+        // 화면이 "정답 하나에 몇 코인"을 보여줄 때 쓰는 값. 관리자 웹에서 바꾼 기준값이 그대로 나간다
+        'reward' => ['typing' => CoinModel::gameAmount('typing'), 'quiz' => CoinModel::gameAmount('quiz')],
     ]);
 }
 
@@ -119,7 +115,7 @@ if ($game === 'typing') {
     $ref = "quiz:$stage:$round:$today";
 }
 
-$amount = $correct * CoinModel::GAME_REWARD[$game];
+$amount = $correct * CoinModel::gameAmount($game);
 // 지급액이 0이면 grant()는 아무것도 넣지 않고 0을 돌려준다 → 이미 받은 것과 섞이지 않게 따로 본다
 $awarded = $amount > 0 ? $coins->grant($userId, $amount, 'game', $ref) : 0;
 $already = $amount > 0 && $awarded === 0;

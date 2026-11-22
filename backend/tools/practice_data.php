@@ -11,7 +11,9 @@
 //   php tools/practice_data.php 지우기
 //   php tools/practice_data.php 목록
 //
-// 비밀번호는 만들 때 화면에 한 번만 나온다. 파일이나 Git에 남기지 않는다.
+//   php tools/practice_data.php 만들기 <비밀번호>   비밀번호를 정해서 만들기 (다른 서버와 맞출 때)
+//
+// 비밀번호를 정하지 않으면 무작위로 만들어 화면에 한 번만 보여준다. 파일이나 Git에 남기지 않는다.
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
@@ -68,10 +70,20 @@ if (practiceUsers($db)) {
 }
 
 // 헷갈리는 글자(0 O 1 l I)를 뺀 임시 비밀번호. 여섯 계정이 같은 비밀번호를 쓴다
-$alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-$password = '';
-for ($i = 0; $i < 12; $i++) $password .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-$password .= '!7';
+// 비밀번호를 직접 정했으면 그것을 쓴다. 내 PC와 서버의 연습용 계정을 같은 비밀번호로 맞출 때 쓴다
+$given = isset($argv[2]) ? (string)$argv[2] : '';
+if ($given !== '') {
+    if (strlen($given) < 10) {
+        echo "비밀번호는 10자 이상으로 정해주세요.\n";
+        exit(1);
+    }
+    $password = $given;
+} else {
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    $password = '';
+    for ($i = 0; $i < 12; $i++) $password .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    $password .= '!7';
+}
 $hash = password_hash($password, PASSWORD_DEFAULT);
 
 $accounts = [
@@ -142,5 +154,7 @@ try {
 
 showList($db);
 echo "\n신고된 글 2개(#$p1 보임, #$p2 숨김), 신고된 작품 2개(#$j1 보임, #$j2 숨김)를 만들었습니다.\n";
-echo "\n여섯 계정의 비밀번호 (지금 한 번만 보입니다): $password\n";
+echo $given !== ''
+    ? "\n여섯 계정의 비밀번호는 정해주신 값으로 넣었습니다.\n"
+    : "\n여섯 계정의 비밀번호 (지금 한 번만 보입니다): $password\n";
 echo "다 쓰면 'php tools/practice_data.php 지우기' 로 한 번에 지우세요.\n";
