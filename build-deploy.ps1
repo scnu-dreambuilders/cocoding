@@ -1,4 +1,4 @@
-# 코코딩 배포본 만들기 — FTP업로드 폴더를 지금 코드로 갱신한다
+﻿# 코코딩 배포본 만들기 — FTP업로드 폴더를 지금 코드로 갱신한다
 # 쓰는 법: build-deploy.bat 을 두 번 누르거나
 #   powershell -NoProfile -ExecutionPolicy Bypass -File build-deploy.ps1
 #
@@ -38,6 +38,22 @@ npm run build:grader
 if ($LASTEXITCODE -ne 0) { Pop-Location; Fail "채점기 빌드 실패" }
 Pop-Location
 
+# 관리자 화면은 별도 앱(admin/)이다. 서버에서는 /admin/ 주소로 열리므로 그 주소 기준으로
+# 빌드하고, API는 학생용 화면과 같은 /backend/api 를 부르게 한다
+Write-Host "      관리자 화면 빌드 (admin/)"
+Push-Location admin
+if (-not (Test-Path node_modules)) {
+    Write-Host "      node_modules가 없어서 먼저 설치합니다..."
+    npm ci --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) { Pop-Location; Fail "admin npm ci 실패" }
+}
+$env:VITE_API_URL = '/backend/api'
+npx vite build --base=/admin/
+$adminExit = $LASTEXITCODE
+Remove-Item Env:VITE_API_URL
+Pop-Location
+if ($adminExit -ne 0) { Fail "관리자 화면 빌드 실패" }
+
 Step 3 "서버 설정 따로 빼두기"
 $differs = @()
 # backend/.env 만 지킨다. 실제 서비스 비밀값(DB 비밀번호, JWT_SECRET, API 키)이
@@ -72,6 +88,7 @@ foreach ($f in @('backend/.env')) {
 Step 4 "파일 모으기"
 if (Test-Path $web) { Remove-Item $web -Recurse -Force }
 Copy-Item 'frontend/dist' $web -Recurse -Force
+Copy-Item 'admin/dist' "$web/admin" -Recurse -Force
 New-Item -ItemType Directory -Path "$web/backend" -Force | Out-Null
 foreach ($d in @('api', 'config', 'models', 'data', 'grader')) {
     Copy-Item "backend/$d" "$web/backend/$d" -Recurse -Force
@@ -151,7 +168,7 @@ foreach ($old in @('2-처음설치용-DB.sql', '3-기존DB-업그레이드.sql')
 Write-Host "      DB.sql(저장소) · 2-DB.sql(배포본) 갱신 — [A] 처음 설치 + [B] 기존 DB 업그레이드"
 
 Step 6 "확인"
-$must = @("$web/index.html", "$web/.htaccess", "$web/backend/api/auth/login.php",
+$must = @("$web/index.html", "$web/admin/index.html", "$web/.htaccess", "$web/backend/api/auth/login.php",
           "$web/backend/grader/grade.mjs", "$web/backend/config/Logger.php",
           "$web/backend/.htaccess", "$ftp/2-DB.sql")
 foreach ($f in $must) { if (-not (Test-Path $f)) { Fail "$f 가 없습니다" } }
