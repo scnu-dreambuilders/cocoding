@@ -21,6 +21,11 @@ CREATE TABLE users (
     xp INT NOT NULL DEFAULT 0,    -- 경험치 (레벨 계산용)
     bio VARCHAR(50) NULL,         -- 자기소개 (학생만)
     profile_visibility ENUM('public','friends','private') NOT NULL DEFAULT 'public',
+    -- 운영자(관리자 웹) 권한. 학생·선생님·보호자와는 다른 축이라 role과 따로 둔다
+    is_admin TINYINT(1) NOT NULL DEFAULT 0,
+    -- 정지된 계정은 로그인은 되지만 API를 쓸 수 없다 (사유는 화면에 보여준다)
+    suspended TINYINT(1) NOT NULL DEFAULT 0,
+    suspended_reason VARCHAR(100) NULL,
     token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -163,6 +168,34 @@ CREATE TABLE coin_log (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 공지사항 (관리자 웹에서 쓰고, 학생·선생님·보호자 화면에 보인다)
+CREATE TABLE notices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(80) NOT NULL,
+    body VARCHAR(2000) NOT NULL,
+    -- pinned: 맨 위에 고정. published: 꺼두면 학생에게 안 보인다 (초안)
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    published TINYINT(1) NOT NULL DEFAULT 1,
+    -- 누구에게 보일지. all 이면 모두, 그 밖에는 그 역할에게만
+    audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_show (published, pinned, id),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 운영 기준값 (관리자 웹에서 고친다)
+-- 여기에 행이 없으면 코드에 적힌 기본값(config/Settings.php의 DEFAULTS)을 쓴다.
+-- 그래서 표가 비어 있어도 서비스는 그대로 돌아간다
+CREATE TABLE settings (
+    name VARCHAR(40) PRIMARY KEY,
+    value VARCHAR(200) NOT NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- 비밀번호 재설정 링크 (토큰 원본은 메일로만 가고, DB에는 해시만)
 CREATE TABLE password_resets (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -238,15 +271,25 @@ CREATE TABLE user_achievements (
 );
 
 -- 토론 게시판 (Q&A와 별개)
+-- 코딩 게시판 — 토론 글과 질문 글을 한 테이블에 담는다
+-- kind: 종류가 오지 않은 요청과 옛 글은 discussion. 올린 뒤에는 바꿀 수 없다
+-- chapter/blocks: 질문에만 쓰는 태그. chapter는 '1'~'5' 또는 'free', 안 고르면 NULL
+-- accepted_comment_id: 채택한 답변. 이 값이 있으면 해결됨(status=solved)으로 본다
 CREATE TABLE board_posts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    kind ENUM('discussion', 'question') NOT NULL DEFAULT 'discussion',
     title VARCHAR(80) NOT NULL,
     body TEXT NOT NULL,
+    chapter VARCHAR(8) NULL,
+    blocks JSON NULL, -- 블록 type id 배열 (0~3개)
+    accepted_comment_id INT NULL,
     hidden TINYINT(1) NOT NULL DEFAULT 0, -- 신고 3건이면 자동 숨김
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_created (hidden, created_at),
+    INDEX idx_kind (kind, hidden, created_at),
+    INDEX idx_chapter (kind, chapter),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -287,3 +330,8 @@ INSERT INTO chapters (id, order_num, title, concept, mission, new_blocks, requir
 (3, 3, '조건 – 상황에 따라 다르게 행동', '만약 ~라면 블록과 닿음·키 감지로 상황에 맞게 행동해요.', '공이 벽에 닿으면 반대 방향으로 튕기는 프로그램을 만들어보세요!', '["if_then", "touching", "key_pressed", "turn_around"]', '["forever", "if_then", "touching", "turn_around"]', '푸른 숲 배경'),
 (4, 4, '변수 – 점수와 상태를 기억하기', '변수로 점수를 기억하고 바꿔요.', '동전을 먹으면 점수 +1, 10점이 되면 "클리어!"라고 말하는 게임을 완성해보세요.', '["var_set", "var_change", "var_show", "var_hide", "variables_get", "logic_compare", "goto_random"]', '["var_change", "touching", "logic_compare"]', '황금 트로피'),
 (5, 5, '이벤트와 장면 – 게임 흐름 만들기', '메시지를 주고받고 장면을 바꿔서 게임의 시작·진행·끝을 만들어요.', '시작 화면 → 게임 → 게임오버 3장면 게임을 완성해보세요!', '["broadcast", "when_receive", "switch_scene", "when_scene_start", "show", "hide"]', '["broadcast", "when_receive", "switch_scene"]', '우주선 배경');
+
+-- 채택한 답변이 지워지면 자동으로 미해결로 돌아가게 (board_comments보다 뒤에 걸어야 함)
+ALTER TABLE board_posts
+    ADD CONSTRAINT fk_board_accepted FOREIGN KEY (accepted_comment_id)
+    REFERENCES board_comments(id) ON DELETE SET NULL;

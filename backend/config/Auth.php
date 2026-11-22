@@ -89,7 +89,8 @@ class Auth {
         if (self::$cachedUser !== false) return self::$cachedUser;
         $payload = self::validateJWT(self::getBearerToken());
         if ($payload) {
-            $stmt = Database::getInstance()->prepare("SELECT token_version, role, consent_status FROM users WHERE id = ?");
+            $stmt = Database::getInstance()->prepare("SELECT token_version, role, consent_status, is_admin, suspended, suspended_reason
+                FROM users WHERE id = ?");
             $stmt->execute([$payload['id']]);
             $row = $stmt->fetch();
             if (!$row || (int)$row['token_version'] !== (int)($payload['tv'] ?? 0)) {
@@ -97,6 +98,11 @@ class Auth {
             } else {
                 $payload['role'] = $row['role'];
                 $payload['consent'] = $row['consent_status'];
+                // 운영자 권한과 정지 여부도 토큰이 아니라 DB의 최신 값으로 본다.
+                // 토큰에 넣으면 권한을 빼앗거나 계정을 정지해도 토큰이 만료될 때까지 그대로 통한다
+                $payload['is_admin'] = (int)$row['is_admin'] === 1;
+                $payload['suspended'] = (int)$row['suspended'] === 1;
+                $payload['suspended_reason'] = $row['suspended_reason'];
             }
         }
         self::$cachedUser = $payload ?: null;
@@ -106,10 +112,30 @@ class Auth {
     }
 
     // 로그인이 필요한 API: 아니면 401로 끝냄
+    // 정지된 계정은 403으로 막는다. 401로 하면 화면이 '로그인 풀림'으로 보고 조용히
+    // 로그아웃시켜서, 학생이 왜 막혔는지 알 수 없다
     public static function requireUser() {
         $payload = self::user();
         if (!$payload) {
             Response::error("로그인이 필요합니다.", 401);
+        }
+        if (!empty($payload['suspended'])) {
+            $reason = trim((string)($payload['suspended_reason'] ?? ''));
+            Response::error($reason !== ''
+                ? "이 계정은 지금 쓸 수 없어요. ($reason) 선생님이나 보호자에게 물어봐 주세요."
+                : "이 계정은 지금 쓸 수 없어요. 선생님이나 보호자에게 물어봐 주세요.", 403);
+        }
+        return $payload;
+    }
+
+    // 관리자 웹 전용 API. 운영자 플래그(users.is_admin)가 켜진 계정만 쓸 수 있다.
+    // 역할(role)과는 다른 축이라, 선생님 계정에 운영자 권한을 줄 수도 있다
+    public static function requireAdmin() {
+        $payload = self::requireUser();
+        if (empty($payload['is_admin'])) {
+            // 관리자 주소가 있다는 것조차 알려주지 않으려면 404가 낫지만,
+            // 운영자가 권한을 잃은 경우를 구분해야 해서 403으로 둔다
+            Response::error("관리자만 쓸 수 있는 기능이에요.", 403);
         }
         return $payload;
     }

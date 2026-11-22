@@ -28,3 +28,6 @@ coco_gemini_prompts.md
 deploy/public/
 deploy/backend/
 deploy/schema.sql
+
+# 설계 산출물 이미지 (17MB 정도라 저장소에 넣지 않는다)
+플로우차트/

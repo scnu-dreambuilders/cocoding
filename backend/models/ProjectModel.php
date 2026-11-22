@@ -1,6 +1,7 @@
 <?php
 // backend/models/ProjectModel.php
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../config/Settings.php';
 
 class ProjectModel {
     const MAX_TITLE_LENGTH = 200;
@@ -159,7 +160,7 @@ class ProjectModel {
 
         $count = $this->db->prepare("SELECT COUNT(*) FROM project_reports WHERE project_id = ?");
         $count->execute([$project_id]);
-        $hidden = (int)$count->fetchColumn() >= self::REPORTS_TO_HIDE;
+        $hidden = (int)$count->fetchColumn() >= Settings::int('report.hide_count');
         if ($hidden) {
             $this->db->prepare("UPDATE projects SET is_public = 0, report_hidden = 1 WHERE id = ?")->execute([$project_id]);
         }
