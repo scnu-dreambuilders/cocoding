@@ -15,8 +15,11 @@
      __adminMock.fail('/admin/users.php', 500)                 다음 한 번만 그 상태 코드로 실패 (JSON)
      __adminMock.fail('/admin/stats.php', 502, '', { html: true })  다음 한 번만 HTML 오류 페이지로 실패
      __adminMock.delay = 1500                                   응답 지연(ms)
-     __adminMock.serverToday = '2026-11-18'                     stats 에 today 필드를 넣어 보냄 (백엔드에 요청한 필드 흉내)
+     __adminMock.serverToday = '2026-11-18'                     stats 의 today 를 이 날짜로 바꿔 보냄 (기본은 이 PC 의 오늘)
+     __adminMock.legacyStats = true                             옛 서버처럼 today 없이, 가입자가 있는 날만 보냄 (화면의 대체 기준 확인용)
      __adminMock.extraSignups = [{ day: '2030-01-01', count: 5 }]  signups7d 에 범위 밖 줄 추가
+     __adminMock.nextDelays = [1500, 50]                        다음 요청들의 지연을 차례로 지정 (늦은 응답 확인용)
+     __adminMock.rejectSettings = ['coin.chapter']              기준값 저장 때 그 항목을 거절 ('*' 이면 전부) — 일부/전체 실패 확인용
    ════════════════════════════════════════════════ */
 
 export const MOCK_LOGIN_HINT = [
@@ -84,18 +87,51 @@ function seedReports() {
   return { post: posts.map(withReasons), project: projects.map(withReasons) }
 }
 
-const db = { users: seedUsers(), reports: seedReports(), tokens: new Map() }
+// 공지 — notices 표 흉내. 23개라 목록이 두 쪽이 된다
+function seedNotices() {
+  const audiences = ['all', 'student', 'teacher', 'guardian']
+  return Array.from({ length: 23 }, (_, k) => {
+    const i = k + 1
+    return {
+      id: i, title: `모의 공지 ${pad(i)}${i === 21 ? ' — 고정' : ''}`,
+      body: `모의 공지 ${i}번 내용이에요.\n두 번째 줄이에요.`,
+      pinned: i === 21 || i === 3, published: i % 5 !== 0, audience: audiences[i % 4],
+      created_by: 1, created_at: ts(30 - i, 9), updated_at: ts(30 - i, 9),
+    }
+  })
+}
+
+// 운영 기준값 — backend/config/Settings.php 의 SPEC·DEFAULTS 를 모의 데이터로 옮겨 둔 것 (화면은 이 목록을 응답으로만 받는다)
+const SETTING_SPEC = [
+  ['coin.attendance', '코인', '출석 코인', '하루 한 번 출석 도장을 찍을 때 주는 코인이에요.', 0, 1000, 10],
+  ['coin.attendance_streak', '코인', '연속 출석 보너스', '연속으로 출석한 하루마다 더 주는 코인이에요 (7일째까지만 늘어나요).', 0, 1000, 5],
+  ['coin.chapter', '코인', '챕터 첫 완료 코인', '챕터를 처음 끝냈을 때 한 번만 주는 코인이에요.', 0, 1000, 50],
+  ['coin.project', '코인', '자유 창작 첫 저장 코인', '자유 창작 작품을 처음 저장했을 때 주는 코인이에요.', 0, 1000, 5],
+  ['coin.game.typing', '코인', '타자게임 정답 코인', '타자게임에서 한 문제 맞힐 때마다 주는 코인이에요. 같은 단계는 하루 한 번만 받아요.', 0, 100, 2],
+  ['coin.game.quiz', '코인', '복습 퀴즈 정답 코인', '복습 퀴즈에서 한 문제 맞힐 때마다 주는 코인이에요. 오답 재도전도 같아요.', 0, 100, 10],
+  ['coco.daily_limit', '코코 대화', '하루 질문 횟수', '학생 한 명이 24시간 동안 코코에게 물어볼 수 있는 횟수예요.', 1, 500, 30],
+  ['report.hide_count', '신고', '자동 숨김 신고 수', '서로 다른 이 인원이 신고하면 글·작품을 자동으로 숨겨요.', 1, 50, 3],
+  ['board.post_cooldown', '게시판', '글쓰기 간격(초)', '도배를 막기 위해 글을 연달아 올릴 수 없는 시간이에요.', 0, 3600, 5],
+].map(([name, group, label, help, min, max, def]) => ({ name, group, label, help, min, max, default: def }))
+
+const db = { users: seedUsers(), reports: seedReports(), tokens: new Map(), notices: seedNotices(), settings: new Map([['coin.chapter', 70]]) }
 
 /* ── 개발자 도구용 조작 (모의 모드에서만 존재) ── */
-const control = { delay: 250, failures: [], serverToday: null, extraSignups: [] }
+const control = { delay: 250, failures: [], serverToday: null, legacyStats: false, extraSignups: [], nextDelays: [], rejectSettings: [] }
 if (typeof window !== 'undefined') {
   window.__adminMock = {
     get delay() { return control.delay },
     set delay(ms) { control.delay = Number(ms) || 0 },
     get serverToday() { return control.serverToday },
     set serverToday(v) { control.serverToday = v || null },
+    get legacyStats() { return control.legacyStats },
+    set legacyStats(v) { control.legacyStats = !!v },
     get extraSignups() { return control.extraSignups },
     set extraSignups(v) { control.extraSignups = Array.isArray(v) ? v : [] },
+    get nextDelays() { return control.nextDelays },
+    set nextDelays(v) { control.nextDelays = Array.isArray(v) ? v.map(Number) : [] },
+    get rejectSettings() { return control.rejectSettings },
+    set rejectSettings(v) { control.rejectSettings = Array.isArray(v) ? v.map(String) : [] },
     fail(pathPrefix, status = 500, message = '모의 오류가 났어요', { html = false } = {}) { control.failures.push({ pathPrefix, status, message, html }) },
   }
 }
@@ -130,7 +166,9 @@ const summaryOf = (u) => {
     coinsEarned: u.coins + (u.id % 5) * 20, coinsSpent: (u.id % 5) * 20,
   }
 }
-const adminCount = () => db.users.filter((u) => u.is_admin).length // 실제처럼 정지된 운영자도 센다
+const adminCount = () => db.users.filter((u) => u.is_admin).length // stats.admins — 정지된 운영자도 센다
+// usableAdminCount — 지금 관리자 웹에 들어올 수 있는 운영자 (정지되지 않은 운영자)
+const usableAdminCount = () => db.users.filter((u) => u.is_admin && !u.suspended).length
 // Auth::revoke — 그 계정의 모든 토큰을 끊는다
 const revoke = (userId) => { for (const [t, id] of db.tokens) if (id === userId) db.tokens.delete(t) }
 const intId = (v) => (/^\d+$/.test(String(v ?? '')) && Number(v) > 0 ? Number(v) : 0)
@@ -147,11 +185,12 @@ function statsPayload() {
   const users = db.users
   const today = day(0)
   const byRole = users.reduce((m, u) => ({ ...m, [u.role]: (m[u.role] ?? 0) + 1 }), {})
-  // 실제처럼 가입자가 있는 날만 보낸다
-  const signups7d = Array.from({ length: 7 }, (_, i) => {
+  // 지금 서버처럼 today 와, 가입이 없던 날도 0 으로 채운 7칸을 보낸다 (legacyStats 면 옛 서버처럼 빈 날을 뺀다)
+  const week = Array.from({ length: 7 }, (_, i) => {
     const d = day(6 - i)
     return { day: d, count: users.filter((u) => u.created_at.startsWith(d)).length }
-  }).filter((r) => r.count > 0).concat(control.extraSignups)
+  })
+  const signups7d = (control.legacyStats ? week.filter((r) => r.count > 0) : week).concat(control.extraSignups)
   const posts = db.reports.post
   const projects = db.reports.project
   const payload = {
@@ -170,7 +209,7 @@ function statsPayload() {
     },
     coins: { granted: 4210, spent: 1800, held: users.reduce((n, u) => n + u.coins, 0) },
   }
-  if (control.serverToday) payload.today = control.serverToday
+  if (!control.legacyStats) payload.today = control.serverToday || today
   return payload
 }
 
@@ -184,17 +223,20 @@ function patchUser(adminId, target, body) {
     if (!['student', 'teacher', 'guardian'].includes(data.role)) return fail(400, '계정 유형을 다시 골라주세요.')
     changes.role = data.role
   }
+  // 이 회원이 지금 관리자 웹에 들어올 수 있는 운영자인지 (마지막 한 명이면 권한 빼기·정지를 막는다)
+  const targetUsable = !!target.is_admin && !target.suspended
   if (has('is_admin')) {
     if (typeof data.is_admin !== 'boolean') return fail(400, '운영자 권한은 true/false 로 보내주세요.')
     if (data.is_admin === false) {
       if (target.id === adminId) return fail(400, '자기 운영자 권한은 뺄 수 없어요. 다른 운영자에게 부탁해주세요.')
-      if (target.is_admin && adminCount() <= 1) return fail(400, '운영자가 한 명뿐이라 권한을 뺄 수 없어요.')
+      if (targetUsable && usableAdminCount() <= 1) return fail(400, '지금 들어올 수 있는 운영자가 이분뿐이라 권한을 뺄 수 없어요. 다른 분을 먼저 운영자로 지정해주세요.')
     }
     changes.is_admin = data.is_admin
   }
   if (has('suspended')) {
     if (typeof data.suspended !== 'boolean') return fail(400, '정지 여부는 true/false 로 보내주세요.')
     if (data.suspended && target.id === adminId) return fail(400, '자기 계정은 정지할 수 없어요.')
+    if (data.suspended && targetUsable && usableAdminCount() <= 1) return fail(400, '지금 들어올 수 있는 운영자가 이분뿐이라 정지할 수 없어요. 다른 분을 먼저 운영자로 지정해주세요.')
     changes.suspended = data.suspended
     if (!data.suspended) changes.suspended_reason = null // 정지를 풀면 사유도 지운다
   }
@@ -374,11 +416,121 @@ function route(path, init) {
     return ok({ message: body.hidden ? '숨겼어요.' : '다시 보이게 했어요.', hidden: body.hidden })
   }
 
+  if (p === '/admin/notices.php') return noticesRoute(me, method, q, body)
+  if (p === '/admin/settings.php') return settingsRoute(method, body)
+
   return fail(404, '모의 서버에 없는 주소예요.')
 }
 
+/* ── 공지 — notices.php 의 검사 순서와 문장 ── */
+const NOTICE_AUDIENCES = ['all', 'student', 'teacher', 'guardian']
+const noticeOut = (n) => ({ ...n, author: db.users.find((u) => u.id === n.created_by)?.username ?? null })
+function noticeFields(data, need) {
+  const has = (k) => Object.prototype.hasOwnProperty.call(data, k)
+  const out = {}
+  if (need || has('title')) {
+    const title = typeof data.title === 'string' ? data.title.trim() : ''
+    if (title === '' || [...title].length > 80) return { error: '제목은 1~80자로 써주세요.' }
+    out.title = title
+  }
+  if (need || has('body')) {
+    const body = typeof data.body === 'string' ? data.body.trim() : ''
+    if (body === '' || [...body].length > 2000) return { error: '내용은 1~2000자로 써주세요.' }
+    out.body = body
+  }
+  for (const flag of ['pinned', 'published']) {
+    if (has(flag)) {
+      if (typeof data[flag] !== 'boolean') return { error: `${flag} 는 true/false 로 보내주세요.` }
+      out[flag] = data[flag]
+    }
+  }
+  if (has('audience')) {
+    if (!NOTICE_AUDIENCES.includes(data.audience)) return { error: '받는 사람은 all·student·teacher·guardian 중에 골라주세요.' }
+    out.audience = data.audience
+  }
+  return { fields: out }
+}
+function noticesRoute(me, method, q, body) {
+  const id = intId(q.get('id'))
+  const sorted = () => [...db.notices].sort((a, b) => (b.pinned - a.pinned) || (b.id - a.id))
+  if (method === 'GET') {
+    if (id) {
+      const n = db.notices.find((x) => x.id === id)
+      if (!n) return fail(404, '그런 공지가 없어요.')
+      return ok({ notice: noticeOut(n) })
+    }
+    const page = Math.min(500, Math.max(1, Number.parseInt(q.get('page') ?? '1', 10) || 1))
+    const list = sorted()
+    return ok({ notices: list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(noticeOut), hasMore: page * PAGE_SIZE < list.length, audiences: NOTICE_AUDIENCES })
+  }
+  const data = body && typeof body === 'object' && !Array.isArray(body) ? body : {}
+  if (method === 'POST') {
+    const { error, fields } = noticeFields(data, true)
+    if (error) return fail(400, error)
+    const n = { pinned: false, published: true, audience: 'all', ...fields, id: Math.max(0, ...db.notices.map((x) => x.id)) + 1, created_by: me.id, created_at: ts(0, new Date().getHours()) }
+    n.updated_at = n.created_at
+    db.notices.push(n)
+    return ok({ notice: noticeOut(n), message: n.published ? '공지를 올렸어요.' : '초안으로 저장했어요.' }, 201)
+  }
+  if (!id) return fail(400, '어떤 공지인지 알려주세요.')
+  const n = db.notices.find((x) => x.id === id)
+  if (!n) return fail(404, '그런 공지가 없어요.')
+  if (method === 'PATCH') {
+    const { error, fields } = noticeFields(data, false)
+    if (error) return fail(400, error)
+    if (!Object.keys(fields).length) return fail(400, '바꿀 내용이 없어요.')
+    Object.assign(n, fields, { updated_at: ts(0, new Date().getHours()) })
+    return ok({ notice: noticeOut(n), message: '공지를 고쳤어요.' })
+  }
+  if (method === 'DELETE') {
+    db.notices = db.notices.filter((x) => x.id !== id)
+    return ok({ message: '공지를 지웠어요.' })
+  }
+  return fail(405, '잘못된 요청 방식입니다.')
+}
+
+/* ── 운영 기준값 — settings.php · Settings::set/reset 의 검사와 문장 ── */
+const describeSettings = () => SETTING_SPEC.map((s) => {
+  const value = db.settings.has(s.name) ? db.settings.get(s.name) : s.default
+  return { group: s.group, label: s.label, help: s.help, min: s.min, max: s.max, name: s.name, value, default: s.default, changed: value !== s.default }
+})
+function settingsRoute(method, body) {
+  if (method === 'GET') return ok({ settings: describeSettings() })
+  if (method !== 'PUT') return fail(405, '잘못된 요청 방식입니다.')
+  const data = body && typeof body === 'object' && !Array.isArray(body) ? body : {}
+  const values = data.values && typeof data.values === 'object' && !Array.isArray(data.values) ? data.values : {}
+  const resets = Array.isArray(data.reset) ? data.reset : []
+  if (!Object.keys(values).length && !resets.length) return fail(400, '바꿀 기준값을 보내주세요.')
+  const rejected = (name) => control.rejectSettings.includes('*') || control.rejectSettings.includes(name)
+  const saved = []
+  const errors = {}
+  for (const [name, value] of Object.entries(values)) {
+    const spec = SETTING_SPEC.find((s) => s.name === name)
+    if (!spec) { errors[name] = `모르는 기준값이에요: ${[...name].slice(0, 40).join('')}`; continue }
+    const n = typeof value === 'number' ? value : typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN
+    if (typeof value === 'boolean' || !Number.isFinite(n) || !Number.isInteger(n)) { errors[name] = `${spec.label}은 숫자로 적어주세요.`; continue }
+    if (n < spec.min || n > spec.max) { errors[name] = `${spec.label}은 ${spec.min}부터 ${spec.max}까지만 넣을 수 있어요.`; continue }
+    if (rejected(name)) { errors[name] = `${spec.label}을 저장하지 못했어요. (모의 거절)`; continue }
+    db.settings.set(name, n)
+    saved.push(name)
+  }
+  for (const name of resets) {
+    if (typeof name !== 'string') continue
+    if (!SETTING_SPEC.some((s) => s.name === name)) { errors[name] = '모르는 기준값이에요.'; continue }
+    if (rejected(name)) { errors[name] = '기본값으로 되돌리지 못했어요. (모의 거절)'; continue }
+    db.settings.delete(name)
+    saved.push(name)
+  }
+  const failed = Object.keys(errors).length
+  let message = saved.length ? `${saved.length}개 기준값을 저장했어요.` : '저장된 기준값이 없어요.'
+  if (failed) message += ` ${failed}개는 저장하지 못했어요.`
+  // PHP 는 빈 errors 를 [] 로 보낸다 — 화면이 두 모양을 다 받는지 확인하려고 그대로 흉내 낸다
+  return ok({ settings: describeSettings(), saved, errors: failed ? errors : [], message })
+}
+
 export async function mockFetch(path, init) {
-  await new Promise((r) => setTimeout(r, control.delay))
+  const wait = control.nextDelays.length ? control.nextDelays.shift() : control.delay
+  await new Promise((r) => setTimeout(r, wait))
   const i = control.failures.findIndex((f) => path.startsWith(f.pathPrefix))
   if (i >= 0) {
     const [f] = control.failures.splice(i, 1)
