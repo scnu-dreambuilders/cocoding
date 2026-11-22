@@ -141,8 +141,7 @@ export const SITEMAP = [
     { key: 'guide', label: '코코딩 사용법' },
   ] },
   { group: '둘러보기', links: [
-    { key: 'qna', label: 'Q&A 게시판' },
-    { key: 'board', label: '토론 게시판' },
+    { key: 'board', label: '코딩 게시판' },
     { key: 'game', label: '게임존' },
     { key: 'popular', label: '인기 작품' },
   ] },

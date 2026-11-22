@@ -116,7 +116,7 @@ function Thumb({ src, icon: FallbackIcon = Puzzle }) {
 // onMenu(key): 메뉴 키를 App의 공통 목적지로 (안내가 있으면 { toast }) — 이 화면 안에서 바로 처리할 수 있는 키는 먼저 처리한다
 // navIntent: 다른 화면에서 '인기 작품'·'더 많은 작품 보기'로 왔으면 'popular' | 'friends' — 한 번 쓰고 onNavIntentDone으로 비운다
 // sessionIssue / onRecheckSession: 로그인 상태 확인 실패 안내와 다시 확인
-export default function StudentHomePage({ user, view = 'dashboard', onChangeView, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onAccountDeleted, onGoHome, onMenu, navIntent, onNavIntentDone, sessionIssue, onRecheckSession }) {
+export default function StudentHomePage({ user, view = 'dashboard', onChangeView, onLogout, onOpenEditor, onEditSurvey, onOpenMyGame, onUserChange, onCoinsMaybeChanged, onRefreshUser, onAccountDeleted, onGoHome, onMenu, navIntent, onNavIntentDone, sessionIssue, onRecheckSession }) {
   const role = user?.role ?? 'student'
   const isStudent = role === 'student'
   const page = isStudent && (view === 'study' || view === 'mypage') ? view : 'dashboard'
@@ -137,7 +137,11 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
   const [reporting, setReporting] = useState(null)
   const [toast, setToast] = useState('')
   const [accountOpen, setAccountOpen] = useState(false)
-  const [coins, setCoins] = useState(user?.coins ?? 0)
+  // 코인은 App이 서버에서 다시 읽어 한곳에서 관리한다. 모르는 값(아직 못 읽음)은 0이 아니라 '…'으로 보여 준다
+  const coins = Number.isInteger(user?.coins) && user.coins >= 0 ? user.coins : null
+  // 출석·상점·과제가 잔액이 바뀌었을 수 있다고 알릴 때 — 받은 값은 쓰지 않고 App이 서버에서 다시 읽는다
+  // (출석 카드의 조회가 이 함수에 의존하므로 매번 새로 만들지 않는다)
+  const coinsChanged = useCallback(() => { onCoinsMaybeChanged?.() }, [onCoinsMaybeChanged])
   const [profileId, setProfileId] = useState(null) // 친구 프로필 창
   // 친구 작품: 최신순 | 인기순. 다른 화면에서 '인기 작품'으로 왔으면 처음부터 인기순
   const [sort, setSort] = useState(() => (navIntent === 'popular' ? 'popular' : 'recent'))
@@ -153,19 +157,20 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
   useEffect(() => () => clearTimeout(toastTimer.current), [])
 
   // 보호자가 다른 기기에서 동의했는지 확인
+  // App의 사용자 다시 읽기를 쓴다 — 이전 세션의 응답은 버리고, 더 최신 잔액은 덮지 않는다
   const refreshConsent = async () => {
-    try {
-      const fresh = await api.me()
-      onUserChange(fresh)
-      if (fresh.consent_status === 'pending') {
-        showToast('아직 동의 전이에요. 부모님이 보호자 화면에서 코드를 입력하면 바로 열려요!')
-      } else {
-        showToast('보호자 동의가 끝났어요! 이제 친구들과 작품을 나눌 수 있어요!')
-        setCommunity((c) => ({ ...c, loading: true, hasMore: true, error: '' }))
-        loadCommunity(1, sort)
-      }
-    } catch (e) {
-      showToast(e.message)
+    const r = await onRefreshUser?.()
+    if (!r || r.status === 'stale') return
+    if (r.status === 'error') {
+      showToast(r.message)
+      return
+    }
+    if (r.user.consent_status === 'pending') {
+      showToast('아직 동의 전이에요. 부모님이 보호자 화면에서 코드를 입력하면 바로 열려요!')
+    } else {
+      showToast('보호자 동의가 끝났어요! 이제 친구들과 작품을 나눌 수 있어요!')
+      setCommunity((c) => ({ ...c, loading: true, hasMore: true, error: '' }))
+      loadCommunity(1, sort)
     }
   }
 
@@ -513,7 +518,7 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
                   hint={itemStatus === 'error' ? '아이템 수를 불러오지 못했어요 · 마이페이지의 코코 꾸미기로 이동' : '마이페이지의 코코 꾸미기로 이동'}
                   onGo={() => openDecor('mine')} />
                 <div className="stat-divider" />
-                <StatLink num={coins} label="코인" hint="마이페이지의 코코 상점으로 이동"
+                <StatLink num={coins ?? '…'} label="코인" hint="마이페이지의 코코 상점으로 이동"
                   onGo={() => openDecor('shop')} />
               </div>
             )}
@@ -649,7 +654,7 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
                     <div className="items-preview"><CocoAvatar size={110} emotion="happy" items={equipped} /></div>
                     <div className="decor-body">
                       {decorTab === 'shop' ? (
-                        <ShopPanel embedded showToast={showToast} equipped={equipped} onCoinsChange={setCoins}
+                        <ShopPanel embedded showToast={showToast} equipped={equipped} onCoinsChange={coinsChanged}
                           onBought={() => api.items().then(setItems).catch(() => {})} />
                       ) : itemStatus === 'loading' && items.length === 0 ? (
                         <div className="empty-msg" role="status">아이템을 불러오는 중이에요…</div>
@@ -696,7 +701,7 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
         {/* 학생 홈: 넓은 화면에서는 왼쪽(주 내용)과 오른쪽(출석) 두 단으로 나눈다. 좁으면 한 줄로 쌓인다 */}
         {isStudent && page === 'dashboard' && <div className="dash-columns">
         <div className="dash-col-main">
-        {page === 'dashboard' && <StudentAssignments onOpenChapter={openChapterById} showToast={showToast} onCoinsChange={setCoins} />}
+        {page === 'dashboard' && <StudentAssignments onOpenChapter={openChapterById} showToast={showToast} onCoinsChange={coinsChanged} />}
 
         {/* ── 오늘의 추천 주제 (학생 홈) ── */}
         {page === 'dashboard' && <Section title="오늘의 추천 주제" badge={user?.tags?.length ? '관심사 기반' : null}
@@ -812,7 +817,7 @@ export default function StudentHomePage({ user, view = 'dashboard', onChangeView
         </div>
 
         <aside className="dash-col-side" aria-label="내 기록">
-          <AttendanceCard showToast={showToast} onCoinsChange={setCoins} />
+          <AttendanceCard showToast={showToast} onCoinsChange={coinsChanged} />
         </aside>
         </div>}
       </main>
