@@ -1,0 +1,711 @@
+-- ============================================================
+-- 코코딩 DB
+-- ============================================================
+--
+--  ▶ 처음 설치하는 경우           → [A] 구역만 실행
+--  ▶ 예전부터 쓰던 DB를 올리는 경우 → [B] 구역만 실행
+--
+--  두 구역을 다 실행하면 안 됩니다. [A]가 만든 테이블에 [B]가 다시
+--  컬럼을 추가하려 해서 오류가 납니다.
+--
+--  [B]는 서버가 첫 접속 때 자동으로 적용하므로 보통 실행할 필요가 없습니다.
+--  DB 계정에 ALTER 권한이 없어 자동 적용이 안 될 때만 phpMyAdmin에서 돌리세요.
+--
+--  만든 날짜: 2026-11-18
+-- ============================================================
+
+
+-- ============================================================
+-- [A] 처음 설치용 — 빈 DB에 테이블을 만든다
+-- ============================================================
+
+CREATE DATABASE IF NOT EXISTS cocoding DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE cocoding;
+
+-- 유저 테이블 (tags: NULL = 관심사 설문 전, [] = 건너뜀)
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student',
+    birth_year SMALLINT NULL,
+    -- 만 14세 미만 학생: pending(보호자 동의 전) → granted. consent_code는 보호자에게 보여줄 코드
+    consent_status ENUM('not_required', 'pending', 'granted') NOT NULL DEFAULT 'not_required',
+    consent_code CHAR(8) NULL UNIQUE,
+    consent_at TIMESTAMP NULL,
+    -- 교사 전용 소속(학교/학원 등). 학생·보호자는 항상 NULL
+    affiliation VARCHAR(50) NULL,
+    level TINYINT DEFAULT 1,
+    tags JSON NULL,
+    coins INT NOT NULL DEFAULT 0, -- 출석·학습으로 모아서 상점에서 쓰는 재화
+    xp INT NOT NULL DEFAULT 0,    -- 경험치 (레벨 계산용)
+    bio VARCHAR(50) NULL,         -- 자기소개 (학생만)
+    profile_visibility ENUM('public','friends','private') NOT NULL DEFAULT 'public',
+    -- 운영자(관리자 웹) 권한. 학생·선생님·보호자와는 다른 축이라 role과 따로 둔다
+    is_admin TINYINT(1) NOT NULL DEFAULT 0,
+    -- 정지된 계정은 로그인은 되지만 API를 쓸 수 없다 (사유는 화면에 보여준다)
+    suspended TINYINT(1) NOT NULL DEFAULT 0,
+    suspended_reason VARCHAR(100) NULL,
+    token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 챕터 테이블 (블록 id·미션 판정 로직은 frontend/src/data/chapters.js와 맞춤)
+CREATE TABLE chapters (
+    id INT PRIMARY KEY,
+    order_num TINYINT UNIQUE NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    concept TEXT,
+    mission TEXT,
+    new_blocks JSON,
+    required_blocks JSON,
+    reward_item VARCHAR(100)
+);
+
+-- 유저 챕터 진행 상황
+CREATE TABLE user_chapter_progress (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    chapter_id INT NOT NULL,
+    status ENUM('locked', 'in_progress', 'completed') DEFAULT 'locked',
+    completed_at TIMESTAMP NULL,
+    best_score TINYINT UNSIGNED NULL, -- 정답 제출 자동 채점 최고 점수 (0~100)
+    attempts INT NOT NULL DEFAULT 0,  -- 정답 제출 횟수
+    UNIQUE(user_id, chapter_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+);
+
+-- 프로젝트 테이블
+-- blocks_data: { version: 2, workspace, sprites, scenes, sounds }
+-- thumbnail_url: 무대 캡처 이미지(data URL)
+CREATE TABLE projects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    chapter_id INT NULL,
+    title VARCHAR(200) NOT NULL,
+    blocks_data JSON NOT NULL,
+    track ENUM('chapter', 'free') DEFAULT 'chapter',
+    is_public BOOLEAN DEFAULT FALSE,
+    allow_remake TINYINT(1) NOT NULL DEFAULT 1, -- 공개했을 때 친구가 리메이크해도 되는지
+    thumbnail_url MEDIUMTEXT NULL,
+    report_hidden TINYINT(1) NOT NULL DEFAULT 0, -- 신고 누적으로 자동 비공개
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_public (is_public, updated_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE SET NULL
+);
+
+-- 유저 아이템 (코코 꾸미기 보상). 종류별로 하나만 equipped = 1
+CREATE TABLE user_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    item_type ENUM('hat', 'glasses', 'background', 'accessory') NOT NULL,
+    equipped TINYINT(1) NOT NULL DEFAULT 0,
+    acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 리메이크 기록 (원작자 카드에 리메이크 수 표시)
+CREATE TABLE remakes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    original_project_id INT NOT NULL,
+    remaked_project_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_original (original_project_id),
+    FOREIGN KEY (original_project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (remaked_project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+-- 공개 작품 신고 (한 사람당 작품 하나에 한 번, 3명이 신고하면 자동 비공개)
+CREATE TABLE project_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    user_id INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_report (project_id, user_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 보호자-자녀 연결 (보호자가 동의 코드로 연결하면 자녀의 consent_status = granted)
+CREATE TABLE guardian_links (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    guardian_id INT NOT NULL,
+    student_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_link (guardian_id, student_id),
+    FOREIGN KEY (guardian_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 선생님 반 (학생은 참여 코드로 들어옴)
+CREATE TABLE classes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    teacher_id INT NOT NULL,
+    name VARCHAR(40) NOT NULL,
+    join_code CHAR(6) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE class_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    student_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_member (class_id, student_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 출석 (하루 한 번, 연속 출석이면 보너스 코인)
+CREATE TABLE attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    attended_on DATE NOT NULL,
+    reward_coins SMALLINT NOT NULL DEFAULT 0,
+    streak SMALLINT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_day (user_id, attended_on),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 코인 입출금 내역. ref로 중복 지급을 막는다 (예: 챕터 3 보상은 1회)
+CREATE TABLE coin_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    amount INT NOT NULL,
+    reason VARCHAR(40) NOT NULL,
+    ref VARCHAR(60) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_ref (user_id, reason, ref),
+    INDEX idx_user_time (user_id, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 공지사항 (관리자 웹에서 쓰고, 학생·선생님·보호자 화면에 보인다)
+CREATE TABLE notices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(80) NOT NULL,
+    body VARCHAR(2000) NOT NULL,
+    -- pinned: 맨 위에 고정. published: 꺼두면 학생에게 안 보인다 (초안)
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    published TINYINT(1) NOT NULL DEFAULT 1,
+    -- 누구에게 보일지. all 이면 모두, 그 밖에는 그 역할에게만
+    audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_show (published, pinned, id),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 운영 기준값 (관리자 웹에서 고친다)
+-- 여기에 행이 없으면 코드에 적힌 기본값(config/Settings.php의 DEFAULTS)을 쓴다.
+-- 그래서 표가 비어 있어도 서비스는 그대로 돌아간다
+CREATE TABLE settings (
+    name VARCHAR(40) PRIMARY KEY,
+    value VARCHAR(200) NOT NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 비밀번호 재설정 링크 (토큰 원본은 메일로만 가고, DB에는 해시만)
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 선생님이 반에 내주는 과제 (챕터 하나 + 마감일)
+-- 과제: chapter_id가 있으면 챕터 과제, 없으면 선생님이 직접 쓴 과제
+CREATE TABLE class_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    chapter_id INT NULL,
+    title VARCHAR(80) NULL,
+    note VARCHAR(200) NULL,
+    reward_coins SMALLINT NOT NULL DEFAULT 0,
+    due_on DATE NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_class (class_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+);
+
+-- 학생이 직접 쓴 과제를 끝냈다고 표시한 기록
+CREATE TABLE assignment_done (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    assignment_id INT NOT NULL,
+    student_id INT NOT NULL,
+    note VARCHAR(200) NULL,
+    done_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_done (assignment_id, student_id),
+    FOREIGN KEY (assignment_id) REFERENCES class_assignments(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 작품 좋아요 (한 사람당 작품 하나에 한 번)
+CREATE TABLE project_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_like (project_id, user_id),
+    INDEX idx_project (project_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 팔로우. 서로 팔로우하면 친구
+CREATE TABLE follows (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    follower_id INT NOT NULL,
+    following_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_follow (follower_id, following_id),
+    INDEX idx_following (following_id),
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 업적
+CREATE TABLE user_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code VARCHAR(40) NOT NULL,
+    earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_achievement (user_id, code),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 토론 게시판 (Q&A와 별개)
+-- 코딩 게시판 — 토론 글과 질문 글을 한 테이블에 담는다
+-- kind: 종류가 오지 않은 요청과 옛 글은 discussion. 올린 뒤에는 바꿀 수 없다
+-- chapter/blocks: 질문에만 쓰는 태그. chapter는 '1'~'5' 또는 'free', 안 고르면 NULL
+-- accepted_comment_id: 채택한 답변. 이 값이 있으면 해결됨(status=solved)으로 본다
+CREATE TABLE board_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    kind ENUM('discussion', 'question') NOT NULL DEFAULT 'discussion',
+    title VARCHAR(80) NOT NULL,
+    body TEXT NOT NULL,
+    chapter VARCHAR(8) NULL,
+    blocks JSON NULL, -- 블록 type id 배열 (0~3개)
+    accepted_comment_id INT NULL,
+    hidden TINYINT(1) NOT NULL DEFAULT 0, -- 신고 3건이면 자동 숨김
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_created (hidden, created_at),
+    INDEX idx_kind (kind, hidden, created_at),
+    INDEX idx_chapter (kind, chapter),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE board_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    body VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_post (post_id, created_at),
+    FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE board_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_board_report (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 요청 제한 기록 (로그인 실패, 작품 저장 등)
+CREATE TABLE rate_limits (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    key_hash CHAR(64) NOT NULL,
+    attempted_at INT UNSIGNED NOT NULL,
+    INDEX idx_key_time (key_hash, attempted_at)
+);
+
+-- 초기 챕터 데이터 (방향성 문서 v3의 챕터 1~5)
+INSERT INTO chapters (id, order_num, title, concept, mission, new_blocks, required_blocks, reward_item) VALUES
+(1, 1, '이동과 방향 – 캐릭터를 움직여보자', '캔버스 좌표(x/y)를 이해하고 캐릭터를 원하는 방향으로 움직여요.', '화살표 키 → ← ↑ ↓ 를 누르면 캐릭터가 그 방향으로 움직이게 만들어보세요!', '["when_key", "move_x", "move_y", "set_dir"]', '["when_key", "move_x", "move_y"]', '빨간 모자'),
+(2, 2, '반복 – 같은 동작을 여러 번', '반복 블록으로 같은 동작을 정해진 횟수만큼, 또는 계속 실행해요.', '캐릭터가 화면을 10번 왕복하는 애니메이션을 만들어보세요!', '["repeat_n", "forever", "wait", "move_steps"]', '["repeat_n", "move_x"]', '반짝이는 안경'),
+(3, 3, '조건 – 상황에 따라 다르게 행동', '만약 ~라면 블록과 닿음·키 감지로 상황에 맞게 행동해요.', '공이 벽에 닿으면 반대 방향으로 튕기는 프로그램을 만들어보세요!', '["if_then", "touching", "key_pressed", "turn_around"]', '["forever", "if_then", "touching", "turn_around"]', '푸른 숲 배경'),
+(4, 4, '변수 – 점수와 상태를 기억하기', '변수로 점수를 기억하고 바꿔요.', '동전을 먹으면 점수 +1, 10점이 되면 "클리어!"라고 말하는 게임을 완성해보세요.', '["var_set", "var_change", "var_show", "var_hide", "variables_get", "logic_compare", "goto_random"]', '["var_change", "touching", "logic_compare"]', '황금 트로피'),
+(5, 5, '이벤트와 장면 – 게임 흐름 만들기', '메시지를 주고받고 장면을 바꿔서 게임의 시작·진행·끝을 만들어요.', '시작 화면 → 게임 → 게임오버 3장면 게임을 완성해보세요!', '["broadcast", "when_receive", "switch_scene", "when_scene_start", "show", "hide"]', '["broadcast", "when_receive", "switch_scene"]', '우주선 배경');
+
+-- 채택한 답변이 지워지면 자동으로 미해결로 돌아가게 (board_comments보다 뒤에 걸어야 함)
+ALTER TABLE board_posts
+    ADD CONSTRAINT fk_board_accepted FOREIGN KEY (accepted_comment_id)
+    REFERENCES board_comments(id) ON DELETE SET NULL;
+
+
+-- ============================================================
+-- [B] 기존 DB 업그레이드용 — 이미 쓰고 있던 DB를 지금 코드에 맞춘다
+-- ============================================================
+
+-- ============================================================
+-- 코코딩 — 기존 DB 업그레이드 (전체 모음)
+-- ============================================================
+--
+-- schema.sql 로 새로 설치하는 경우에는 이 파일을 실행할 필요가 없다.
+-- 예전 버전으로 만들어진 DB를 지금 코드에 맞출 때만 쓴다.
+--
+-- backend/config/SchemaUpgrader.php 가 서버 첫 요청에서 같은 내용을 자동으로
+-- 적용하므로 보통은 손으로 실행할 일이 없다. DB 계정에 ALTER 권한이 없어
+-- 자동 적용이 안 될 때만 phpMyAdmin 에서 돌린다.
+--
+-- 아래는 날짜 순서다. 위에서부터 차례로 실행하면 되고, 이미 적용된 구간은
+-- "Duplicate column" 같은 오류가 나므로 건너뛰고 그 다음 구간부터 실행한다.
+--
+--   mysql -u root cocoding < migrations/upgrade.sql
+--
+-- ============================================================
+
+USE cocoding;
+
+
+-- ============================================================
+-- [2026-09-15] 2026-09-15_upgrade.sql
+-- ============================================================
+
+ALTER TABLE projects MODIFY thumbnail_url MEDIUMTEXT NULL;
+ALTER TABLE projects ADD INDEX idx_public (is_public, updated_at);
+
+-- 코코 꾸미기: 장착 여부
+ALTER TABLE user_items ADD COLUMN equipped TINYINT(1) NOT NULL DEFAULT 0 AFTER item_type;
+
+ALTER TABLE remakes ADD INDEX idx_original (original_project_id);
+
+-- 예전 progress.php가 챕터를 다시 완료할 때마다 같은 아이템을 중복 지급했던 것 정리
+DELETE a FROM user_items a
+JOIN user_items b ON a.user_id = b.user_id AND a.item_name = b.item_name AND a.id > b.id;
+
+-- 예전 보상은 전부 'accessory'로 들어갔으므로 아이템 종류 바로잡기
+UPDATE user_items SET item_type = 'hat'        WHERE item_name = '빨간 모자';
+UPDATE user_items SET item_type = 'glasses'    WHERE item_name = '반짝이는 안경';
+UPDATE user_items SET item_type = 'background' WHERE item_name IN ('푸른 숲 배경', '우주선 배경');
+
+-- 챕터 내용을 방향성 문서 v3 + 새 블록 id에 맞춤
+UPDATE chapters SET title = '이동과 방향 – 캐릭터를 움직여보자',
+  concept = '캔버스 좌표(x/y)를 이해하고 캐릭터를 원하는 방향으로 움직여요.',
+  mission = '화살표 키 → ← ↑ ↓ 를 누르면 캐릭터가 그 방향으로 움직이게 만들어보세요!',
+  new_blocks = '["when_key", "move_x", "move_y", "set_dir"]', required_blocks = '["when_key", "move_x", "move_y"]'
+  WHERE id = 1;
+UPDATE chapters SET title = '반복 – 같은 동작을 여러 번',
+  concept = '반복 블록으로 같은 동작을 정해진 횟수만큼, 또는 계속 실행해요.',
+  mission = '캐릭터가 화면을 10번 왕복하는 애니메이션을 만들어보세요!',
+  new_blocks = '["repeat_n", "forever", "wait", "move_steps"]', required_blocks = '["repeat_n", "move_x"]'
+  WHERE id = 2;
+UPDATE chapters SET title = '조건 – 상황에 따라 다르게 행동',
+  concept = '만약 ~라면 블록과 닿음·키 감지로 상황에 맞게 행동해요.',
+  mission = '공이 벽에 닿으면 반대 방향으로 튕기는 프로그램을 만들어보세요!',
+  new_blocks = '["if_then", "touching", "key_pressed", "turn_around"]', required_blocks = '["forever", "if_then", "touching", "turn_around"]'
+  WHERE id = 3;
+UPDATE chapters SET title = '변수 – 점수와 상태를 기억하기',
+  concept = '변수로 점수를 기억하고 바꿔요.',
+  mission = '동전을 먹으면 점수 +1, 10점이 되면 "클리어!"라고 말하는 게임을 완성해보세요.',
+  new_blocks = '["var_set", "var_change", "var_show", "var_hide", "variables_get", "logic_compare", "goto_random"]', required_blocks = '["var_change", "touching", "logic_compare"]'
+  WHERE id = 4;
+UPDATE chapters SET title = '이벤트와 장면 – 게임 흐름 만들기',
+  concept = '메시지를 주고받고 장면을 바꿔서 게임의 시작·진행·끝을 만들어요.',
+  mission = '시작 화면 → 게임 → 게임오버 3장면 게임을 완성해보세요!',
+  new_blocks = '["broadcast", "when_receive", "switch_scene", "when_scene_start", "show", "hide"]', required_blocks = '["broadcast", "when_receive", "switch_scene"]'
+  WHERE id = 5;
+
+
+-- ============================================================
+-- [2026-09-16] 2026-09-16_security.sql
+-- ============================================================
+
+ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0;
+
+-- 신고 누적으로 자동 비공개된 작품
+ALTER TABLE projects ADD COLUMN report_hidden TINYINT(1) NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS project_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    user_id INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_report (project_id, user_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 요청 제한 기록
+CREATE TABLE IF NOT EXISTS rate_limits (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    key_hash CHAR(64) NOT NULL,
+    attempted_at INT UNSIGNED NOT NULL,
+    INDEX idx_key_time (key_hash, attempted_at)
+);
+
+
+-- ============================================================
+-- [2026-09-17] 2026-09-17_grading.sql
+-- ============================================================
+
+ALTER TABLE user_chapter_progress ADD COLUMN best_score TINYINT UNSIGNED NULL AFTER completed_at;
+ALTER TABLE user_chapter_progress ADD COLUMN attempts INT NOT NULL DEFAULT 0 AFTER best_score;
+
+
+-- ============================================================
+-- [2026-09-18] 2026-09-18_roles_classes.sql
+-- ============================================================
+
+ALTER TABLE users ADD COLUMN role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student' AFTER password_hash;
+ALTER TABLE users ADD COLUMN birth_year SMALLINT NULL AFTER role;
+ALTER TABLE users ADD COLUMN consent_status ENUM('not_required', 'pending', 'granted') NOT NULL DEFAULT 'not_required' AFTER birth_year;
+ALTER TABLE users ADD COLUMN consent_code CHAR(8) NULL AFTER consent_status, ADD UNIQUE KEY uniq_consent_code (consent_code);
+ALTER TABLE users ADD COLUMN consent_at TIMESTAMP NULL AFTER consent_code;
+
+-- 공개 작품을 친구가 리메이크해도 되는지
+ALTER TABLE projects ADD COLUMN allow_remake TINYINT(1) NOT NULL DEFAULT 1 AFTER is_public;
+
+CREATE TABLE IF NOT EXISTS guardian_links (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    guardian_id INT NOT NULL,
+    student_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_link (guardian_id, student_id),
+    FOREIGN KEY (guardian_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS classes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    teacher_id INT NOT NULL,
+    name VARCHAR(40) NOT NULL,
+    join_code CHAR(6) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_join_code (join_code),
+    FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS class_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    student_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_member (class_id, student_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- [2026-11-03] 2026-11-03_attendance_shop.sql
+-- ============================================================
+
+ALTER TABLE users ADD COLUMN coins INT NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    attended_on DATE NOT NULL,
+    reward_coins SMALLINT NOT NULL DEFAULT 0,
+    streak SMALLINT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_day (user_id, attended_on),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS coin_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    amount INT NOT NULL,
+    reason VARCHAR(40) NOT NULL,
+    ref VARCHAR(60) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_ref (user_id, reason, ref),
+    INDEX idx_user_time (user_id, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- [2026-11-04] 2026-11-04_social_progress.sql
+-- ============================================================
+
+ALTER TABLE users ADD COLUMN bio VARCHAR(50) NULL;
+ALTER TABLE users ADD COLUMN xp INT NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN profile_visibility ENUM('public','friends','private') NOT NULL DEFAULT 'public';
+
+CREATE TABLE IF NOT EXISTS project_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_like (project_id, user_id),
+    INDEX idx_project (project_id),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS follows (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    follower_id INT NOT NULL,
+    following_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_follow (follower_id, following_id),
+    INDEX idx_following (following_id),
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code VARCHAR(40) NOT NULL,
+    earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_achievement (user_id, code),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 토론 게시판
+CREATE TABLE IF NOT EXISTS board_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(80) NOT NULL,
+    body TEXT NOT NULL,
+    hidden TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_created (hidden, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS board_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    body VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_post (post_id, created_at),
+    FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS board_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_board_report (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES board_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 과제: 챕터 배정 외에 선생님이 직접 쓰는 과제도 허용
+-- (유니크 키를 외래키가 쓰고 있어서 class_id 인덱스를 먼저 만들어야 지울 수 있음)
+ALTER TABLE class_assignments ADD COLUMN title VARCHAR(80) NULL AFTER chapter_id;
+ALTER TABLE class_assignments ADD COLUMN reward_coins SMALLINT NOT NULL DEFAULT 0 AFTER note;
+ALTER TABLE class_assignments ADD INDEX idx_class (class_id);
+ALTER TABLE class_assignments DROP INDEX uniq_assignment;
+ALTER TABLE class_assignments MODIFY chapter_id INT NULL;
+
+CREATE TABLE IF NOT EXISTS assignment_done (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    assignment_id INT NOT NULL,
+    student_id INT NOT NULL,
+    note VARCHAR(200) NULL,
+    done_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_done (assignment_id, student_id),
+    FOREIGN KEY (assignment_id) REFERENCES class_assignments(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ============================================================
+-- [2026-11-18] 2026-11-18_role_enum_fix.sql
+-- ============================================================
+
+ALTER TABLE users MODIFY role ENUM('student', 'teacher', 'guardian', 'admin') NOT NULL DEFAULT 'student';
+
+-- 옛 admin 계정은 지우지 않고 권한이 가장 가까운 선생님으로 옮긴다
+UPDATE users SET role = 'teacher' WHERE role = 'admin';
+
+ALTER TABLE users MODIFY role ENUM('student', 'teacher', 'guardian') NOT NULL DEFAULT 'student';
+
+-- ============================================================
+-- [2026-11-19] 2026-11-19_board_questions.sql
+-- ============================================================
+
+-- 코딩 게시판: 토론 글과 질문 글을 한 테이블에서 다룬다 (PR #13 요청)
+-- 종류가 오지 않은 옛 글은 모두 discussion 으로 남는다 (기본값)
+ALTER TABLE board_posts ADD COLUMN kind ENUM('discussion', 'question') NOT NULL DEFAULT 'discussion' AFTER user_id;
+
+-- 질문에만 쓰는 태그. chapter 는 '1'~'5' 또는 'free', 안 고르면 NULL
+ALTER TABLE board_posts ADD COLUMN chapter VARCHAR(8) NULL AFTER body;
+ALTER TABLE board_posts ADD COLUMN blocks JSON NULL AFTER chapter;
+
+-- 채택한 답변. 이 값이 있으면 해결됨(status=solved)으로 본다
+ALTER TABLE board_posts ADD COLUMN accepted_comment_id INT NULL AFTER blocks;
+ALTER TABLE board_posts ADD INDEX idx_kind (kind, hidden, created_at);
+ALTER TABLE board_posts ADD INDEX idx_chapter (kind, chapter);
+
+-- 채택한 답변이 지워지면 자동으로 미해결로 돌아가게
+ALTER TABLE board_posts
+    ADD CONSTRAINT fk_board_accepted FOREIGN KEY (accepted_comment_id)
+    REFERENCES board_comments(id) ON DELETE SET NULL;
+
+-- ============================================================
+-- [2026-11-20] 2026-11-20_admin.sql
+-- ============================================================
+
+-- 관리자 웹(회원·기준값 관리)을 위한 추가
+-- 관리자는 학생·선생님·보호자와 다른 축이라 role 을 늘리지 않고 따로 플래그를 둔다.
+-- role 을 늘리면 기존 역할 분기(선생님 반, 보호자 연결 등)가 전부 영향을 받는다.
+ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER profile_visibility;
+
+-- 정지된 계정은 로그인은 되지만 API 를 쓸 수 없다. 사유는 화면에 보여준다
+ALTER TABLE users ADD COLUMN suspended TINYINT(1) NOT NULL DEFAULT 0 AFTER is_admin;
+ALTER TABLE users ADD COLUMN suspended_reason VARCHAR(100) NULL AFTER suspended;
+
+-- 운영 기준값. 행이 없으면 코드의 기본값(config/Settings.php DEFAULTS)을 쓰므로
+-- 표가 비어 있어도 서비스는 그대로 돌아간다
+CREATE TABLE IF NOT EXISTS settings (
+    name VARCHAR(40) PRIMARY KEY,
+    value VARCHAR(200) NOT NULL,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 공지사항 — 관리자 웹에서 쓰고 학생 화면에 보인다
+CREATE TABLE IF NOT EXISTS notices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(80) NOT NULL,
+    body VARCHAR(2000) NOT NULL,
+    -- pinned: 맨 위에 고정. published: 꺼두면 학생에게 안 보인다 (초안)
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    published TINYINT(1) NOT NULL DEFAULT 1,
+    -- 누구에게 보일지. all 이면 모두, 그 밖에는 그 역할에게만
+    audience ENUM('all', 'student', 'teacher', 'guardian') NOT NULL DEFAULT 'all',
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_show (published, pinned, id),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

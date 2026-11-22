@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../config/AiChat.php';
 require_once __DIR__ . '/../../config/ReplyFilter.php';
 require_once __DIR__ . '/../../config/Logger.php';
+require_once __DIR__ . '/../../config/Settings.php';
 
 const MESSAGE_MAX = 300;
 const HISTORY_MAX = 6;      // 직전 대화 몇 개까지 기억할지 (질문+답 3번)
@@ -44,7 +45,9 @@ TXT;
 
 $payload = Auth::requireUser();
 $userId = (int)$payload['id'];
-$dailyLimit = max(1, (int)Env::get('COCO_DAILY_LIMIT', 30));
+// 하루 질문 횟수는 관리자 웹에서 고친다. .env 의 COCO_DAILY_LIMIT 는 기준값을
+// 한 번도 저장하지 않은 설치를 위해 config/Settings.php 의 기본값으로만 남아 있다
+$dailyLimit = max(1, Settings::int('coco.daily_limit'));
 $dailyKey = "coco:chat:day:$userId";
 // 사이트 전체 하루 한도: 계정을 여러 개 만들어 API 할당량·요금을 다 써버리는 것을 막는다
 $globalLimit = max(1, (int)Env::get('COCO_GLOBAL_DAILY_LIMIT', 1000));

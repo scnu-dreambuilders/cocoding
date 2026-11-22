@@ -32,7 +32,7 @@ require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/BoardModel.php';
 require_once __DIR__ . '/../../config/Logger.php';
 
-const POST_COOLDOWN_SECONDS = 5;
+require_once __DIR__ . '/../../config/Settings.php';
 
 $payload = Auth::requireUser();
 Auth::requireSharing($payload); // 보호자 동의 전에는 게시판을 쓸 수 없다
@@ -46,7 +46,10 @@ if ($method === 'GET') {
     $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
     if ($id) {
         $post = $board->find($id);
-        if (!$post || ($post['hidden'] && $post['user_id'] !== $userId)) {
+        // 숨겨진 글은 쓴 사람만 볼 수 있다. 운영자도 볼 수 있게 열어 둔다 —
+        // 신고를 받아 숨긴 뒤에 내용을 다시 확인해야 복구할지 판단할 수 있다
+        $canSeeHidden = $post && ($post['user_id'] === $userId || !empty($payload['is_admin']));
+        if (!$post || ($post['hidden'] && !$canSeeHidden)) {
             Response::error("글을 찾을 수 없어요.", 404);
         }
         Response::success([
@@ -98,8 +101,9 @@ if ($method === 'POST') {
 
     // 새 글
     RateLimiter::limit("board:post:$userId", 30, 3600, "글을 너무 많이 썼어요. 잠시 후 다시 해주세요.");
-    if ($board->secondsSinceLastPost($userId) < POST_COOLDOWN_SECONDS) {
-        Response::error("조금 전에 글을 썼어요. " . POST_COOLDOWN_SECONDS . "초 뒤에 다시 올려주세요.", 429);
+    $cooldown = Settings::int('board.post_cooldown');
+    if ($cooldown > 0 && $board->secondsSinceLastPost($userId) < $cooldown) {
+        Response::error("조금 전에 글을 썼어요. {$cooldown}초 뒤에 다시 올려주세요.", 429);
     }
     $error = BoardModel::validate($data['title'] ?? null, $data['body'] ?? null);
     if ($error) Response::error($error);

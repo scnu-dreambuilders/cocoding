@@ -3,6 +3,7 @@
 // 코인(재화) 지급·차감과 출석 체크.
 // 중복 지급은 coin_log의 (user_id, reason, ref) 유니크 키로 막는다.
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../config/Settings.php';
 
 class CoinModel {
     // 지급 사유별 기본 금액
@@ -18,6 +19,23 @@ class CoinModel {
     ];
     const STREAK_BONUS = 5;        // 연속 출석 하루당 추가
     const STREAK_BONUS_MAX = 7;    // 7일째부터는 더 늘지 않음
+
+    /* 실제로 줄 금액. 관리자 웹에서 고친 기준값을 먼저 보고, 없으면 위 상수를 쓴다.
+       상수를 지우지 않는 이유는 settings 표가 비어 있어도 돌아가야 하기 때문이다 */
+    public static function amount($key) {
+        $map = [
+            'attendance' => 'coin.attendance',
+            'chapter' => 'coin.chapter',
+            'project' => 'coin.project',
+        ];
+        return isset($map[$key]) ? Settings::int($map[$key]) : (int)self::REWARD[$key];
+    }
+
+    /* 게임존 보상 — 정답 1개당 코인 */
+    public static function gameAmount($game) {
+        $map = ['typing' => 'coin.game.typing', 'quiz' => 'coin.game.quiz'];
+        return isset($map[$game]) ? Settings::int($map[$game]) : 0;
+    }
 
     private $db;
 
@@ -121,7 +139,8 @@ class CoinModel {
         $stmt->execute([$user_id]);
         $yesterday = (int)$stmt->fetchColumn();
         $streak = $yesterday > 0 ? $yesterday + 1 : 1;
-        $coins = self::REWARD['attendance'] + self::STREAK_BONUS * (min($streak, self::STREAK_BONUS_MAX) - 1);
+        $coins = self::amount('attendance')
+            + Settings::int('coin.attendance_streak') * (min($streak, self::STREAK_BONUS_MAX) - 1);
 
         $stmt = $this->db->prepare("INSERT IGNORE INTO attendance (user_id, attended_on, reward_coins, streak) VALUES (?, CURDATE(), ?, ?)");
         $stmt->execute([$user_id, $coins, $streak]);

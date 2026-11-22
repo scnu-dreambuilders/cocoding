@@ -1,0 +1,38 @@
+# 코코딩 — 웹 루트 설정 (Apache)
+#
+# nginx 호스팅에서는 이 파일을 읽지 않습니다. 같은 내용을 nginx 설정에
+# 직접 넣어야 하며, 넣지 않으면 아래 보호가 전부 빠집니다.
+# .htaccess를 쓰지 않는 호스팅에서도 사이트는 동작하지만, 보안 설정과
+# 화면 주소 되돌리기가 빠집니다.
+
+# 폴더 안 파일 목록이 그대로 보이지 않도록
+Options -Indexes
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
+    # 사이트 문서에만 적용 (API 응답은 PHP가 더 엄격한 값을 직접 설정함)
+    <FilesMatch "\.html$">
+        Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # /api/... 주소로도 백엔드에 닿게 (선택 사항 — 화면은 /backend/api 를 직접 부릅니다)
+    RewriteRule ^api/(.*)$ backend/api/$1 [L]
+
+    # 화면 주소 되돌리기
+    # 화면이 history.pushState 로 /mypage 같은 주소를 붙이기 때문에, 그 주소로
+    # 새로고침하거나 직접 들어오면 서버에 그런 파일이 없어서 404가 난다.
+    # 실제 파일·폴더가 아니면 index.html 을 돌려주고, 화면이 주소를 보고 알아서 그린다.
+    #
+    # backend/ 와 api/ 는 제외한다. 없는 API 주소가 index.html(HTML)로 돌아가면
+    # 화면이 JSON 파싱 오류를 내서 "서버에 문제가 생겼어요"로 보이기 때문이다.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule !^(backend|api)/ index.html [L]
+</IfModule>
