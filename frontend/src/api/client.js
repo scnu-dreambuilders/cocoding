@@ -69,7 +69,7 @@ async function request(path, options = {}) {
    자동 적용) 확인하고, 실제 서버 통합 QA(질문 등록·검색·필터·채택)를 통과한 기능부터 하나씩 true로 바꾼다.
    값을 켜는 것만으로 연동이 끝나지 않는다: ① 합의 ② 백엔드 구현·배포 확인 ③ 요청·응답 처리 조정
    ④ 준비된 기능별로 활성화 ⑤ 실제 서버 통합 QA — 지금은 ①②③까지 끝난 상태다 */
-export const BOARD_SERVER = { questions: false, search: false, accept: false }
+export const BOARD_SERVER = { questions: true, search: true, accept: true }
 
 // 질문 작성·수정 요청의 챕터: 폼의 '선택 안 함'('')은 null, 챕터 '1'~'5'와 'free'는 그대로 보낸다.
 // 목록 필터의 'none'(챕터를 고르지 않은 질문만 조회)과는 뜻이 다르므로 boardList에서는 쓰지 않는다
