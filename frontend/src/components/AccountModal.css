@@ -1,0 +1,84 @@
+/* ════════════════════════════════════════════════
+   내 정보 창 (AccountModal) 전용 배치 스타일
+   예전에는 공통 .modal 계열(EditorPage.css)에 기대고 있었는데, EditorPage 는 늦게 불러오는
+   화면이라 에디터에 들어가기 전에는 그 스타일이 없어서 창이 푸터 아래에 일반 내용처럼 붙었다.
+   이 창이 쓰는 배치·머리·닫기·오류 스타일을 여기에 직접 두고, account-* 클래스로만 걸어
+   다른 모달과 섞이지 않게 한다. 색·간격·모양은 기존 .modal 과 같게 맞췄다.
+   (입력칸·버튼 모양은 RolePanels.css 의 account-form / role-btn 을 그대로 쓴다)
+   ════════════════════════════════════════════════ */
+.account-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100; /* 상단바(30)보다 위 — 기존 .modal-backdrop 과 같은 층 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(27, 63, 68, 0.5);
+  backdrop-filter: blur(3px);
+  animation: account-fade-in 0.2s ease;
+}
+
+.account-panel {
+  box-sizing: border-box;
+  width: 440px;
+  max-width: 100%;
+  max-height: 100%;          /* 화면이 낮으면 창 안에서 스크롤 */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--panel-bg);
+  color: var(--text-h);
+  border: var(--stroke-brand) solid var(--line-brand);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: account-pop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.account-panel:focus { outline: none; }
+.account-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 머리(제목·닫기)는 창 안을 스크롤해도 위에 남는다 */
+.account-head {
+  position: sticky;
+  top: -16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -16px -18px 0;
+  padding: 16px 18px 4px;
+  background: var(--panel-bg);
+}
+.account-head h3 { margin: 0; font-size: 1.1333rem; }
+.account-close {
+  flex: none;
+  min-width: 32px;
+  min-height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 1.4667rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.account-close:hover { background: var(--btn-hover); color: var(--text-h); }
+.account-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* 오류 문장 (기존 .form-error 와 같은 모양, 이 창 안에서만) */
+.account-panel .form-error { margin: 0; font-size: 0.8333rem; color: var(--danger); }
+
+/* 좁은 화면: 입력칸이 줄어들 수 있게 하고, 그래도 모자라면 버튼을 다음 줄로 */
+.account-panel .account-row { flex-wrap: wrap; }
+.account-panel .account-row input { min-width: 0; }
+
+@keyframes account-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes account-pop { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .account-overlay, .account-panel { animation: none; }
+}

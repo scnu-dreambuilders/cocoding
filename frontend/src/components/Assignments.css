@@ -232,9 +232,113 @@
 }
 .assign-edit-actions { display: flex; gap: 5px; align-items: center; }
 
-/* ── 자세히 보기 창 ── */
-.assign-detail-modal { width: 540px; }
-.assign-detail-modal .modal-x { min-width: 28px; min-height: 28px; color: var(--text); }
+/* ── 자세히 보기 창 ──
+   공통 .modal 계열(EditorPage.css)은 에디터에 들어가야 불러와져서, 그 전에는 창이 과제 카드 아래에
+   일반 내용처럼 붙었다. 이 창의 배치는 assign-detail-* 전용 클래스로 여기서 직접 정한다.
+   색·테두리·간격은 기존 .modal 과 같게 맞췄다. */
+.assign-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100; /* 상단바(30)보다 위 — 기존 .modal-backdrop 과 같은 층 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(27, 63, 68, 0.5);
+  backdrop-filter: blur(3px);
+  animation: assign-detail-fade 0.2s ease;
+}
+.assign-detail-panel {
+  box-sizing: border-box;
+  width: 540px;
+  max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 스크롤은 가운데 본문에서만 */
+  background: var(--panel-bg);
+  color: var(--text-h);
+  border: var(--stroke-brand) solid var(--line-brand);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: assign-detail-pop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.assign-detail-panel:focus { outline: none; }
+.assign-detail-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 위: 제목 + 닫기 한 줄 */
+.assign-detail-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.assign-detail-head h3 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.1333rem;
+  line-height: 1.4;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.assign-detail-close {
+  flex: none;
+  min-width: 32px;
+  min-height: 32px;
+  margin: -4px -6px 0 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 1.4667rem;
+  line-height: 1;
+  color: var(--text);
+  cursor: pointer;
+}
+.assign-detail-close:hover { background: var(--btn-hover); color: var(--text-h); }
+.assign-detail-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* 가운데: 과제 정보 + 학생별 수행 현황 (화면이 낮거나 학생이 많으면 여기만 스크롤) */
+.assign-detail-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 18px;
+}
+.assign-detail-main:focus { outline: none; }
+.assign-detail-main:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.assign-detail-main .assign-detail-list { max-height: none; overflow: visible; } /* 본문 하나로만 스크롤 */
+.assign-detail-main .form-error { margin: 0; font-size: 0.8333rem; color: var(--danger); }
+.assign-detail-main .dash-hint { margin: 0; }
+.assign-detail-panel .assign-detail-name,
+.assign-detail-panel .assign-detail-meta,
+.assign-detail-panel .assign-detail-memo,
+.assign-detail-panel .assign-detail-note-teacher { min-width: 0; overflow-wrap: anywhere; }
+.assign-detail-panel .assign-detail-row > .assign-detail-name { flex: 1 1 auto; }
+
+/* 아래: 닫기 */
+.assign-detail-foot {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--border);
+}
+
+@keyframes assign-detail-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes assign-detail-pop { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .assign-detail-overlay, .assign-detail-panel { animation: none; }
+}
 .assign-detail-sum { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .assign-detail-chip {
   padding: 2px 8px;
@@ -301,6 +405,9 @@
   .assign-row-actions { width: 100%; justify-content: flex-end; }
   .assign-teacher-name { flex-basis: 100%; white-space: normal; word-break: keep-all; }
   .assign-detail-list { max-height: 54vh; }
+  .assign-detail-head { padding: 14px 14px 8px; }
+  .assign-detail-main { padding: 10px 14px; }
+  .assign-detail-foot { padding: 8px 14px 12px; }
 }
 
 @media (prefers-color-scheme: dark) {
