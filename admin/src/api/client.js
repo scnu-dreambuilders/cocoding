@@ -108,4 +108,19 @@ export const api = {
   reported: ({ target = 'post', page = 1 } = {}) => request(`/admin/moderation.php?${qs({ target, page })}`),
   reportedDetail: (target, id) => request(`/admin/moderation.php?${qs({ target, id })}`),
   setHidden: (target, id, hidden) => request(`/admin/moderation.php?${qs({ target, id })}`, { method: 'PATCH', body: { hidden } }),
+
+  // 공지사항 (요청서 6-1, backend/api/admin/notices.php). 목록은 초안까지, { notices, hasMore, audiences }
+  notices: ({ page = 1 } = {}) => request(`/admin/notices.php?${qs({ page })}`),
+  notice: (id) => request(`/admin/notices.php?${qs({ id })}`),
+  // { title, body, pinned?, published?, audience? } → 201 { notice, message }
+  createNotice: (fields) => request('/admin/notices.php', { method: 'POST', body: fields }),
+  // 보낸 항목만 바뀐다 → { notice, message }
+  updateNotice: (id, changes) => request(`/admin/notices.php?${qs({ id })}`, { method: 'PATCH', body: changes }),
+  deleteNotice: (id) => request(`/admin/notices.php?${qs({ id })}`, { method: 'DELETE' }),
+
+  // 운영 기준값 (요청서 5번, backend/api/admin/settings.php)
+  settings: () => request('/admin/settings.php'),
+  // { values: { name: 숫자 }, reset: [name] } → { settings, saved, errors, message }
+  // 일부만 저장돼도(또는 하나도 저장되지 않아도) 200 이다 — saved·errors 로 판단한다
+  saveSettings: ({ values = {}, reset = [] } = {}) => request('/admin/settings.php', { method: 'PUT', body: { values, reset } }),
 }

@@ -37,7 +37,8 @@ a { color: var(--accent); }
 .page-head p { color: var(--text-muted); font-size: 0.875rem; }
 
 @media (max-width: 760px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
+  /* 본문이 짧아도 남는 높이를 메뉴 줄이 나눠 갖지 않게 (메뉴는 내용만큼, 나머지는 본문) */
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
   .side { flex-direction: row; flex-wrap: wrap; align-items: center; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 12px; }
   .side-brand { border: none; margin: 0; padding: 0 8px 0 0; }
   .side nav { flex-direction: row; flex-wrap: wrap; }
@@ -151,3 +152,28 @@ table.data tbody tr[aria-current='true'] { background: var(--accent-light); }
 .auth-card { width: min(420px, 100%); display: flex; flex-direction: column; gap: 14px; }
 .auth-card h1 { font-size: 1.4rem; }
 .auth-card form { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── 공지사항 ── */
+.badge.ok { background: var(--ok-bg); color: var(--ok); }
+.badge.draft { background: var(--tabs-bg); color: var(--text-h); border-color: var(--border-strong); border-style: dashed; }
+.badge.pinned { background: var(--accent-light); color: var(--accent-text); }
+.notice-form { display: flex; flex-direction: column; gap: 14px; }
+.notice-form fieldset { border: none; margin: 0; padding: 0; min-width: 0; }
+.notice-form legend { padding: 0; margin-bottom: 6px; }
+.radio, .check { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 0.9375rem; font-weight: 600; color: var(--text-h); cursor: pointer; }
+.radio input, .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.field [aria-invalid='true'] { border-color: var(--danger); }
+
+/* ── 운영 기준값 ── */
+.setting-list { display: flex; flex-direction: column; }
+.setting-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 240px); gap: 10px 18px; padding: 12px 0; border-top: 1px solid var(--border); }
+.setting-row:first-child { border-top: none; padding-top: 0; }
+.setting-row.pending .setting-input input { border-color: var(--accent); border-width: 2px; }
+.setting-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.setting-input { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.setting-input input { min-height: 38px; padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--panel-bg); color: var(--text-h); font: inherit; font-variant-numeric: tabular-nums; width: 100%; }
+.setting-input input[aria-invalid='true'] { border-color: var(--danger); border-width: 2px; }
+.setting-input .err, .err-text { color: var(--danger); font-weight: 600; font-size: 0.8125rem; }
+.setting-input .hint { color: var(--text-muted); font-size: 0.8125rem; }
+.save-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; background: var(--panel-bg); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
+@media (max-width: 640px) { .setting-row { grid-template-columns: minmax(0, 1fr); } }
