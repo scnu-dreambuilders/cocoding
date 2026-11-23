@@ -231,13 +231,13 @@ function AssignmentDetail({ row, onClose }) {
   }
 
   return (
-    <div className="assign-detail-overlay" role="presentation"
+    <div className="modal-backdrop" role="presentation"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div ref={panelRef} className="assign-detail-panel" role="dialog" aria-modal="true" aria-labelledby={titleId}
+      <div ref={panelRef} className="modal assign-detail-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}
         tabIndex={-1} onKeyDown={trapTab}>
-        <div className="assign-detail-head">
+        <div className="modal-head assign-detail-head">
           <h3 id={titleId}>{assignTitle(row)}</h3>
-          <button type="button" className="assign-detail-close" onClick={onClose} aria-label="닫기">×</button>
+          <button type="button" className="modal-x assign-detail-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
         {/* 내용이 길면 여기만 스크롤 — 키보드로도 스크롤할 수 있게 초점을 받고 이름을 붙인다 */}
@@ -272,7 +272,7 @@ function AssignmentDetail({ row, onClose }) {
         )}
         </div>
 
-        <div className="assign-detail-foot">
+        <div className="modal-foot assign-detail-foot">
           <button type="button" className="role-btn ghost" onClick={onClose}>닫기</button>
         </div>
       </div>
