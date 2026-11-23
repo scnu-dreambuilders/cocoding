@@ -264,6 +264,9 @@ class AdminModel {
         return [
             'notices' => array_map([self::class, 'castNotice'], array_slice($rows, 0, self::PAGE_SIZE)),
             'hasMore' => count($rows) > self::PAGE_SIZE,
+            // 화면이 "3 / 7 쪽" 처럼 마지막 쪽 번호를 보여줄 수 있게 전체 개수와 쪽 크기도 준다
+            'total' => (int)$this->db->query("SELECT COUNT(*) FROM notices")->fetchColumn(),
+            'pageSize' => self::PAGE_SIZE,
         ];
     }
 
