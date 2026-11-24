@@ -1,9 +1,11 @@
-import { Flag, LayoutDashboard, LogOut, Users } from 'lucide-react'
+import { Flag, LayoutDashboard, LogOut, Megaphone, SlidersHorizontal, Users } from 'lucide-react'
 
 const NAV = [
   { path: '/dashboard', label: '대시보드', Icon: LayoutDashboard },
   { path: '/users', label: '회원 관리', Icon: Users },
   { path: '/moderation', label: '신고 관리', Icon: Flag },
+  { path: '/notices', label: '공지사항', Icon: Megaphone },
+  { path: '/settings', label: '운영 기준값', Icon: SlidersHorizontal },
 ]
 
 export function MockBanner() {

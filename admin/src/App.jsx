@@ -8,6 +8,8 @@ import DashboardPage from './pages/DashboardPage.jsx'
 import UsersPage from './pages/UsersPage.jsx'
 import UserDetailPage from './pages/UserDetailPage.jsx'
 import ModerationPage from './pages/ModerationPage.jsx'
+import NoticesPage from './pages/NoticesPage.jsx'
+import SettingsPage from './pages/SettingsPage.jsx'
 
 function readMe() {
   try { return JSON.parse(localStorage.getItem(ADMIN_KEY) ?? 'null') } catch { return null }
@@ -165,6 +167,12 @@ export default function App() {
   } else if (first === 'moderation') {
     section = '/moderation'
     page = <ModerationPage params={route.params} onForbidden={recheck} />
+  } else if (first === 'notices') {
+    section = '/notices'
+    page = <NoticesPage id={second ?? null} params={route.params} onForbidden={recheck} />
+  } else if (first === 'settings') {
+    section = '/settings'
+    page = <SettingsPage onForbidden={recheck} />
   }
 
   return (
