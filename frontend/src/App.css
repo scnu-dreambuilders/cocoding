@@ -298,18 +298,6 @@
   opacity: 0.5;
 }
 
-/* 모달·토스트 등에서 함께 쓰는 등장 애니메이션 */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 /* ════════════════════════════════════════════════
    Responsive
    ════════════════════════════════════════════════ */

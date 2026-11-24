@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════
    계정 유형별 대시보드 패널 · 내 정보 창
-   (.modal / .modal-backdrop / .form-error 공통 스타일은 EditorPage.css)
+   (.modal / .modal-backdrop / .form-error 공통 스타일은 index.css)
    ════════════════════════════════════════════════ */
 .sr-only {
   position: absolute;

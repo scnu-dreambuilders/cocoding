@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Lock, Play, Puzzle, RefreshCw, Trophy, UsersRound } from 'lucide-react'
 import { api } from '../api/client'
 import { CHAPTERS } from '../data/chapters'
@@ -178,29 +178,53 @@ export function TeacherPanel({ showToast }) {
   const [editingNameFor, setEditingNameFor] = useState(null)
   const editingName = editingNameFor !== null && editingNameFor === selected
   const [nameDraft, setNameDraft] = useState('')
-  const [savingName, setSavingName] = useState(false)
+  // 이름을 저장 중인 반의 id — 다른 반의 편집 폼은 막지 않는다
+  const [savingNameFor, setSavingNameFor] = useState(null)
+  const savingName = savingNameFor !== null && savingNameFor === selected
+  // 반 목록 조회 실패 (빈 목록과 구분한다). 목록은 실패해도 지우지 않는다
+  const [classesError, setClassesError] = useState(null)
+  const [classesTry, setClassesTry] = useState(0)
+  // 반 상세 조회 실패: { id, message } — 그 반을 보고 있을 때만 보여 준다
+  const [detailError, setDetailError] = useState(null)
+  const mounted = useRef(true)
+  const nameForm = useRef(0) // 이름 편집 폼을 열 때마다 늘어난다 (이전 저장 응답이 새 폼을 닫지 않게)
 
   useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
+
+  // 반 목록 — 처음과 '다시 시도'(GET 만) 때 불러온다
+  useEffect(() => {
+    let alive = true
     api.classes()
       .then((list) => {
+        if (!alive) return
         setClasses(list)
-        if (list.length) setSelected(list[0].id)
+        setClassesError(null)
+        setSelected((cur) => (cur && list.some((c) => c.id === cur) ? cur : (list[0]?.id ?? null)))
       })
-      .catch((e) => {
-        setClasses([])
-        showToast(e.message)
-      })
-  }, [showToast])
+      .catch((e) => { if (alive) setClassesError(e.message) })
+    return () => { alive = false }
+  }, [classesTry])
 
   // 고른 반의 진도 (detail.id가 selected와 다르면 아직 불러오는 중)
+  // 반을 빠르게 바꾸면 이전 반의 늦은 성공·실패 응답은 버린다
   useEffect(() => {
     if (!selected) return undefined
     let alive = true
     api.classDetail(selected)
-      .then((d) => { if (alive) setDetail(d) })
-      .catch((e) => showToast(e.message))
+      .then((d) => {
+        if (!alive) return
+        setDetail(d)
+        setDetailError((err) => (err?.id === selected ? null : err))
+      })
+      .catch((e) => { if (alive) setDetailError({ id: selected, message: e.message }) })
     return () => { alive = false }
-  }, [selected, reload, showToast])
+  }, [selected, reload])
+
+  const retryClasses = () => { setClassesError(null); setClassesTry((n) => n + 1) }
+  const retryDetail = () => { setDetailError(null); setReload((n) => n + 1) }
 
   const create = async (e) => {
     e.preventDefault()
@@ -220,26 +244,36 @@ export function TeacherPanel({ showToast }) {
   }
 
   const startEditName = () => {
+    nameForm.current += 1
     setNameDraft(detail?.name ?? '')
     setEditingNameFor(selected)
   }
 
   const cancelEditName = () => setEditingNameFor(null)
 
+  // 저장할 반과 폼을 요청 시작 때 기억한다. 응답이 늦게 와도
+  // · 반 목록에서는 그 반의 이름만 바꾸고
+  // · 상세·편집 폼은 지금 보고 있는 반이 그 반이고 같은 폼일 때만 바꾸거나 닫는다
   const saveName = async (e) => {
     e.preventDefault()
     const trimmed = nameDraft.trim()
-    if (!trimmed) return
-    setSavingName(true)
+    if (!trimmed || !detail) return
+    const targetId = detail.id
+    const targetName = detail.name
+    const form = nameForm.current
+    setSavingNameFor(targetId)
     try {
-      const c = await api.updateClass(detail.id, { name: trimmed })
-      setDetail((d) => ({ ...d, name: c.name }))
-      setClasses((l) => l.map((x) => (x.id === c.id ? { ...x, name: c.name } : x)))
-      setEditingNameFor(null)
+      const c = await api.updateClass(targetId, { name: trimmed })
+      if (!mounted.current) return
+      const newName = c?.name ?? trimmed
+      setClasses((l) => (l ?? []).map((x) => (x.id === targetId ? { ...x, name: newName } : x)))
+      setDetail((d) => (d && d.id === targetId ? { ...d, name: newName } : d))
+      setEditingNameFor((cur) => (cur === targetId && nameForm.current === form ? null : cur))
     } catch (err) {
-      showToast(err.message)
+      // 실패해도 입력은 그대로 둔다. 다른 반을 보고 있어도 어느 반 이야기인지 알 수 있게 반 이름을 붙인다
+      if (mounted.current) showToast(`'${targetName}' 반 이름을 바꾸지 못했어요: ${err.message}`)
     } finally {
-      setSavingName(false)
+      if (mounted.current) setSavingNameFor((cur) => (cur === targetId ? null : cur))
     }
   }
 
@@ -319,14 +353,42 @@ export function TeacherPanel({ showToast }) {
         </form>
       </div>
 
-      {classes && classes.length === 0 && (
+      {/* 반 목록: 불러오는 중 / 실패 / 실제로 빈 목록을 나눠 보여 준다 */}
+      {classes === null && !classesError && <div className="skeleton-card role-skeleton" aria-hidden="true" />}
+
+      {classesError && (
+        <div className="role-empty" role="alert">
+          <b>{classes ? '반 목록을 새로 불러오지 못했어요' : '반 목록을 불러오지 못했어요'}</b>
+          <span>{classesError}{classes ? ' 지금 보이는 목록은 이전에 불러온 내용이에요.' : ''}</span>
+          <button type="button" className="role-btn ghost" onClick={retryClasses}><RefreshCw size={14} aria-hidden="true" /> 다시 시도</button>
+        </div>
+      )}
+
+      {classes && classes.length === 0 && !classesError && (
         <div className="role-empty">
           <b>반을 만들어보세요!</b>
           <span>반을 만들면 참여 코드가 생겨요. 학생들이 마이페이지의 <b>우리 반</b>에 코드를 입력하면 챕터 진도를 한눈에 볼 수 있어요.</span>
         </div>
       )}
 
-      {selected && detail?.id !== selected && <div className="skeleton-card role-skeleton" aria-hidden="true" />}
+      {/* 고른 반의 상세: 실패하면 골격 화면 대신 오류와 다시 시도 (이전 반의 정보는 보여 주지 않는다) */}
+      {selected && detail?.id !== selected && detailError?.id === selected && (
+        <div className="role-empty" role="alert">
+          <b>이 반의 정보를 불러오지 못했어요</b>
+          <span>{detailError.message}</span>
+          <button type="button" className="role-btn ghost" onClick={retryDetail}><RefreshCw size={14} aria-hidden="true" /> 다시 시도</button>
+        </div>
+      )}
+
+      {selected && detail?.id !== selected && detailError?.id !== selected && <div className="skeleton-card role-skeleton" aria-hidden="true" />}
+
+      {/* 새로고침이 실패한 경우: 이미 보고 있던 같은 반의 정보는 그대로 두고 따로 알린다 */}
+      {detail && detail.id === selected && detailError?.id === selected && (
+        <p className="dash-hint" role="alert">
+          최신 정보를 불러오지 못했어요: {detailError.message}{' '}
+          <button type="button" className="role-btn ghost" onClick={retryDetail}>다시 시도</button>
+        </p>
+      )}
 
       {detail && detail.id === selected && (
         <div className="class-detail">
@@ -358,7 +420,7 @@ export function TeacherPanel({ showToast }) {
               <div><b>{students.filter((s) => s.completed >= chapterCount).length}</b><span>모두 완료</span></div>
             </div>
             <div className="join-code-actions">
-              <button type="button" className="role-btn ghost" onClick={() => setReload((n) => n + 1)} title="새로 들어온 학생·최신 진도 불러오기"><RefreshCw size={14} aria-hidden="true" /> 새로고침</button>
+              <button type="button" className="role-btn ghost" onClick={retryDetail} title="새로 들어온 학생·최신 진도 불러오기"><RefreshCw size={14} aria-hidden="true" /> 새로고침</button>
               <button type="button" className="role-btn danger" onClick={removeClass}>반 삭제</button>
             </div>
           </div>

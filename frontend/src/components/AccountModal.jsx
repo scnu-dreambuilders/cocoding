@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { ROLE_LABEL, passwordError, usernameError } from '../lib/validators'
 import './RolePanels.css'
+import './AccountModal.css' // 공통 모달(index.css) 위에 이 창에만 필요한 것: 머리 고정·좁은 화면 입력줄
+
+const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
 
 /* ════════════════════════════════════════════════
    내 정보 — 닉네임 · 비밀번호 바꾸기 · 회원 탈퇴
@@ -17,6 +20,47 @@ export default function AccountModal({ user, onClose, onUserChange, onDeleted, s
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState({})
   const [busy, setBusy] = useState('')
+  const titleId = useId()
+  const panelRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  // 열려 있는 동안: 배경 스크롤을 막고, 초점을 창 안으로 옮긴다.
+  // 닫히면(해제되면) 스크롤 상태와 초점을 연 버튼으로 되돌린다. StrictMode 의 두 번 실행에도 원래 값으로 돌아간다
+  useEffect(() => {
+    const opener = document.activeElement
+    const body = document.body
+    const prevOverflow = body.style.overflow
+    const prevPadding = body.style.paddingRight
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth
+    body.style.overflow = 'hidden'
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px` // 스크롤바가 사라져 화면이 옆으로 밀리지 않게
+    panelRef.current?.focus({ preventScroll: true })
+    return () => {
+      body.style.overflow = prevOverflow
+      body.style.paddingRight = prevPadding
+      if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus({ preventScroll: true })
+    }
+  }, [])
+
+  // Esc 로 닫기, Tab·Shift+Tab 은 창 안에서만 돈다
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation()
+      onCloseRef.current()
+      return
+    }
+    if (e.key !== 'Tab') return
+    const panel = panelRef.current
+    const items = [...panel.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement)
+    if (items.length === 0) { e.preventDefault(); panel.focus(); return }
+    const first = items[0]
+    const last = items[items.length - 1]
+    const active = document.activeElement
+    if (active === panel || !panel.contains(active)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return }
+    if (e.shiftKey && active === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus() }
+  }
 
   const run = async (key, problem, fn) => {
     setError((e) => ({ ...e, [key]: problem }))
@@ -68,10 +112,11 @@ export default function AccountModal({ user, onClose, onUserChange, onDeleted, s
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="내 정보">
-      <div className="modal account-modal">
-        <div className="modal-head">
-          <h3>내 정보</h3>
+    <div className="modal-backdrop">
+      <div ref={panelRef} className="modal account-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}
+        tabIndex={-1} onKeyDown={onKeyDown}>
+        <div className="modal-head account-head">
+          <h3 id={titleId}>내 정보</h3>
           <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
         </div>
 

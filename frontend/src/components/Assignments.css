@@ -232,9 +232,65 @@
 }
 .assign-edit-actions { display: flex; gap: 5px; align-items: center; }
 
-/* ── 자세히 보기 창 ── */
-.assign-detail-modal { width: 540px; }
-.assign-detail-modal .modal-x { min-width: 28px; min-height: 28px; color: var(--text); }
+/* ── 자세히 보기 창 ──
+   배경·창 모양·머리·닫기·등장 애니메이션은 공통 모달(index.css 의 .modal 계열)을 쓴다.
+   여기에는 이 창에만 필요한 것만 둔다: 너비, 위(제목)·가운데(본문)·아래(닫기) 나눔,
+   가운데만 스크롤, 긴 제목·이름·메모 줄바꿈. */
+.modal.assign-detail-modal {
+  width: 540px;
+  min-height: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden; /* 스크롤은 가운데 본문에서만 */
+}
+.assign-detail-modal:focus { outline: none; }
+.assign-detail-modal:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 위: 제목 + 닫기 한 줄 (제목이 길면 여러 줄로 내려가도 닫기는 위에 붙는다) */
+.assign-detail-head {
+  flex: none;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.assign-detail-head h3 {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.4;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.assign-detail-close { margin: -4px -6px 0 0; color: var(--text); }
+
+/* 가운데: 과제 정보 + 학생별 수행 현황 (화면이 낮거나 학생이 많으면 여기만 스크롤) */
+.assign-detail-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 18px;
+}
+.assign-detail-main:focus { outline: none; }
+.assign-detail-main:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.assign-detail-main .assign-detail-list { max-height: none; overflow: visible; } /* 본문 하나로만 스크롤 */
+.assign-detail-main .dash-hint { margin: 0; }
+.assign-detail-modal .assign-detail-name,
+.assign-detail-modal .assign-detail-meta,
+.assign-detail-modal .assign-detail-memo,
+.assign-detail-modal .assign-detail-note-teacher { min-width: 0; overflow-wrap: anywhere; }
+.assign-detail-modal .assign-detail-row > .assign-detail-name { flex: 1 1 auto; }
+
+/* 아래: 닫기 (배치는 공통 .modal-foot) */
+.assign-detail-foot {
+  flex: none;
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--border);
+}
+
 .assign-detail-sum { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .assign-detail-chip {
   padding: 2px 8px;
@@ -301,6 +357,9 @@
   .assign-row-actions { width: 100%; justify-content: flex-end; }
   .assign-teacher-name { flex-basis: 100%; white-space: normal; word-break: keep-all; }
   .assign-detail-list { max-height: 54vh; }
+  .assign-detail-head { padding: 14px 14px 8px; }
+  .assign-detail-main { padding: 10px 14px; }
+  .assign-detail-foot { padding: 8px 14px 12px; }
 }
 
 @media (prefers-color-scheme: dark) {

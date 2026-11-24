@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { CHAPTERS, CHAPTER_COUNT } from '../data/chapters'
 import './Assignments.css'
@@ -180,11 +180,45 @@ function AssignmentDetail({ row, onClose }) {
     return () => { alive = false }
   }, [id])
 
+  const titleId = useId()
+  const panelRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  // 열려 있는 동안: 배경 스크롤을 막고 초점을 창 안으로. 닫히면 스크롤 상태와 '자세히 보기' 버튼으로 초점을 되돌린다.
+  // Esc 는 초점이 어디 있든 닫는다 (StrictMode 의 두 번 실행에도 원래 값으로 돌아간다)
   useEffect(() => {
-    const down = (e) => { if (e.key === 'Escape') onClose() }
+    const opener = document.activeElement
+    const body = document.body
+    const prevOverflow = body.style.overflow
+    const prevPadding = body.style.paddingRight
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth
+    body.style.overflow = 'hidden'
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`
+    panelRef.current?.focus({ preventScroll: true })
+    const down = (e) => { if (e.key === 'Escape') onCloseRef.current() }
     window.addEventListener('keydown', down)
-    return () => window.removeEventListener('keydown', down)
-  }, [onClose])
+    return () => {
+      window.removeEventListener('keydown', down)
+      body.style.overflow = prevOverflow
+      body.style.paddingRight = prevPadding
+      if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus({ preventScroll: true })
+    }
+  }, [])
+
+  // Tab·Shift+Tab 은 창 안에서만 돈다
+  const trapTab = (e) => {
+    if (e.key !== 'Tab') return
+    const panel = panelRef.current
+    const items = [...panel.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+    if (items.length === 0) { e.preventDefault(); panel.focus(); return }
+    const first = items[0]
+    const last = items[items.length - 1]
+    const active = document.activeElement
+    if (active === panel || !panel.contains(active)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return }
+    if (e.shiftKey && active === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus() }
+  }
 
   const free = !row.chapter_id
   const students = detail?.students ?? []
@@ -199,12 +233,15 @@ function AssignmentDetail({ row, onClose }) {
   return (
     <div className="modal-backdrop" role="presentation"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal assign-detail-modal" role="dialog" aria-modal="true" aria-labelledby="assign-detail-title">
-        <div className="modal-head">
-          <h3 id="assign-detail-title">{assignTitle(row)}</h3>
-          <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
+      <div ref={panelRef} className="modal assign-detail-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}
+        tabIndex={-1} onKeyDown={trapTab}>
+        <div className="modal-head assign-detail-head">
+          <h3 id={titleId}>{assignTitle(row)}</h3>
+          <button type="button" className="modal-x assign-detail-close" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
+        {/* 내용이 길면 여기만 스크롤 — 키보드로도 스크롤할 수 있게 초점을 받고 이름을 붙인다 */}
+        <div className="assign-detail-main" role="region" aria-label="과제 정보와 학생별 수행 현황" tabIndex={0}>
         <div className="assign-detail-sum">
           <span className={`assign-badge ${free ? 'is-free' : ''}`}>{free ? '자유 과제' : `챕터 ${row.order_num}`}</span>
           {row.due_on && <span className="assign-detail-chip">마감 {row.due_on}</span>}
@@ -233,8 +270,9 @@ function AssignmentDetail({ row, onClose }) {
             ))}
           </ul>
         )}
+        </div>
 
-        <div className="modal-foot">
+        <div className="modal-foot assign-detail-foot">
           <button type="button" className="role-btn ghost" onClick={onClose}>닫기</button>
         </div>
       </div>
@@ -244,7 +282,22 @@ function AssignmentDetail({ row, onClose }) {
 
 /* ── 선생님 화면 (반 상세 안에 들어감) ───────────── */
 export function TeacherAssignments({ classId, showToast }) {
-  const [list, setList] = useState(null)
+  // 과제 목록: 어느 반의 목록인지(forClass)와 실패(error)를 함께 둔다.
+  // 실패는 빈 목록으로 바꾸지 않고, 같은 반의 이전 목록은 남겨 둔다
+  // error.afterWrite: 과제 내기·고치기는 됐는데 그 뒤 목록 조회만 실패한 경우
+  const [listState, setListState] = useState({ forClass: null, items: null, error: null, loading: false })
+  const listSeq = useRef(0)
+  const mounted = useRef(true)
+  const classIdRef = useRef(classId)
+  useEffect(() => { classIdRef.current = classId }, [classId])
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
+  const sameClass = listState.forClass === classId
+  const list = sameClass ? listState.items : null
+  const listError = sameClass ? listState.error : null
+  const listLoading = !sameClass || listState.loading
   const [kind, setKind] = useState('chapter') // 'chapter' | 'free'
   const [chapter, setChapter] = useState('1')
   const [title, setTitle] = useState('')
@@ -257,17 +310,41 @@ export function TeacherAssignments({ classId, showToast }) {
   const [saving, setSaving] = useState(false)
   const [openId, setOpenId] = useState(null)
 
+  // 목록 GET 만 보낸다. 마지막으로 보낸 요청이고, 화면이 남아 있고, 그 반을 아직 보고 있을 때만 반영한다
+  const fetchList = useCallback((targetClass, afterWrite = false) => {
+    const my = ++listSeq.current
+    api.assignments(targetClass).then(
+      (items) => {
+        if (!mounted.current || my !== listSeq.current || classIdRef.current !== targetClass) return
+        setListState({ forClass: targetClass, items: Array.isArray(items) ? items : [], error: null, loading: false })
+      },
+      (err) => {
+        if (!mounted.current || my !== listSeq.current || classIdRef.current !== targetClass) return
+        setListState((s) => ({
+          forClass: targetClass,
+          items: s.forClass === targetClass ? s.items : null,
+          error: { message: err.message, afterWrite },
+          loading: false,
+        }))
+      },
+    )
+  }, [])
+
+  // 쓰기(내기·고치기) 성공 뒤 목록 다시 받기 — 지금 보고 있는 반의 목록을 받는다
   const load = useCallback(() => {
-    api.assignments(classId).then(setList).catch(() => setList([]))
-  }, [classId])
+    setListState((s) => (s.forClass === classIdRef.current ? { ...s, loading: true } : s))
+    fetchList(classIdRef.current, true)
+  }, [fetchList])
+
+  // '다시 시도' — 지금 반의 과제 목록 GET 만 다시 보낸다 (쓰기 요청은 다시 보내지 않는다)
+  const retryList = () => {
+    setListState((s) => (s.forClass === classId ? { ...s, error: null, loading: true } : s))
+    fetchList(classId)
+  }
 
   useEffect(() => {
-    let alive = true
-    api.assignments(classId)
-      .then((r) => { if (alive) setList(r) })
-      .catch(() => { if (alive) setList([]) })
-    return () => { alive = false }
-  }, [classId])
+    fetchList(classId)
+  }, [classId, fetchList])
 
   const create = async (e) => {
     e.preventDefault()
@@ -321,7 +398,8 @@ export function TeacherAssignments({ classId, showToast }) {
     if (!window.confirm(`'${assignTitle(a)}' 과제를 취소할까요?`)) return
     try {
       await api.deleteAssignment(a.id)
-      setList((l) => l.filter((x) => x.id !== a.id))
+      if (!mounted.current) return
+      setListState((s) => (s.items ? { ...s, items: s.items.filter((x) => x.id !== a.id) } : s))
       if (openId === a.id) setOpenId(null)
       if (editId === a.id) setEditId(null)
     } catch (err) {
@@ -384,7 +462,21 @@ export function TeacherAssignments({ classId, showToast }) {
           : '자유 과제는 챕터 없이 제목만 적어서 내요. 학생이 “끝냈어요”를 누르면 완료로 표시돼요.'}
       </p>
 
-      {list && list.length === 0 && <p className="dash-hint">아직 낸 과제가 없어요.</p>}
+      {/* 과제 목록: 불러오는 중 / 실패 / 실제로 빈 목록을 나눠 보여 준다 */}
+      {listLoading && !list && <p className="dash-hint" role="status">과제 목록을 불러오는 중…</p>}
+
+      {listError && (
+        <div className="role-empty" role="alert">
+          <b>
+            {listError.afterWrite ? '저장은 됐지만 과제 목록을 새로 불러오지 못했어요'
+              : list ? '과제 목록을 새로 불러오지 못했어요' : '과제 목록을 불러오지 못했어요'}
+          </b>
+          <span>{listError.message}{list ? ' 아래 목록은 이전에 불러온 내용이에요.' : ''}</span>
+          <button type="button" className="role-btn ghost" onClick={retryList} disabled={sameClass && listState.loading}>다시 시도</button>
+        </div>
+      )}
+
+      {list && list.length === 0 && !listError && <p className="dash-hint">아직 낸 과제가 없어요.</p>}
 
       {list && list.length > 0 && (
         <ul className="assign-teacher-list">
