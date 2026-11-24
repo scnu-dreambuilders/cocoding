@@ -48,4 +48,7 @@ if (count($classes->memberIds($class['id'])) >= ClassModel::MAX_MEMBERS) {
     Response::error("반 인원이 가득 찼어요. 선생님께 말씀드려주세요.", 409);
 }
 $classes->addMember($class['id'], $userId);
-Response::success(["id" => (int)$class['id'], "name" => $class['name'], "teacher_name" => $class['teacher_name']], 201);
+// 이 반에 이미 나와 있는 챕터 과제 중 내가 벌써 끝낸 챕터가 있으면 그 보상을 지금 받는다
+$coinsEarned = $classes->settleChapterRewardsForStudent($userId);
+Response::success(["id" => (int)$class['id'], "name" => $class['name'], "teacher_name" => $class['teacher_name'],
+    "coinsEarned" => $coinsEarned], 201);

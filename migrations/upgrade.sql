@@ -346,3 +346,7 @@ CREATE TABLE IF NOT EXISTS notices (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+-- [2026-11-24] 2026-11-24_idle_logout.sql
+-- 자리 비움 자동 로그아웃: 마지막으로 요청이 온 시각을 계정마다 적어 둔다
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP NULL AFTER token_version;

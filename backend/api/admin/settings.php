@@ -74,6 +74,8 @@ if ($errors) {
 Response::success([
     'settings' => Settings::describe(),
     'saved' => $saved,
-    'errors' => $errors,
+    // 거절된 항목이 없을 때도 {} 로 나가게 한다. PHP의 빈 배열은 [] 로 바뀌어서,
+    // 그대로 두면 거절이 있을 때는 객체, 없을 때는 배열로 모양이 달라진다
+    'errors' => $errors ?: new stdClass(),
     'message' => $message,
 ]);

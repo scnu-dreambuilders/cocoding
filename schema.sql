@@ -27,6 +27,7 @@ CREATE TABLE users (
     suspended TINYINT(1) NOT NULL DEFAULT 0,
     suspended_reason VARCHAR(100) NULL,
     token_version INT NOT NULL DEFAULT 0, -- 로그아웃하면 +1 → 이전 토큰 무효
+    last_active_at TIMESTAMP NULL,        -- 마지막으로 요청이 온 시각 (자리 비움 자동 로그아웃 판정)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

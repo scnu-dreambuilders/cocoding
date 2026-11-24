@@ -3,11 +3,12 @@
 //
 // 관리자 화면의 정지·탈퇴·코인 조정·숨김 버튼을 실제 회원에게 눌러볼 수는 없다.
 // 마음대로 건드려도 되는 연습용 계정과 신고된 글·작품을 만들어 준다.
+// 선생님 화면(반·학생 진도·과제)을 눌러볼 수 있게 연습선생님의 반과 과제도 만든다.
 // 만든 것은 전부 이메일이 @practice.cocoding.test 로 끝나는 계정에 딸려 있어서,
-// '지우기' 한 번으로 흔적 없이 사라진다 (글·작품·신고는 계정과 함께 지워진다).
+// '지우기' 한 번으로 흔적 없이 사라진다 (글·작품·신고·반·과제는 계정과 함께 지워진다).
 //
 // 쓰는 법 (backend 폴더에서)
-//   php tools/practice_data.php 만들기     계정 6개 + 신고된 글 2개 + 신고된 작품 2개
+//   php tools/practice_data.php 만들기     계정 6개 + 신고된 글 2개 + 신고된 작품 2개 + 반 2개 + 과제 3개
 //   php tools/practice_data.php 지우기
 //   php tools/practice_data.php 목록
 //
@@ -19,6 +20,7 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../models/ClassModel.php';
 
 const PRACTICE_DOMAIN = '@practice.cocoding.test';
 
@@ -51,7 +53,7 @@ if ($action === '목록' || $action === 'list') {
 if ($action === '지우기' || $action === 'remove') {
     $stmt = $db->prepare("DELETE FROM users WHERE email LIKE ?");
     $stmt->execute(['%' . PRACTICE_DOMAIN]);
-    echo "연습용 계정 {$stmt->rowCount()}개와 딸린 글·작품·신고를 지웠습니다.\n";
+    echo "연습용 계정 {$stmt->rowCount()}개와 딸린 글·작품·신고·반·과제를 지웠습니다.\n";
     exit(0);
 }
 
@@ -145,6 +147,34 @@ try {
     $projectReport->execute([$j2, $ids['teacher'], '부적절한 그림']);
     $projectReport->execute([$j2, $ids['guardian'], '부적절한 그림']);
 
+    // 선생님 화면 연습용 반: 학생 둘이 든 반 하나와 빈 반 하나.
+    // 반을 오가며 눌러보거나 빈 목록 화면을 볼 때 쓴다. 반은 선생님 계정과 함께 지워진다
+    $classes = new ClassModel();
+    $c1 = $classes->create($ids['teacher'], '[연습] 코코반');
+    $c2 = $classes->create($ids['teacher'], '[연습] 빈 반');
+    $member = $db->prepare("INSERT INTO class_members (class_id, student_id) VALUES (?, ?)");
+    $member->execute([$c1, $ids['student']]);
+    $member->execute([$c1, $ids['student2']]);
+
+    // 진도: 연습학생은 챕터 1을 끝냈고, 연습학생둘은 하는 중
+    $progress = $db->prepare("INSERT INTO user_chapter_progress (user_id, chapter_id, status, completed_at, best_score, attempts) VALUES (?, 1, ?, ?, ?, ?)");
+    $progress->execute([$ids['student'], 'completed', date('Y-m-d H:i:s'), 100, 2]);
+    $progress->execute([$ids['student2'], 'in_progress', null, 60, 1]);
+
+    // 과제 3개: 챕터 과제(한 명 완료), 직접 쓴 과제(마감 지남, 한 명 완료), 마감 없는 챕터 과제(아무도 안 함)
+    // 챕터 1 과제의 보상은 여기서 주지 않는다. 연습학생이 과제 목록을 열 때 서버가 한 번 준다
+    $assign = $db->prepare("INSERT INTO class_assignments (class_id, chapter_id, title, note, reward_coins, due_on) VALUES (?, ?, ?, ?, ?, ?)");
+    $assign->execute([$c1, 1, null, '화살표 키 네 개를 모두 써 보세요.', 20, date('Y-m-d', strtotime('+7 days'))]);
+    $a1 = (int)$db->lastInsertId();
+    $assign->execute([$c1, null, '[연습] 나만의 캐릭터 소개 작품 만들기',
+        '자유 작품으로 캐릭터가 자기 이름과 좋아하는 것을 말하게 만들어 보세요. 다 만들면 작품을 공개로 바꾸고 끝냈어요를 눌러 주세요.',
+        10, date('Y-m-d', strtotime('-2 days'))]);
+    $a2 = (int)$db->lastInsertId();
+    $assign->execute([$c1, 2, null, null, 0, null]);
+    $a3 = (int)$db->lastInsertId();
+    $db->prepare("INSERT INTO assignment_done (assignment_id, student_id, note) VALUES (?, ?, ?)")
+       ->execute([$a2, $ids['student2'], '고양이 캐릭터로 만들었어요']);
+
     $db->commit();
 } catch (Throwable $e) {
     $db->rollBack();
@@ -154,6 +184,7 @@ try {
 
 showList($db);
 echo "\n신고된 글 2개(#$p1 보임, #$p2 숨김), 신고된 작품 2개(#$j1 보임, #$j2 숨김)를 만들었습니다.\n";
+echo "연습선생님의 반 2개(#$c1 학생 2명, #$c2 빈 반), 과제 3개(#$a1 챕터 1, #$a2 직접 쓴 과제, #$a3 챕터 2)를 만들었습니다.\n";
 echo $given !== ''
     ? "\n여섯 계정의 비밀번호는 정해주신 값으로 넣었습니다.\n"
     : "\n여섯 계정의 비밀번호 (지금 한 번만 보입니다): $password\n";

@@ -5,12 +5,30 @@
 require_once __DIR__ . '/Env.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Settings.php';
 
 class Auth {
     const TOKEN_TTL = 86400 * 3; // 3일
 
     private static $secret_key;
     private static $cachedUser = false;
+    private static $idleExpired = false; // 이번 요청이 '자리 비움'으로 끊겼는지 (안내 문구를 다르게 하려고)
+
+    // 마지막 요청 시각을 얼마나 자주 고쳐 적을지(초). 요청마다 적으면 DB 쓰기가 너무 잦다.
+    // 그만큼 판정이 늦어질 수 있지만 길어야 1분이다
+    const ACTIVE_TOUCH_SECONDS = 60;
+
+    /* 자리 비움 자동 로그아웃
+       로그인한 뒤 서버에 아무 요청도 오지 않은 시간이 기준(운영 기준값 auth.idle_minutes)을
+       넘으면 그 계정의 토큰을 모두 끊는다. 공용 컴퓨터에서 로그아웃을 잊고 자리를 떠도
+       다음 사람이 그 계정을 쓸 수 없게 하려는 것이다.
+
+       서버가 볼 수 있는 것은 '요청이 왔는가' 뿐이다. 화면에서 마우스를 움직이는 것은 모른다.
+       그래서 화면 쪽이 사용 중일 때 가벼운 요청(GET /api/auth/me.php)을 보내 줘야,
+       요청 없이 오래 작업하는 화면(블록 편집기)에서 작업 중에 끊기지 않는다. */
+    public static function idleLimitSeconds() {
+        return Settings::int('auth.idle_minutes') * 60;
+    }
 
     private static function init() {
         if (!isset(self::$secret_key)) {
@@ -54,6 +72,7 @@ class Auth {
     }
 
     public static function issueToken($userId, $username) {
+        self::touch($userId); // 자리 비움 시간을 지금부터 다시 센다
         $stmt = Database::getInstance()->prepare("SELECT token_version FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         return self::generateJWT([
@@ -63,6 +82,11 @@ class Auth {
             'iat' => time(),
             'exp' => time() + self::TOKEN_TTL,
         ]);
+    }
+
+    // 지금 사용 중이라고 적는다 (로그인·가입 직후, 그리고 요청이 올 때마다 가끔)
+    public static function touch($userId) {
+        Database::getInstance()->prepare("UPDATE users SET last_active_at = NOW() WHERE id = ?")->execute([$userId]);
     }
 
     // 로그아웃: 이 사용자의 모든 토큰 무효화
@@ -89,13 +113,28 @@ class Auth {
         if (self::$cachedUser !== false) return self::$cachedUser;
         $payload = self::validateJWT(self::getBearerToken());
         if ($payload) {
-            $stmt = Database::getInstance()->prepare("SELECT token_version, role, consent_status, is_admin, suspended, suspended_reason
+            $stmt = Database::getInstance()->prepare("SELECT token_version, role, consent_status, is_admin, suspended, suspended_reason,
+                    TIMESTAMPDIFF(SECOND, last_active_at, NOW()) AS idle_seconds
                 FROM users WHERE id = ?");
             $stmt->execute([$payload['id']]);
             $row = $stmt->fetch();
+            $limit = $row ? self::idleLimitSeconds() : 0;
+            // last_active_at 이 비어 있으면(이 기능이 생기기 전에 로그인한 토큰) 지금부터 센다
+            $idle = $row && $row['idle_seconds'] !== null ? (int)$row['idle_seconds'] : null;
             if (!$row || (int)$row['token_version'] !== (int)($payload['tv'] ?? 0)) {
                 $payload = null;
+            } elseif ($limit > 0 && $idle !== null && $idle > $limit) {
+                // 너무 오래 요청이 없었다 → 이 계정의 토큰을 모두 끊는다.
+                // 버전을 올려 두지 않으면, 다른 기기에서 다시 로그인하는 순간 이 옛 토큰이 되살아난다
+                self::revoke($payload['id']);
+                Logger::setUser($payload['id']); // 기록에 누구의 세션이 끊겼는지 번호로 남긴다
+                Logger::audit('logout.idle', ['idle' => $idle]);
+                self::$idleExpired = true;
+                $payload = null;
             } else {
+                if ($idle === null || $idle >= self::ACTIVE_TOUCH_SECONDS) {
+                    self::touch($payload['id']);
+                }
                 $payload['role'] = $row['role'];
                 $payload['consent'] = $row['consent_status'];
                 // 운영자 권한과 정지 여부도 토큰이 아니라 DB의 최신 값으로 본다.
@@ -117,7 +156,9 @@ class Auth {
     public static function requireUser() {
         $payload = self::user();
         if (!$payload) {
-            Response::error("로그인이 필요합니다.", 401);
+            Response::error(self::$idleExpired
+                ? "오랫동안 사용하지 않아 자동으로 로그아웃됐어요. 다시 로그인해 주세요."
+                : "로그인이 필요합니다.", 401);
         }
         if (!empty($payload['suspended'])) {
             $reason = trim((string)($payload['suspended_reason'] ?? ''));
