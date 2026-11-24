@@ -79,7 +79,7 @@ try {
     $record = $chapterModel->recordAttempt($userId, $chapterId, $score);
     $chapterModel->updateProgress($userId, $chapterId, 'completed');
 
-    $rewardGranted = $itemModel->grant($userId, $chapter['reward_item']);
+    $rewardGranted = $itemModel->grant($userId, $chapter['reward_item'], 'chapter');
     // 챕터를 처음 통과했을 때만 코인 지급 (coin_log의 ref로 중복 방지)
     $coinsEarned = (new CoinModel())->grant($userId, CoinModel::amount('chapter'), 'chapter', (string)$chapterId);
     $progressModel = new ProgressModel();

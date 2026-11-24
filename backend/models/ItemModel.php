@@ -43,14 +43,22 @@ class ItemModel {
     }
 
     // 이미 가진 아이템은 다시 주지 않는다. 새로 지급했으면 true
-    public function grant($user_id, $item_name) {
+    // $source: 어떻게 얻었는지 (chapter / free / shop). 자유 창작 보상의 하루 횟수를 셀 때 쓴다
+    public function grant($user_id, $item_name, $source = null) {
         // 보상이 없는 챕터(관리자 화면에서 보상을 비운 경우)는 줄 것이 없다
         if ($item_name === null || $item_name === '') return false;
         if ($this->has($user_id, $item_name)) return false;
         // 위 확인과 아래 넣기 사이에 같은 요청이 끼어들 수 있다. 그때는 유니크 키(uniq_user_item)가
         // 두 번째를 막고, 여기서는 '이미 가진 것'으로 본다
-        $stmt = $this->db->prepare("INSERT IGNORE INTO user_items (user_id, item_name, item_type) VALUES (?, ?, ?)");
-        $stmt->execute([$user_id, $item_name, self::info($item_name)['type']]);
+        $type = self::info($item_name)['type'];
+        try {
+            $stmt = $this->db->prepare("INSERT IGNORE INTO user_items (user_id, item_name, item_type, source) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$user_id, $item_name, $type, $source]);
+        } catch (PDOException $e) {
+            // source 컬럼을 아직 못 만든 서버(DB 계정에 ALTER 권한이 없는 경우)에서도 지급은 되어야 한다
+            $stmt = $this->db->prepare("INSERT IGNORE INTO user_items (user_id, item_name, item_type) VALUES (?, ?, ?)");
+            $stmt->execute([$user_id, $item_name, $type]);
+        }
         return $stmt->rowCount() > 0;
     }
 
@@ -59,9 +67,16 @@ class ItemModel {
         $pool = self::catalog()['free_pool'] ?? [];
         // 관리자 화면에서 보상 목록을 비워 두면 줄 것이 없다. 그대로 두면 IN () 문법 오류로 작품 저장이 실패한다
         if (!$pool) return null;
-        $placeholders = implode(',', array_fill(0, count($pool), '?'));
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM user_items WHERE user_id = ? AND acquired_at >= CURDATE() AND item_name IN ($placeholders)");
-        $stmt->execute(array_merge([$user_id], $pool));
+        // 오늘 저장 보상으로 받은 것만 센다. 상점에서 산 아이템은 같은 목록에 있어도 세지 않는다
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM user_items WHERE user_id = ? AND acquired_at >= CURDATE() AND source = 'free'");
+            $stmt->execute([$user_id]);
+        } catch (PDOException $e) {
+            // source 컬럼이 아직 없는 서버: 전처럼 '오늘 얻은 아이템 가운데 보상 목록에 있는 것'으로 센다
+            $placeholders = implode(',', array_fill(0, count($pool), '?'));
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM user_items WHERE user_id = ? AND acquired_at >= CURDATE() AND item_name IN ($placeholders)");
+            $stmt->execute(array_merge([$user_id], $pool));
+        }
         if ((int)$stmt->fetchColumn() >= self::FREE_SAVE_DAILY_LIMIT) return null;
 
         $owned = array_column($this->findByUser($user_id), 'item_name');
@@ -69,7 +84,7 @@ class ItemModel {
         if (!$candidates) return null;
 
         $name = $candidates[random_int(0, count($candidates) - 1)];
-        $this->grant($user_id, $name);
+        $this->grant($user_id, $name, 'free');
         return $name;
     }
 

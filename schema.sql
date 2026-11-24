@@ -86,6 +86,9 @@ CREATE TABLE user_items (
     item_name VARCHAR(100) NOT NULL,
     item_type ENUM('hat', 'glasses', 'background', 'accessory') NOT NULL,
     equipped TINYINT(1) NOT NULL DEFAULT 0,
+    -- 어떻게 얻었는지: chapter(챕터 보상) / free(자유 창작 저장 보상) / shop(상점 구매). 예전 행은 NULL
+    -- 자유 창작 보상의 하루 횟수를 셀 때 상점에서 산 것이 섞이지 않게 하려고 둔다
+    source VARCHAR(10) NULL,
     acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     -- 같은 아이템은 한 사람에게 하나만. 동시에 온 요청이 둘 다 지급하는 것을 DB가 막는다
     UNIQUE KEY uniq_user_item (user_id, item_name),

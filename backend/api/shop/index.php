@@ -47,7 +47,7 @@ try {
         $db->rollBack();
         Response::error("코인이 모자라요. 출석하거나 챕터를 완료하면 모을 수 있어!", 409);
     }
-    $items->grant($userId, $name);
+    $items->grant($userId, $name, 'shop');
     $db->commit();
 } catch (Throwable $e) {
     $db->rollBack();

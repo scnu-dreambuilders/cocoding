@@ -4,7 +4,7 @@
 // migrations/upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-11-25';
+    const VERSION = '2026-11-26';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -418,6 +418,13 @@ class SchemaUpgrader {
            이미 중복된 행은 위의 '중복 지급한 아이템 정리'에서 지워졌으므로 여기서는 키만 건다 */
         if (!self::hasIndex($db, 'user_items', 'uniq_user_item')) {
             $db->exec("ALTER TABLE user_items ADD UNIQUE KEY uniq_user_item (user_id, item_name)");
+        }
+
+        /* ── 2026-11-26 아이템을 어떻게 얻었는지 ──
+           자유 창작 저장 보상은 하루 3개까지다. 그 횟수를 '오늘 얻은 아이템 가운데 보상 목록에 있는 것'으로 셌더니,
+           상점에서 산 아이템도 같은 목록에 있어서 함께 세어졌다. 아이템을 산 날은 저장 보상이 그만큼 줄었다 */
+        if (self::column($db, 'user_items', 'source') === null) {
+            $db->exec("ALTER TABLE user_items ADD COLUMN source VARCHAR(10) NULL AFTER equipped");
         }
 
         // 챕터가 예전 블록 id(move-x처럼 하이픈)로 되어 있으면 새 내용으로 교체

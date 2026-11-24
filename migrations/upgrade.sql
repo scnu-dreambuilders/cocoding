@@ -390,3 +390,9 @@ SET a.equipped = 1;
 DELETE a FROM user_items a
 JOIN user_items b ON a.user_id = b.user_id AND a.item_name = b.item_name AND a.id > b.id;
 ALTER TABLE user_items ADD UNIQUE KEY uniq_user_item (user_id, item_name);
+
+
+-- [2026-11-26] 2026-11-26_item_source.sql
+-- 아이템을 어떻게 얻었는지 적는다 (chapter / free / shop). 예전 행은 NULL 로 둔다.
+-- 자유 창작 저장 보상은 하루 3개까지인데, 그 횟수를 셀 때 상점에서 산 아이템이 함께 세어지던 것을 바로잡는다
+ALTER TABLE user_items ADD COLUMN IF NOT EXISTS source VARCHAR(10) NULL AFTER equipped;
