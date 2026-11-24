@@ -278,7 +278,8 @@ body {
 @keyframes modal-in { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
 .modal-head { display: flex; align-items: center; justify-content: space-between; }
 .modal-head h3 { margin: 0; font-size: 1.1333rem; }
-.modal-x { border: none; background: none; font-size: 1.4667rem; line-height: 1; color: var(--text-muted); cursor: pointer; }
+.modal-x { flex: none; min-width: 32px; min-height: 32px; border: none; border-radius: var(--radius-sm); background: none; font-size: 1.4667rem; line-height: 1; color: var(--text-muted); cursor: pointer; }
+.modal-x:hover { background: var(--btn-hover); color: var(--text-h); }
 .modal-foot { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .form-error { color: var(--danger); font-size: 0.8333rem; margin: 0; }
 @media (prefers-reduced-motion: reduce) {
