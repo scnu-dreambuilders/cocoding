@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { ROLE_LABEL, passwordError, usernameError } from '../lib/validators'
 import './RolePanels.css'
-import './AccountModal.css' // 공통 모달(index.css) 위에 이 창에만 필요한 것: 머리 고정·닫기 버튼 크기·좁은 화면 입력줄
+import './AccountModal.css' // 공통 모달(index.css) 위에 이 창에만 필요한 것: 머리 고정·좁은 화면 입력줄
 
 const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
 
@@ -117,7 +117,7 @@ export default function AccountModal({ user, onClose, onUserChange, onDeleted, s
         tabIndex={-1} onKeyDown={onKeyDown}>
         <div className="modal-head account-head">
           <h3 id={titleId}>내 정보</h3>
-          <button type="button" className="modal-x account-close" onClick={onClose} aria-label="닫기">×</button>
+          <button type="button" className="modal-x" onClick={onClose} aria-label="닫기">×</button>
         </div>
 
         <dl className="account-info">

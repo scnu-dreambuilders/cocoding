@@ -261,15 +261,7 @@
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
-.assign-detail-close {
-  flex: none;
-  min-width: 32px;
-  min-height: 32px;
-  margin: -4px -6px 0 0;
-  border-radius: var(--radius-sm);
-  color: var(--text);
-}
-.assign-detail-close:hover { background: var(--btn-hover); color: var(--text-h); }
+.assign-detail-close { margin: -4px -6px 0 0; color: var(--text); }
 
 /* 가운데: 과제 정보 + 학생별 수행 현황 (화면이 낮거나 학생이 많으면 여기만 스크롤) */
 .assign-detail-main {

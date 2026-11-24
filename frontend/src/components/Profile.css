@@ -235,7 +235,7 @@
 .modal.profile-modal { width: 100%; max-width: 440px; }
 .profile-modal .profile-main { gap: 12px; }
 .profile-modal .role-btn { align-self: flex-start; }
-.profile-modal .modal-x { min-width: 28px; min-height: 28px; color: var(--text); }
+.profile-modal .modal-x:not(:hover) { color: var(--text); }
 
 @media (max-width: 640px) {
   .profile-card,
