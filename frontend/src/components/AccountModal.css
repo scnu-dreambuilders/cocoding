@@ -1,0 +1,31 @@
+/* ════════════════════════════════════════════════
+   내 정보 창 (AccountModal) 전용 보완 스타일
+   배경·창 모양·머리·닫기·오류·등장 애니메이션은 공통 모달(index.css 의 .modal 계열)을 쓴다.
+   여기에는 이 창에만 필요한 것만 둔다. 너비는 RolePanels.css 의 .account-modal (440px).
+   (입력칸·버튼 모양은 RolePanels.css 의 account-form / role-btn 을 그대로 쓴다)
+   ════════════════════════════════════════════════ */
+.account-modal { overscroll-behavior: contain; }
+.account-modal:focus { outline: none; }
+.account-modal:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 머리(제목·닫기)는 창 안을 스크롤해도 위에 남는다 (.modal 의 padding 16px 18px 만큼 끌어올림) */
+.account-head {
+  position: sticky;
+  top: -16px;
+  z-index: 1;
+  gap: 8px;
+  margin: -16px -18px 0;
+  padding: 16px 18px 4px;
+  background: var(--panel-bg);
+}
+.account-close {
+  flex: none;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+}
+.account-close:hover { background: var(--btn-hover); color: var(--text-h); }
+
+/* 좁은 화면: 입력칸이 줄어들 수 있게 하고, 그래도 모자라면 버튼을 다음 줄로 */
+.account-modal .account-row { flex-wrap: wrap; }
+.account-modal .account-row input { min-width: 0; }
