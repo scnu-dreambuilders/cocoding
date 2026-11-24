@@ -22,14 +22,20 @@ class Mailer {
             ];
             $encoded = '=?UTF-8?B?' . base64_encode($subject) . '?=';
             if (@mail($to, $encoded, $body, implode("\r\n", $headers))) return true;
-            error_log("[Mailer] 전송 실패: $to");
+            error_log('[Mailer] 메일 전송 실패 (받는 사람은 기록하지 않음)');
         }
         self::logToFile($to, $subject, $body);
         return false;
     }
 
-    // 개발용 기록. 실제 서버에서는 메일이 켜져 있으면 여기까지 오지 않는다
+    // 개발용 기록. 내 PC에서 띄웠을 때만 받는 사람과 본문(재설정 링크)을 파일에 남긴다.
+    // 실제 서버에서는 남기지 않는다: 메일이 꺼져 있거나 전송에 실패하면 이메일 주소와
+    // 30분 동안 살아 있는 재설정 링크가 그대로 파일에 쌓이기 때문이다
     private static function logToFile($to, $subject, $body) {
+        if (!function_exists('isLocalRequest') || !isLocalRequest()) {
+            error_log('[Mailer] 메일을 보내지 못했습니다 (MAIL_ENABLED 가 꺼져 있거나 전송 실패). 받는 사람과 본문은 기록하지 않습니다.');
+            return;
+        }
         $dir = __DIR__ . '/../data';
         $line = sprintf("[%s] to=%s subject=%s\n%s\n%s\n", date('c'), $to, $subject, $body, str_repeat('-', 60));
         if (is_dir($dir) && is_writable($dir)) {

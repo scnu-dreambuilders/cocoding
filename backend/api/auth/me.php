@@ -17,7 +17,7 @@ if (!$user) {
 // 설문 정보 업데이트 (PATCH 요청인 경우)
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
     RateLimiter::limit("me:update:{$user['id']}", 30, 3600);
-    $data = json_decode(file_get_contents("php://input"), true);
+    $data = Response::input();
 
     $level = array_key_exists('level', $data ?? []) ? $data['level'] : $user['level'];
     if (!is_int($level) || $level < 1 || $level > 3) {

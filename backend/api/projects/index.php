@@ -37,7 +37,7 @@ if ($projectModel->countByUser($userId) >= ProjectModel::MAX_PROJECTS_PER_USER) 
     Response::error("작품은 " . ProjectModel::MAX_PROJECTS_PER_USER . "개까지 저장할 수 있어요. 안 쓰는 작품을 지워주세요.", 409);
 }
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 
 /* ── 리메이크 ─────────────────────────────── */
 if (isset($data['remake_of'])) {
@@ -74,13 +74,33 @@ if ($validationError) {
     Response::error($validationError);
 }
 
+// 저장과 보상을 한 묶음으로 처리한다. 보상 단계에서 오류가 나면 작품도 저장되지 않은 것으로 되돌려서,
+// 화면에는 실패로 보이는데 작품은 남아 다시 누를 때마다 복사본이 쌓이는 일이 없게 한다.
+// 학생 행을 잠그는 것은 '오늘 몇 번 받았나' 확인과 지급 사이에 다른 저장 요청이 끼어들지 못하게 하려는 것이다
+$db = Database::getInstance();
+$db->beginTransaction();
+try {
+$db->prepare("SELECT id FROM users WHERE id = ? FOR UPDATE")->execute([$userId]);
+
 $projectId = $projectModel->create($userId, $title, $blocksData, 'free', null, $thumbnail);
 
 // 자유 창작 보상: 저장 → 포트폴리오 등록 → 꾸미기 아이템 1개 + 코인 (둘 다 하루 제한)
 $reward = (new ItemModel())->grantRandomFreeReward($userId);
-$coinsEarned = (new CoinModel())->grant($userId, CoinModel::amount('project'), 'project', (string)$projectId);
+// 코인은 작품 번호로 중복을 막는데, 새 작품은 번호가 늘 새것이다. 만들고 지우기를 되풀이하면
+// 끝없이 받을 수 있어서, 아이템과 같은 하루 횟수로 묶는다
+$stmt = $db->prepare("SELECT COUNT(*) FROM coin_log WHERE user_id = ? AND reason = 'project' AND created_at >= ?");
+$stmt->execute([$userId, AppTime::today() . ' 00:00:00']);
+$coinsEarned = (int)$stmt->fetchColumn() < ItemModel::FREE_SAVE_DAILY_LIMIT
+    ? (new CoinModel())->grant($userId, CoinModel::amount('project'), 'project', (string)$projectId)
+    : 0;
 $progressModel = new ProgressModel();
 if ($coinsEarned > 0) $progressModel->addXp($userId, ProgressModel::XP['project']);
+
+    $db->commit();
+} catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    throw $e;
+}
 
 Response::success([
     "id" => $projectId,

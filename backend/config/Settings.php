@@ -19,6 +19,9 @@ class Settings {
         'coin.project'       => 5,
         'coin.game.typing'   => 2,
         'coin.game.quiz'     => 10,
+        // 학생 한 명이 선생님 과제 보상으로 하루에 받을 수 있는 코인. 선생님 계정은 누구나 만들 수 있어서,
+        // 상한이 없으면 과제를 내고 끝내기를 되풀이해 코인을 얼마든지 만들 수 있다
+        'coin.assignment_daily' => 300,
         'coco.daily_limit'   => 30,
         'report.hide_count'  => 3,
         'board.post_cooldown' => 5,
@@ -58,6 +61,11 @@ class Settings {
             'group' => '코인', 'label' => '복습 퀴즈 정답 코인',
             'help' => '복습 퀴즈에서 한 문제 맞힐 때마다 주는 코인이에요. 오답 재도전도 같아요.',
             'min' => 0, 'max' => 100,
+        ],
+        'coin.assignment_daily' => [
+            'group' => '코인', 'label' => '과제 보상 하루 상한',
+            'help' => '학생 한 명이 선생님 과제 보상으로 하루에 받을 수 있는 코인이에요. 넘는 보상은 다음 날 과제 목록을 열 때 들어와요.',
+            'min' => 100, 'max' => 10000,
         ],
         'coco.daily_limit' => [
             'group' => '코코 대화', 'label' => '하루 질문 횟수',

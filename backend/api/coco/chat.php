@@ -81,7 +81,7 @@ if (RateLimiter::tooMany($globalKey, $globalLimit, 86400)) {
     Response::error("오늘은 친구들이 코코를 너무 많이 불러서 쉬는 중이야. 내일 또 물어봐", 429);
 }
 
-$data = json_decode(file_get_contents('php://input'), true) ?? [];
+$data = Response::input();
 
 // 아이들이 무심코 적은 전화번호·이메일은 외부로 보내기 전에 가린다
 function scrub($text) {

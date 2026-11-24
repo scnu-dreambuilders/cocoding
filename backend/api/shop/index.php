@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 RateLimiter::limit("shop:buy:$userId", 60, 3600, "잠깐 쉬었다가 다시 사보자!");
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $name = is_string($data['item'] ?? null) ? $data['item'] : '';
 $price = ItemModel::price($name);
 

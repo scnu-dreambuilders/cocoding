@@ -54,7 +54,7 @@ if ($method !== 'PATCH') {
 if (!$id) Response::error("어떤 글인지 알려주세요.", 400);
 if (!$model->targetExists($target, $id)) Response::error("그런 글이 없어요.", 404);
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = Response::input();
 if (!is_array($data) || !array_key_exists('hidden', $data) || !is_bool($data['hidden'])) {
     Response::error("hidden 을 true 또는 false 로 보내주세요.", 400);
 }

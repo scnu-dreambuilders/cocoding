@@ -87,6 +87,8 @@ CREATE TABLE user_items (
     item_type ENUM('hat', 'glasses', 'background', 'accessory') NOT NULL,
     equipped TINYINT(1) NOT NULL DEFAULT 0,
     acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- 같은 아이템은 한 사람에게 하나만. 동시에 온 요청이 둘 다 지급하는 것을 DB가 막는다
+    UNIQUE KEY uniq_user_item (user_id, item_name),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

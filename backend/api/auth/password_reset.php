@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $db = Database::getInstance();
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $userModel = new UserModel();
 
 /* ── 2단계: 토큰으로 비밀번호 바꾸기 ───────────── */

@@ -71,6 +71,7 @@ foreach (glob($dir . '/' . $channel . '-*.log') ?: [] as $file) {
 rsort($dates);
 
 $date = $_GET['date'] ?? '';
+if (!is_string($date)) Response::error("날짜는 2026-11-20 처럼 보내주세요.", 400);
 if ($date === '') {
     $date = $dates ? $dates[0] : date('Y-m-d');
 } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$date)) {

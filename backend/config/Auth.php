@@ -86,12 +86,20 @@ class Auth {
 
     // 지금 사용 중이라고 적는다 (로그인·가입 직후, 그리고 요청이 올 때마다 가끔)
     public static function touch($userId) {
-        Database::getInstance()->prepare("UPDATE users SET last_active_at = NOW() WHERE id = ?")->execute([$userId]);
+        try {
+            Database::getInstance()->prepare("UPDATE users SET last_active_at = NOW(), updated_at = updated_at WHERE id = ?")->execute([$userId]);
+        } catch (PDOException $e) {
+            // last_active_at 컬럼을 아직 못 만든 서버(DB 계정에 ALTER 권한이 없는 경우).
+            // 자동 로그아웃만 동작하지 않을 뿐, 로그인은 되어야 한다
+            error_log('[Auth] last_active_at 을 적지 못했습니다: ' . $e->getMessage());
+        }
     }
 
-    // 로그아웃: 이 사용자의 모든 토큰 무효화
+    // 로그아웃: 이 사용자의 모든 토큰 무효화.
+    // updated_at 은 그대로 둔다. 관리자 화면의 '정보 수정' 시각은 닉네임·소속·비밀번호·권한처럼
+    // 정보가 실제로 바뀐 때만 움직여야 한다 (코인·경험치·활동 시각도 같은 이유로 건드리지 않는다)
     public static function revoke($userId) {
-        Database::getInstance()->prepare("UPDATE users SET token_version = token_version + 1 WHERE id = ?")->execute([$userId]);
+        Database::getInstance()->prepare("UPDATE users SET token_version = token_version + 1, updated_at = updated_at WHERE id = ?")->execute([$userId]);
     }
 
     public static function getBearerToken() {
@@ -113,14 +121,24 @@ class Auth {
         if (self::$cachedUser !== false) return self::$cachedUser;
         $payload = self::validateJWT(self::getBearerToken());
         if ($payload) {
-            $stmt = Database::getInstance()->prepare("SELECT token_version, role, consent_status, is_admin, suspended, suspended_reason,
-                    TIMESTAMPDIFF(SECOND, last_active_at, NOW()) AS idle_seconds
-                FROM users WHERE id = ?");
-            $stmt->execute([$payload['id']]);
+            $columns = "token_version, role, consent_status, is_admin, suspended, suspended_reason";
+            $hasIdleColumn = true;
+            try {
+                $stmt = Database::getInstance()->prepare("SELECT $columns,
+                        TIMESTAMPDIFF(SECOND, last_active_at, NOW()) AS idle_seconds
+                    FROM users WHERE id = ?");
+                $stmt->execute([$payload['id']]);
+            } catch (PDOException $e) {
+                // last_active_at 컬럼이 아직 없는 서버: 자동 로그아웃 없이 전처럼 확인한다.
+                // 이 처리가 없으면 컬럼 하나 때문에 로그인한 사람의 요청이 전부 오류가 난다
+                $hasIdleColumn = false;
+                $stmt = Database::getInstance()->prepare("SELECT $columns FROM users WHERE id = ?");
+                $stmt->execute([$payload['id']]);
+            }
             $row = $stmt->fetch();
-            $limit = $row ? self::idleLimitSeconds() : 0;
+            $limit = $row && $hasIdleColumn ? self::idleLimitSeconds() : 0;
             // last_active_at 이 비어 있으면(이 기능이 생기기 전에 로그인한 토큰) 지금부터 센다
-            $idle = $row && $row['idle_seconds'] !== null ? (int)$row['idle_seconds'] : null;
+            $idle = $row && $hasIdleColumn && $row['idle_seconds'] !== null ? (int)$row['idle_seconds'] : null;
             if (!$row || (int)$row['token_version'] !== (int)($payload['tv'] ?? 0)) {
                 $payload = null;
             } elseif ($limit > 0 && $idle !== null && $idle > $limit) {
@@ -132,7 +150,7 @@ class Auth {
                 self::$idleExpired = true;
                 $payload = null;
             } else {
-                if ($idle === null || $idle >= self::ACTIVE_TOUCH_SECONDS) {
+                if ($hasIdleColumn && ($idle === null || $idle >= self::ACTIVE_TOUCH_SECONDS)) {
                     self::touch($payload['id']);
                 }
                 $payload['role'] = $row['role'];

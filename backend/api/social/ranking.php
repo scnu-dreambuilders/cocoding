@@ -34,13 +34,15 @@ if ($scope === 'friends') {
             SELECT m2.student_id FROM class_members m1
             JOIN class_members m2 ON m2.class_id = m1.class_id
             WHERE m1.student_id = :me)
+          AND (u.profile_visibility <> 'private' OR u.id = :me2)
         ORDER BY u.xp DESC, chapters DESC, u.id ASC";
     $stmt = $db->prepare($sql);
-    $stmt->execute([':me' => $userId]);
+    $stmt->execute([':me' => $userId, ':me2' => $userId]);
 } else {
     $scope = 'all';
     $sql = "$base
-        WHERE u.role = 'student' AND (u.profile_visibility <> 'private' OR u.id = :me)
+        WHERE u.role = 'student'
+          AND ((u.profile_visibility <> 'private' AND u.consent_status <> 'pending') OR u.id = :me)
         ORDER BY u.xp DESC, chapters DESC, u.id ASC";
     $stmt = $db->prepare($sql);
     $stmt->execute([':me' => $userId]);

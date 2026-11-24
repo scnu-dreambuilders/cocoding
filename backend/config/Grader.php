@@ -25,12 +25,13 @@ class Grader {
         // 출력은 임시 파일로 받는다 (윈도우 PHP는 proc_open 파이프를 기다리는 stream_select가 안 됨)
         $outFile = tempnam(sys_get_temp_dir(), 'grd');
         $errFile = tempnam(sys_get_temp_dir(), 'grd');
+        // 입력도 임시 파일로 넘긴다. 파이프에 쓰면 node 가 입력을 읽지 않고 멈춰 있을 때 쓰기에서 기다리게 되고,
+        // 그 기다림은 아래 제한 시간보다 앞이라 요청이 끝나지 않는다 (작품은 4MB까지라 파이프 버퍼를 넘는다)
+        $inFile = tempnam(sys_get_temp_dir(), 'grd');
         try {
-            $proc = @proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['file', $outFile, 'w'], 2 => ['file', $errFile, 'w']], $pipes);
+            file_put_contents($inFile, json_encode(['chapter' => (int)$chapterNo, 'blocks_data' => $blocksData]));
+            $proc = @proc_open($cmd, [0 => ['file', $inFile, 'r'], 1 => ['file', $outFile, 'w'], 2 => ['file', $errFile, 'w']], $pipes);
             if (!is_resource($proc)) throw new GraderUnavailableException("Node.js를 실행할 수 없습니다 ($node).");
-
-            fwrite($pipes[0], json_encode(['chapter' => (int)$chapterNo, 'blocks_data' => $blocksData]));
-            fclose($pipes[0]);
 
             // 시간 안에 안 끝나면 강제로 끝낸다
             $deadline = microtime(true) + self::TIMEOUT_SECONDS;
@@ -47,6 +48,7 @@ class Grader {
             $out = (string)file_get_contents($outFile);
             $err = (string)file_get_contents($errFile);
         } finally {
+            @unlink($inFile);
             @unlink($outFile);
             @unlink($errFile);
         }

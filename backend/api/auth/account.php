@@ -18,7 +18,7 @@ const PASSWORD_CHECK_WINDOW = 900; // 15분
 $payload = Auth::requireUser();
 $userId = (int)$payload['id'];
 $userModel = new UserModel();
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $method = $_SERVER['REQUEST_METHOD'];
 
 function verifyCurrentPassword(UserModel $userModel, $userId, $password) {
@@ -80,6 +80,14 @@ if ($method === 'POST') {
 
 if ($method === 'DELETE') {
     verifyCurrentPassword($userModel, $userId, $data['password'] ?? null);
+    // 관리자 웹에 들어올 수 있는 운영자가 나 하나뿐이면 탈퇴를 막는다.
+    // 관리자 화면의 '마지막 운영자 보호'가 여기로는 통하지 않아서, 운영자가 0명이 될 수 있었다
+    if (!empty($payload['is_admin'])) {
+        $others = (int)Database::getInstance()->query("SELECT COUNT(*) FROM users WHERE is_admin = 1 AND suspended = 0 AND id <> " . (int)$userId)->fetchColumn();
+        if ($others === 0) {
+            Response::error("운영자가 한 명뿐이라 탈퇴할 수 없어요. 다른 운영자를 먼저 지정해주세요.", 409);
+        }
+    }
     $guardians = new GuardianModel();
     $children = $payload['role'] === 'guardian' ? $guardians->studentIds($userId) : [];
 

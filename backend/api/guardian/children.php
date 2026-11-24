@@ -33,7 +33,7 @@ if ($method === 'GET') {
 if ($method === 'POST') {
     // 동의 코드 대입 방지 (코드 확인·동의 모두 포함)
     RateLimiter::limit("guardian:code:$guardianId", 20, 3600, "코드를 너무 많이 입력했어요. 잠시 후 다시 시도해주세요.");
-    $data = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = Response::input();
     $code = Validators::normalizeCode($data['code'] ?? null);
     $child = strlen($code) === 8 ? $users->findPendingByConsentCode($code) : null;
     if (!$child) {

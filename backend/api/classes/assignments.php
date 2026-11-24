@@ -12,7 +12,9 @@
 //   · 직접 쓴 과제: 학생이 '끝냈어요'를 처음 누를 때
 //   · 챕터 과제: 학생이 그 챕터를 통과할 때 (api/chapters/progress.php).
 //     과제를 내기 전에 이미 통과한 학생은 선생님이 과제를 내거나 보상을 고치는 순간 받는다.
-//   어느 쪽이든 과제 하나에 한 번만 준다 (ClassModel 의 '챕터 과제 보상' 참고)
+//   보상을 나중에 올리면 이미 받은 학생은 그 순간 차액을 받는다. 내려도 회수하지 않는다.
+//   학생 한 명이 하루에 받는 과제 보상에는 상한이 있고, 넘는 보상은 다음 날 과제 목록을 열 때 들어온다
+//   (ClassModel 의 '챕터 과제 보상' 참고)
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
@@ -29,9 +31,16 @@ $userId = (int)$payload['id'];
 $isTeacher = $payload['role'] === 'teacher';
 $classes = new ClassModel();
 $db = Database::getInstance();
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 
 // 선생님이 그 반의 주인인지 확인 (아니면 존재 여부도 알려주지 않음)
+// 마감일: 비어 있거나 실제로 있는 날짜(YYYY-MM-DD)여야 한다. 2026-02-31 은 모양만 맞고 없는 날짜다
+function validDueDate($due) {
+    if ($due === null || $due === '') return true;
+    if (!is_string($due) || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $due, $m)) return false;
+    return checkdate((int)$m[2], (int)$m[3], (int)$m[1]);
+}
+
 function ownedClass(ClassModel $classes, $classId, $userId) {
     $class = $classId ? $classes->findById($classId) : null;
     if (!$class || (int)$class['teacher_id'] !== $userId) {
@@ -122,9 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }, $stmt->fetchAll()));
     }
 
-    // 완료로 보이는 챕터 과제 중 보상을 아직 못 받은 것이 있으면 여기서 채운다.
-    // 이 기능이 생기기 전에 통과한 과제, 반을 옮겨 온 경우처럼 다른 지급 시점을 놓친 것을 메운다
-    $classes->settleChapterRewardsForStudent($userId);
+    // 끝낸 과제 중 보상을 덜 받은 것이 있으면 여기서 채운다.
+    // 이 기능이 생기기 전에 통과한 과제, 반을 옮겨 온 경우, 하루 상한에 걸려 미뤄진 보상을 메운다
+    $classes->settleRewardsForStudent($userId);
 
     // 학생: 내가 속한 모든 반의 과제
     $stmt = $db->prepare("SELECT a.id, a.chapter_id, a.note, a.due_on, a.reward_coins,
@@ -171,10 +180,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($data['done_id'])) {
     // 선생님이 보상을 걸어둔 과제라면 처음 제출할 때 코인 지급
     $coins = 0;
     if ($first && (int)$a['reward_coins'] > 0) {
-        $coins = (new CoinModel())->grant($userId, (int)$a['reward_coins'], 'assignment', (string)$assignmentId);
+        $coins = $classes->payAssignmentReward($userId, (int)$assignmentId, (int)$a['reward_coins']);
     }
     Response::success([
-        'message' => $first ? ($coins > 0 ? "과제 완료! {$coins}코인을 받았어" : '과제를 끝냈다고 표시했어요!') : '이미 끝낸 과제예요.',
+        'message' => !$first ? '이미 끝낸 과제예요.'
+            : ($coins > 0 ? "과제 완료! {$coins}코인을 받았어"
+            : ((int)$a['reward_coins'] > 0 ? '과제를 끝냈어요! 오늘 받을 수 있는 과제 코인을 다 받아서, 이 보상은 내일 과제 목록을 열면 들어와요.'
+            : '과제를 끝냈다고 표시했어요!')),
         'coinsEarned' => $coins,
     ]);
 }
@@ -202,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $note = is_string($data['note'] ?? null) ? mb_substr(trim($data['note']), 0, MAX_NOTE_LENGTH) : null;
     $due = $data['due_on'] ?? null;
-    if ($due !== null && $due !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$due)) {
+    if (!validDueDate($due)) {
         Response::error("마감일 형식이 올바르지 않아요.");
     }
     $reward = filter_var($data['reward_coins'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => MAX_REWARD_COINS]]);
@@ -216,9 +228,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existing) {
             $db->prepare("UPDATE class_assignments SET note = ?, due_on = ?, reward_coins = ? WHERE id = ?")
                 ->execute([$note !== '' ? $note : null, $due !== '' ? $due : null, $reward, $existing]);
-            $paid = $classes->settleChapterRewardsForAssignment((int)$existing);
+            $paid = $classes->settleRewardsForAssignment((int)$existing);
             Response::success(["id" => (int)$existing, "rewardedCount" => $paid,
-                "message" => "이미 낸 과제라서 내용만 바꿨어요." . ($paid > 0 ? " 이미 챕터를 끝낸 학생 {$paid}명에게 보상을 줬어요." : '')]);
+                "message" => "이미 낸 과제라서 내용만 바꿨어요." . ($paid > 0 ? " 이미 끝낸 학생 {$paid}명에게 보상을 맞춰 줬어요." : '')]);
         }
     }
 
@@ -226,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute([$class['id'], $chapterId ?: null, $title ?: null, $note !== '' ? $note : null, $reward, $due !== '' ? $due : null]);
     $newId = (int)$db->lastInsertId();
     // 과제를 내기 전에 이미 이 챕터를 끝낸 학생에게도 같은 보상을 준다
-    $paid = $chapterId ? $classes->settleChapterRewardsForAssignment($newId) : 0;
+    $paid = $chapterId ? $classes->settleRewardsForAssignment($newId) : 0;
     Response::success(["id" => $newId, "rewardedCount" => $paid,
         "message" => "과제를 냈어요. 학생 화면에 바로 보여요." . ($paid > 0 ? " 이미 챕터를 끝낸 학생 {$paid}명에게 보상을 줬어요." : '')], 201);
 }
@@ -249,8 +261,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
         $params[] = is_string($data['note']) && trim($data['note']) !== '' ? mb_substr(trim($data['note']), 0, MAX_NOTE_LENGTH) : null;
     }
     if (array_key_exists('due_on', $data)) {
-        $due = (string)$data['due_on'];
-        if ($due !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $due)) Response::error("마감일 형식이 올바르지 않아요.");
+        $due = $data['due_on'];
+        if (!validDueDate($due)) Response::error("마감일 형식이 올바르지 않아요.");
+        $due = (string)$due;
         $fields[] = 'due_on = ?';
         $params[] = $due !== '' ? $due : null;
     }
@@ -264,10 +277,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $params[] = $assignmentId;
     $db->prepare("UPDATE class_assignments SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
-    // 보상을 0에서 올렸다면, 이미 챕터를 끝낸 학생이 이때 받는다 (이미 받은 학생은 다시 받지 않는다)
-    $paid = $a['chapter_id'] ? $classes->settleChapterRewardsForAssignment((int)$assignmentId) : 0;
+    // 보상을 올렸다면 이미 끝낸 학생이 이때 받는다. 아직 못 받은 학생은 전액, 받은 학생은 차액
+    $paid = $classes->settleRewardsForAssignment((int)$assignmentId);
     Response::success(["rewardedCount" => $paid,
-        "message" => "과제를 고쳤어요." . ($paid > 0 ? " 이미 챕터를 끝낸 학생 {$paid}명에게 보상을 줬어요." : '')]);
+        "message" => "과제를 고쳤어요." . ($paid > 0 ? " 이미 끝낸 학생 {$paid}명에게 보상을 맞춰 줬어요." : '')]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {

@@ -43,7 +43,7 @@ if ($method === 'GET') {
 
 if ($method === 'PATCH') {
     RateLimiter::limit("class:update:$userId", 60, 3600);
-    $data = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = Response::input();
 
     // 학생을 이 반에서 선생님의 다른 반으로 이동 (본인 소유 반 사이에서만 — PATCH 도달 시점엔 항상 $isOwner)
     if (isset($data['move_student_id']) && isset($data['move_to_class_id'])) {

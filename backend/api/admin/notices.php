@@ -77,7 +77,7 @@ if ($method === 'GET') {
     Response::success($model->notices($page) + ['audiences' => NOTICE_AUDIENCES]);
 }
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = Response::input();
 if (!is_array($data)) $data = [];
 
 if ($method === 'POST') {

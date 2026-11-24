@@ -47,11 +47,15 @@ function publicProfile($row, SocialModel $social, ProgressModel $progress, $view
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $targetId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT) ?: $userId;
-    $stmt = $db->prepare("SELECT id, username, role, bio, xp, profile_visibility FROM users WHERE id = ?");
+    $stmt = $db->prepare("SELECT id, username, role, bio, xp, profile_visibility, consent_status FROM users WHERE id = ?");
     $stmt->execute([$targetId]);
     $row = $stmt->fetch();
     if (!$row) {
         Response::error("사용자를 찾을 수 없어요.", 404);
+    }
+    // 보호자 동의가 끝나지 않은 학생의 프로필은 본인만 본다 (작품 공유를 막는 것과 같은 기준)
+    if ((int)$row['id'] !== $userId && $row['consent_status'] === 'pending') {
+        Response::error("이 친구는 프로필을 공개하지 않았어요.", 403);
     }
     if (!$social->canViewProfile($userId, $row)) {
         Response::error("이 친구는 프로필을 공개하지 않았어요.", 403);
@@ -70,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
     RateLimiter::limit("profile:update:$userId", 30, 3600);
-    $data = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = Response::input();
 
     if (array_key_exists('bio', $data)) {
         $bio = is_string($data['bio']) ? trim($data['bio']) : '';
@@ -91,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
         $db->prepare("UPDATE users SET profile_visibility = ? WHERE id = ?")->execute([$data['profile_visibility'], $userId]);
     }
 
-    $stmt = $db->prepare("SELECT id, username, role, bio, xp, profile_visibility FROM users WHERE id = ?");
+    $stmt = $db->prepare("SELECT id, username, role, bio, xp, profile_visibility, consent_status FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     Response::success(publicProfile($stmt->fetch(), $social, $progress, $userId));
 }
@@ -99,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Auth::requireSharing($payload);
     RateLimiter::limit("follow:$userId", 60, 3600);
-    $data = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = Response::input();
 
     $followId = filter_var($data['follow'] ?? null, FILTER_VALIDATE_INT);
     $unfollowId = filter_var($data['unfollow'] ?? null, FILTER_VALIDATE_INT);

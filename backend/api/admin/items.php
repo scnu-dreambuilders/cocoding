@@ -119,7 +119,7 @@ if ($method !== 'PUT') {
     Response::error("잘못된 요청 방식입니다.", 405);
 }
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = Response::input();
 if (!is_array($data)) $data = [];
 
 $saved = [];

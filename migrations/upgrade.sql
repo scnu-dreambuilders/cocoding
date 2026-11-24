@@ -148,6 +148,35 @@ CREATE TABLE IF NOT EXISTS class_members (
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 선생님이 반에 내주는 과제 (처음 모양. 뒤의 [2026-11-04] 구간에서 제목·보상 컬럼이 붙는다)
+CREATE TABLE IF NOT EXISTS class_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    chapter_id INT NOT NULL,
+    note VARCHAR(200) NULL,
+    due_on DATE NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_assignment (class_id, chapter_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 비밀번호 재설정 링크 (토큰은 해시로만 저장)
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_token (token_hash),
+    INDEX idx_user (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 교사 소속 정보
+ALTER TABLE users ADD COLUMN IF NOT EXISTS affiliation VARCHAR(50) NULL AFTER consent_at;
+
 
 -- ============================================================
 -- [2026-11-03] 2026-11-03_attendance_shop.sql
@@ -350,3 +379,14 @@ CREATE TABLE IF NOT EXISTS notices (
 -- [2026-11-24] 2026-11-24_idle_logout.sql
 -- 자리 비움 자동 로그아웃: 마지막으로 요청이 온 시각을 계정마다 적어 둔다
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP NULL AFTER token_version;
+
+
+-- [2026-11-25] 2026-11-25_item_unique.sql
+-- 같은 아이템이 두 번 지급되지 않게 유니크 키를 건다.
+-- 먼저 이미 중복된 행을 정리한다. 중복 가운데 하나라도 장착 중이면 남기는 행에 장착 표시를 옮긴다
+UPDATE user_items a
+JOIN user_items b ON a.user_id = b.user_id AND a.item_name = b.item_name AND a.id < b.id AND b.equipped = 1
+SET a.equipped = 1;
+DELETE a FROM user_items a
+JOIN user_items b ON a.user_id = b.user_id AND a.item_name = b.item_name AND a.id > b.id;
+ALTER TABLE user_items ADD UNIQUE KEY uniq_user_item (user_id, item_name);

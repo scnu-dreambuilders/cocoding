@@ -107,12 +107,20 @@ $values = array_merge($env, [
 if (empty($values['JWT_SECRET'])) $values['JWT_SECRET'] = bin2hex(random_bytes(32));
 // 개발 서버가 5173을 못 잡으면 5174·5175로 밀려나므로 셋 다 넣어둔다
 if (empty($values['ALLOWED_ORIGINS'])) $values['ALLOWED_ORIGINS'] = 'http://localhost:5173,http://localhost:5174,http://localhost:5175';
-$lines = [];
+// 이 도구가 정하는 항목만 바꾼다. 전에는 파일을 읽은 값으로 통째로 다시 썼는데, 그러면 주석이 모두 사라지고
+// 따옴표로 감싸 둔 값(예: MAIL_FROM="코코딩 <no-reply@...>")의 따옴표가 벗겨져 다음에 읽을 때 깨질 수 있었다
+$mine = [];
 foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS', 'JWT_SECRET', 'ALLOWED_ORIGINS'] as $key) {
     $v = (string)$values[$key];
-    $lines[] = $key === 'DB_PASS' ? "$key=\"$v\"" : "$key=$v";
-    unset($values[$key]);
+    $mine[$key] = $key === 'DB_PASS' ? "$key=\"$v\"" : "$key=$v";
 }
-foreach ($values as $key => $v) $lines[] = "$key=$v";
+$lines = is_file($envPath) ? preg_split('/\r\n|\n|\r/', rtrim((string)file_get_contents($envPath), "\r\n")) : [];
+foreach ($lines as $i => $line) {
+    if (preg_match('/^\s*([A-Z0-9_]+)\s*=/', $line, $m) && isset($mine[$m[1]])) {
+        $lines[$i] = $mine[$m[1]];
+        unset($mine[$m[1]]);
+    }
+}
+foreach ($mine as $line) $lines[] = $line; // 파일에 없던 항목은 끝에 붙인다
 file_put_contents($envPath, implode("\n", $lines) . "\n");
 echo "[OK] backend/.env에 저장했어요. 이제 start.bat으로 실행하면 돼요!\n\n";

@@ -14,7 +14,7 @@ $payload = Auth::requireRole(['student']);
 Auth::requireSharing($payload);
 RateLimiter::limit("project:report:{$payload['id']}", 20, 3600, "신고를 너무 많이 했어요. 잠시 후 다시 시도해주세요.");
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $id = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
 $reason = $data['reason'] ?? '';
 if (!$id || !in_array($reason, ProjectModel::REPORT_REASONS, true)) {

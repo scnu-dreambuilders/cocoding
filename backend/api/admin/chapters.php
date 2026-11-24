@@ -49,7 +49,7 @@ if ($method !== 'PUT') {
 if (!$id) Response::error("어떤 챕터인지 알려주세요.", 400);
 if (!$model->chapter($id)) Response::error("그런 챕터가 없어요.", 404);
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = Response::input();
 if (!is_array($data)) $data = [];
 
 $changes = [];

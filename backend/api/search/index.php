@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     Response::error("잘못된 요청 방식입니다.", 405);
 }
 
-$q = trim((string)($_GET['q'] ?? ''));
+$q = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
 if (mb_strlen($q) < SEARCH_MIN_LENGTH) {
     Response::error("두 글자 이상 입력해주세요.");
 }
