@@ -22,6 +22,7 @@ class Settings {
         'coco.daily_limit'   => 30,
         'report.hide_count'  => 3,
         'board.post_cooldown' => 5,
+        'auth.idle_minutes'  => 15,
     ];
 
     /* 관리자 화면이 입력칸을 그릴 때 쓰는 정보. min~max 밖의 값은 저장하지 않는다 */
@@ -70,6 +71,11 @@ class Settings {
             'group' => '게시판', 'label' => '글쓰기 간격(초)',
             'help' => '도배를 막기 위해 글을 연달아 올릴 수 없는 시간이에요.',
             'min' => 0, 'max' => 3600,
+        ],
+        'auth.idle_minutes' => [
+            'group' => '보안', 'label' => '자동 로그아웃(분)',
+            'help' => '이 시간 동안 서버에 아무 요청이 없으면 자동으로 로그아웃돼요. 0으로 두면 꺼져요.',
+            'min' => 0, 'max' => 1440,
         ],
     ];
 

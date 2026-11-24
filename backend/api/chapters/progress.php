@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/Grader.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
 require_once __DIR__ . '/../../models/ChapterModel.php';
+require_once __DIR__ . '/../../models/ClassModel.php';
 require_once __DIR__ . '/../../models/ItemModel.php';
 require_once __DIR__ . '/../../models/CoinModel.php';
 require_once __DIR__ . '/../../models/ProgressModel.php';
@@ -84,6 +85,10 @@ try {
     $progressModel = new ProgressModel();
     if ($coinsEarned > 0) $progressModel->addXp($userId, ProgressModel::XP['chapter']); // 처음 통과했을 때만
 
+    // 선생님이 이 챕터를 과제로 내고 보상을 걸어뒀다면 지금 준다 (과제 하나에 한 번).
+    // 챕터 과제는 '끝냈어요'를 누르는 단계가 없어서, 통과하는 이 순간이 유일한 지급 시점이다
+    $assignmentCoins = (new ClassModel())->settleChapterRewardsForStudent($userId, $chapterId);
+
     // 다음 챕터 잠금 해제 (이미 완료한 챕터를 되돌리지 않음)
     $nextChapter = $chapterModel->findByOrder($chapter['order_num'] + 1);
     if ($nextChapter) {
@@ -116,6 +121,8 @@ Response::success([
     "rewardEmoji" => ItemModel::info($chapter['reward_item'])['emoji'],
     "rewardGranted" => (bool)$rewardGranted,
     "coinsEarned" => $coinsEarned,
+    // 선생님 과제 보상으로 이번에 받은 코인 (없으면 0). coinsEarned 와는 따로 센다
+    "assignmentCoins" => $assignmentCoins,
     "newAchievements" => $progressModel->checkAll($userId),
     "level" => ProgressModel::levelInfo($progressModel->xp($userId)),
     "alreadyCompleted" => $alreadyCompleted,

@@ -7,6 +7,12 @@
 // PUT ?id=N {title?, note?, due_on?, reward_coins?}                 선생님: 과제 고치기
 // DELETE ?id=N             선생님: 과제 취소
 // POST {done_id, note?}    학생: 직접 쓴 과제를 끝냈다고 표시 (챕터 과제는 진도로 자동 판정)
+//
+// 보상 코인(reward_coins)을 주는 시점
+//   · 직접 쓴 과제: 학생이 '끝냈어요'를 처음 누를 때
+//   · 챕터 과제: 학생이 그 챕터를 통과할 때 (api/chapters/progress.php).
+//     과제를 내기 전에 이미 통과한 학생은 선생님이 과제를 내거나 보상을 고치는 순간 받는다.
+//   어느 쪽이든 과제 하나에 한 번만 준다 (ClassModel 의 '챕터 과제 보상' 참고)
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/RateLimiter.php';
@@ -116,6 +122,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }, $stmt->fetchAll()));
     }
 
+    // 완료로 보이는 챕터 과제 중 보상을 아직 못 받은 것이 있으면 여기서 채운다.
+    // 이 기능이 생기기 전에 통과한 과제, 반을 옮겨 온 경우처럼 다른 지급 시점을 놓친 것을 메운다
+    $classes->settleChapterRewardsForStudent($userId);
+
     // 학생: 내가 속한 모든 반의 과제
     $stmt = $db->prepare("SELECT a.id, a.chapter_id, a.note, a.due_on, a.reward_coins,
             c.order_num, $titleExpr AS title, cl.name AS class_name,
@@ -206,13 +216,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existing) {
             $db->prepare("UPDATE class_assignments SET note = ?, due_on = ?, reward_coins = ? WHERE id = ?")
                 ->execute([$note !== '' ? $note : null, $due !== '' ? $due : null, $reward, $existing]);
-            Response::success(["id" => (int)$existing, "message" => "이미 낸 과제라서 내용만 바꿨어요."]);
+            $paid = $classes->settleChapterRewardsForAssignment((int)$existing);
+            Response::success(["id" => (int)$existing, "rewardedCount" => $paid,
+                "message" => "이미 낸 과제라서 내용만 바꿨어요." . ($paid > 0 ? " 이미 챕터를 끝낸 학생 {$paid}명에게 보상을 줬어요." : '')]);
         }
     }
 
     $stmt = $db->prepare("INSERT INTO class_assignments (class_id, chapter_id, title, note, reward_coins, due_on) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->execute([$class['id'], $chapterId ?: null, $title ?: null, $note !== '' ? $note : null, $reward, $due !== '' ? $due : null]);
-    Response::success(["id" => (int)$db->lastInsertId(), "message" => "과제를 냈어요. 학생 화면에 바로 보여요."], 201);
+    $newId = (int)$db->lastInsertId();
+    // 과제를 내기 전에 이미 이 챕터를 끝낸 학생에게도 같은 보상을 준다
+    $paid = $chapterId ? $classes->settleChapterRewardsForAssignment($newId) : 0;
+    Response::success(["id" => $newId, "rewardedCount" => $paid,
+        "message" => "과제를 냈어요. 학생 화면에 바로 보여요." . ($paid > 0 ? " 이미 챕터를 끝낸 학생 {$paid}명에게 보상을 줬어요." : '')], 201);
 }
 
 $assignmentId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
@@ -248,7 +264,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 
     $params[] = $assignmentId;
     $db->prepare("UPDATE class_assignments SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
-    Response::success(["message" => "과제를 고쳤어요."]);
+    // 보상을 0에서 올렸다면, 이미 챕터를 끝낸 학생이 이때 받는다 (이미 받은 학생은 다시 받지 않는다)
+    $paid = $a['chapter_id'] ? $classes->settleChapterRewardsForAssignment((int)$assignmentId) : 0;
+    Response::success(["rewardedCount" => $paid,
+        "message" => "과제를 고쳤어요." . ($paid > 0 ? " 이미 챕터를 끝낸 학생 {$paid}명에게 보상을 줬어요." : '')]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {

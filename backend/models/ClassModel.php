@@ -1,6 +1,7 @@
 <?php
 // backend/models/ClassModel.php — 선생님 반과 반 학생
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/CoinModel.php';
 require_once __DIR__ . '/../config/Validators.php';
 
 class ClassModel {
@@ -128,5 +129,55 @@ class ClassModel {
         $stmt = $this->db->prepare("UPDATE class_members SET class_id = ? WHERE class_id = ? AND student_id = ?");
         $stmt->execute([$toClassId, $fromClassId, $studentId]);
         return $stmt->rowCount() > 0;
+    }
+
+    /* ── 챕터 과제 보상 ───────────────────────────
+       챕터 과제는 학생이 그 챕터를 통과했는지로 완료를 판정한다. 보상도 같은 기준으로 준다.
+       과제를 내기 전에 이미 통과한 학생도 완료로 보이므로 보상도 똑같이 받는다.
+
+       과제 하나에 한 번만 준다. coin_log 의 (user_id, reason, ref) 유니크 키가 두 번째를 막는다.
+       직접 쓴 과제의 '끝냈어요'와 같은 reason('assignment')·ref(과제 번호)를 쓴다.
+       그래서 보상 금액을 나중에 올려도 이미 받은 학생에게 차액을 더 주지는 않는다. */
+
+    // 한 학생이 받을 수 있는 챕터 과제 보상을 모두 준다. 이번에 새로 받은 코인 합을 돌려준다.
+    // $chapterId 를 주면 그 챕터로 낸 과제만 본다 (챕터를 막 통과했을 때)
+    public function settleChapterRewardsForStudent($studentId, $chapterId = null) {
+        $sql = "SELECT a.id, a.reward_coins FROM class_assignments a
+                JOIN class_members m ON m.class_id = a.class_id AND m.student_id = ?
+                JOIN user_chapter_progress p ON p.user_id = m.student_id
+                     AND p.chapter_id = a.chapter_id AND p.status = 'completed'
+                WHERE a.chapter_id IS NOT NULL AND a.reward_coins > 0";
+        $args = [$studentId];
+        if ($chapterId !== null) {
+            $sql .= " AND a.chapter_id = ?";
+            $args[] = $chapterId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($args);
+        $coins = new CoinModel();
+        $total = 0;
+        foreach ($stmt->fetchAll() as $a) {
+            $total += $coins->grant($studentId, (int)$a['reward_coins'], 'assignment', (string)$a['id']);
+        }
+        return $total;
+    }
+
+    // 과제 하나에 대해, 이미 그 챕터를 통과한 반 학생 모두에게 보상을 준다.
+    // 이번에 새로 받은 학생 수를 돌려준다 (선생님이 과제를 내거나 보상을 고쳤을 때)
+    public function settleChapterRewardsForAssignment($assignmentId) {
+        $stmt = $this->db->prepare("SELECT a.reward_coins, m.student_id FROM class_assignments a
+            JOIN class_members m ON m.class_id = a.class_id
+            JOIN user_chapter_progress p ON p.user_id = m.student_id
+                 AND p.chapter_id = a.chapter_id AND p.status = 'completed'
+            WHERE a.id = ? AND a.chapter_id IS NOT NULL AND a.reward_coins > 0");
+        $stmt->execute([$assignmentId]);
+        $coins = new CoinModel();
+        $paid = 0;
+        foreach ($stmt->fetchAll() as $row) {
+            if ($coins->grant((int)$row['student_id'], (int)$row['reward_coins'], 'assignment', (string)$assignmentId) > 0) {
+                $paid++;
+            }
+        }
+        return $paid;
     }
 }

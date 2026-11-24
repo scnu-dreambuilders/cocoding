@@ -4,7 +4,7 @@
 // migrations/upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
 // 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-11-20';
+    const VERSION = '2026-11-24';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -399,6 +399,11 @@ class SchemaUpgrader {
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
         ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        /* ── 2026-11-24 자리 비움 자동 로그아웃 ── */
+        if (self::column($db, 'users', 'last_active_at') === null) {
+            $db->exec("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP NULL AFTER token_version");
+        }
 
         // 챕터가 예전 블록 id(move-x처럼 하이픈)로 되어 있으면 새 내용으로 교체
         $chapters = [
