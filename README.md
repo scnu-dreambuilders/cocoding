@@ -138,7 +138,7 @@ php tools/practice_data.php 지우기
 
 서버가 볼 수 있는 것은 요청이 왔는지뿐입니다. 블록 편집기처럼 요청 없이 오래 작업하는 화면에서는, 화면 쪽이 사용 중일 때 가벼운 요청(`GET /api/auth/me.php`)을 몇 분에 한 번 보내 줘야 작업 중에 끊기지 않습니다. 그래서 꺼 둔 채로 배포하고, 화면에 그 처리가 들어간 뒤 관리자 화면에서 켭니다.
 
-**기준 시간대** : 서비스가 "오늘"을 세는 기준은 `backend/.env`의 `APP_TIMEZONE`입니다(비워두면 `Asia/Seoul`). PHP와 DB 세션에 같은 값을 넣기 때문에 서버가 UTC로 설정돼 있어도 출석·일일 제한·가입자 통계의 날짜가 어긋나지 않습니다.
+**기준 시간대** : 서비스가 "오늘"을 세는 기준은 `.env`의 `APP_TIMEZONE`입니다(비워두면 `Asia/Seoul`). `backend`가 DocumentRoot 밖이면 `backend/.env`, FTP처럼 `public_html` 안이면 `public_html` 밖의 `.env`를 씁니다. PHP와 DB 세션에 같은 값을 넣기 때문에 서버가 UTC로 설정돼 있어도 출석·일일 제한·가입자 통계의 날짜가 어긋나지 않습니다.
 
 | 주소 | 메서드 | 하는 일 |
 | --- | --- | --- |
@@ -179,7 +179,7 @@ php tools/practice_data.php 지우기
 
 **정지된 계정**은 로그인은 되지만 다른 API가 403으로 막히고, 사유가 응답에 들어갑니다. 401로 막으면 화면이 "로그인 풀림"으로 보고 조용히 로그아웃시켜서 학생이 이유를 알 수 없습니다.
 
-관리자 웹을 다른 주소(포트)에 띄우면 `backend/.env`의 `ALLOWED_ORIGINS`에 그 주소를 추가해야 합니다.
+관리자 웹을 다른 주소(포트)에 띄우면 `.env`의 `ALLOWED_ORIGINS`에 그 주소를 추가해야 합니다. `backend`가 DocumentRoot 밖이면 `backend/.env`, FTP처럼 `public_html` 안이면 `public_html` 밖의 `.env`입니다.
 
 ---
 
@@ -204,17 +204,27 @@ php tools/practice_data.php 지우기
 
 ## 배포하기 (FTP)
 
-`build-deploy.bat`을 두 번 누르면 저장소 바깥의 `FTP업로드/public_html` 폴더가 최신 코드로 갱신됩니다. 그 안의 내용을 FTP로 서버 `public_html`에 덮어쓰면 됩니다.
+`build-deploy.bat`을 두 번 누르면 저장소 바깥의 `FTP업로드` 폴더가 최신 코드로 갱신됩니다. 그다음 FTP로 **아래처럼 나눠서** 올립니다.
 
-| 갱신되는 것 | 내용 |
+| 갱신되는 것 | 올릴 위치 |
 | --- | --- |
-| `FTP업로드/public_html/` | 화면 + `backend/` (서버에 올릴 것) |
+| `FTP업로드/public_html/` | 서버 `public_html/` |
+| `FTP업로드/.env` | `public_html`의 **바로 위 폴더**. 절대 `public_html` 안에 두지 않습니다 |
+| `FTP업로드/data/` | `public_html`의 **바로 위 폴더**. 로그·메일 기록이 쌓이는 폴더 |
 | `DB.sql` (저장소) | 위 "내 컴퓨터에 DB 맞추기"에서 쓰는 파일. 배포본의 `2-DB.sql`과 같은 내용 |
 | `FTP업로드/2-DB.sql` | SQL 한 파일. 안에서 `[A]` 처음 설치용(`schema.sql`)과 `[B]` 기존 DB 업그레이드용(`migrations/upgrade.sql`)으로 나뉘며, 상황에 맞는 구역 하나만 실행 |
 
 화면이 서버를 `/backend/api`로 부르도록 빌드됩니다. 이 주소는 `frontend/.env.production.local`에 있습니다.
 
-서버 설정(`public_html/backend/.env`)과 웹 루트 설정(`public_html/.htaccess`)은 건드리지 않습니다. 지우고 다시 만든 뒤 원래 파일을 되돌려 놓습니다. 관리용 스크립트(`tools/`)와 로그는 빠집니다.
+**보안 배포 규칙** — `.env`와 `data/`는 `public_html` 밖에 둡니다. `.htaccess`가 꺼진 서버에서도 DB 비밀번호·JWT_SECRET·재설정 메일 기록이 웹으로 내려가지 않게 하기 위해서입니다. 빌드 스크립트는 예전 `public_html/backend/.env`가 있으면 내용을 읽어 `FTP업로드/.env`로 옮기고, 웹 루트 안의 파일은 지웁니다. 두 `.env` 내용이 다르면 덮어쓰지 않고 멈춥니다. `backend`를 `public_html` 안의 심볼릭 링크로 연결하면 실제 경로가 밖이어도 URL로 열릴 수 있으니 피하세요.
+
+**서버에 남은 예전 설정·기록 삭제** — 배포 후 서버의 `public_html/backend/.env`, `public_html/backend/data/mail.log`, `public_html/backend/data/logs/`를 직접 지우세요. 예전 `.env`에는 DB 비밀번호·JWT_SECRET이, 예전 `mail.log`에는 아직 유효한 비밀번호 재설정 링크가 들어 있을 수 있습니다. 새 설정과 기록은 `public_html` 밖에만 둡니다.
+
+> 호스팅이 `public_html` 위에 파일을 둘 수 없다면, 웹 루트 밖 경로를 `COCODING_ENV_FILE` 환경변수로 지정하거나 `deploy/apache-cocoding.conf`처럼 `DocumentRoot` 밖에 backend를 두는 구성을 쓰세요. `public_html`이 다른 폴더를 가리키는 심볼릭 링크라면 `.env`를 실제 문서 루트의 바로 위 폴더에 두세요.
+
+서버 설정(`.env`)은 `public_html` 밖에, 웹 루트 설정(`public_html/.htaccess`)은 `public_html` 안에 둡니다. 관리용 스크립트(`tools/`)와 로그는 배포본에서 빠집니다.
+
+비밀번호 찾기 메일이 꺼져 있으면(`MAIL_ENABLED=false`) API는 재설정 토큰을 만들지 않고 503과 "관리자에게 문의" 안내를 돌려줍니다. 메일 본문(재설정 링크)은 로그에 남기지 않습니다. 메일 없이 도와야 할 때는 관리자 웹의 **임시 비밀번호** 발급을 쓰세요.
 
 서버 재채점(`backend/grader/grade.mjs`)은 Node.js가 있어야 돕니다. 호스팅에 없거나 경로가 다르면 `.env`의 `NODE_BIN`에 적어주세요. Node가 없으면 채점만 멈추고 나머지 기능은 그대로 돕니다.
 

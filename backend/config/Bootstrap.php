@@ -44,7 +44,7 @@ set_exception_handler(function ($e) {
         // 그 안내는 내 PC에서 띄웠을 때만 보여준다. 실제 서버에서 설정 파일 이름과
         // 항목 이름을 그대로 돌려주면, 로그인하지 않은 사람에게 서버 구성을 알려주는 셈이 된다.
         if (isLocalRequest()) {
-            Response::error('데이터베이스에 연결할 수 없습니다. backend/.env의 DB_HOST·DB_PORT·DB_USER·DB_PASS를 확인하거나 setup-db.bat을 실행해주세요.', 503);
+            Response::error('데이터베이스에 연결할 수 없습니다. .env의 DB_HOST·DB_PORT·DB_USER·DB_PASS를 확인하거나 setup-db.bat을 실행해주세요.', 503);
         }
         Response::error('지금은 서비스를 이용할 수 없습니다. 잠시 후 다시 시도해주세요.', 503);
     }

@@ -42,7 +42,8 @@ class AiHttp {
             $raw = curl_exec($ch);
             $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $error = curl_error($ch);
-            curl_close($ch);
+            // curl_close()는 PHP 8.0부터 효과가 없고 8.5에서 deprecated라 부르지 않는다.
+            // 핸들은 함수가 끝날 때 알아서 정리된다.
             if ($raw === false) throw new AiUnavailableException("$label 연결 실패: $error");
             return [$status, $raw];
         }
