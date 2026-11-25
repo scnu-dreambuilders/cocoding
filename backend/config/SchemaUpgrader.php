@@ -2,7 +2,9 @@
 // backend/config/SchemaUpgrader.php
 // 기존 DB를 새 기능에 맞게 자동으로 업그레이드.
 // migrations/upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
-// 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
+// 한 번 끝나면 Storage::runtimePath('.schema_version')에 기록해서 다음 요청부터는 건너뛴다.
+require_once __DIR__ . '/Storage.php';
+
 class SchemaUpgrader {
     const VERSION = '2026-11-24';
 
@@ -38,7 +40,7 @@ class SchemaUpgrader {
     ];
 
     private static function markerPath() {
-        return __DIR__ . '/../data/.schema_version';
+        return Storage::runtimePath('.schema_version');
     }
 
     public static function ensure(PDO $db) {
@@ -46,6 +48,7 @@ class SchemaUpgrader {
         if (is_file($marker) && trim((string)file_get_contents($marker)) === self::VERSION) return;
         try {
             self::upgrade($db);
+            Storage::ensureRuntimeDir();
             file_put_contents($marker, self::VERSION);
         } catch (Throwable $e) {
             // 권한 부족 등 — 요청 자체는 계속 처리하고, 다음 요청에서 다시 시도

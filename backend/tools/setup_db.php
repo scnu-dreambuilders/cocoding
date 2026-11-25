@@ -8,6 +8,7 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 require_once __DIR__ . '/../config/SchemaUpgrader.php';
+require_once __DIR__ . '/../config/Storage.php';
 require_once __DIR__ . '/../config/Database.php';
 
 $envPath = __DIR__ . '/../.env';
@@ -73,6 +74,7 @@ if ($hasDb) {
     $t->execute([$dbname]);
     $hasTables = (int)$t->fetchColumn() === 3;
 }
+$upgraded = false;
 
 if (!$hasTables) {
     echo "[..] '$dbname' 데이터베이스가 비어 있어서 schema.sql로 새로 만들어요.\n";
@@ -86,7 +88,7 @@ if (!$hasTables) {
 } else {
     $pdo->exec("USE `$dbname`");
     SchemaUpgrader::upgrade($pdo);
-    @file_put_contents(__DIR__ . '/../data/.schema_version', SchemaUpgrader::VERSION);
+    $upgraded = true;
     echo "[OK] 기존 '$dbname' 데이터베이스를 새 기능에 맞게 업그레이드했어요.\n";
 }
 $pdo->exec("USE `$dbname`");
@@ -115,4 +117,10 @@ foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS', 'JWT_SECRET', '
 }
 foreach ($values as $key => $v) $lines[] = "$key=$v";
 file_put_contents($envPath, implode("\n", $lines) . "\n");
+
+// .env 를 저장한 뒤에야 Storage 가 기록 폴더를 알 수 있다.
+if ($upgraded) {
+    Storage::ensureRuntimeDir();
+    @file_put_contents(Storage::runtimePath('.schema_version'), SchemaUpgrader::VERSION);
+}
 echo "[OK] backend/.env에 저장했어요. 이제 start.bat으로 실행하면 돼요!\n\n";

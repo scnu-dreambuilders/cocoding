@@ -66,6 +66,13 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 RateLimiter::limit("pwreset:send:$email", 3, 3600, "메일을 너무 자주 요청했어요. 잠시 후 다시 해주세요.");
 RateLimiter::limit('pwreset:ip:' . RateLimiter::clientIp(), 15, 3600, "요청이 너무 많아요. 잠시 후 다시 해주세요.");
 
+// 메일이 꺼진 서버에서는 토큰을 만들지 않는다. 예전에는 본문을 mail.log 에 남겨
+// 개발자가 링크를 꺼내 썼지만, 그 링크가 30분 동안 유효한 비밀이라 위험했다.
+if (!Mailer::enabled()) {
+    Logger::error('password.reset.mail_disabled');
+    Response::error('지금은 비밀번호 찾기 메일을 보낼 수 없어요. 관리자에게 문의해주세요.', 503);
+}
+
 $user = $userModel->findByEmail($email);
 if ($user) {
     $token = bin2hex(random_bytes(32));
@@ -74,10 +81,12 @@ if ($user) {
 
     Logger::audit('password.reset.request', ['uid_target' => (int)$user['id']]);
     $link = Mailer::appUrl() . '/?reset=' . $token;
-    Mailer::send($email, '[코코딩] 비밀번호 다시 정하기',
+    $sent = Mailer::send($email, '[코코딩] 비밀번호 다시 정하기',
         "안녕하세요, {$user['username']}님.\n\n" .
         "아래 링크를 눌러 새 비밀번호를 정해주세요. " . RESET_TTL_MINUTES . "분 안에 열어야 해요.\n\n$link\n\n" .
         "본인이 요청한 게 아니라면 이 메일은 그냥 두셔도 됩니다. 비밀번호는 바뀌지 않아요.\n");
+    // 전송 실패는 서버 기록에만 남긴다. 응답은 계정 존재 여부가 새지 않게 그대로 둔다.
+    if (!$sent) Logger::error('password.reset.send_failed', ['uid_target' => (int)$user['id']]);
 }
 
 Response::success(["message" => SAME_ANSWER]);
