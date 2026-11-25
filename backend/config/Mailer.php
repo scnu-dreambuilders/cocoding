@@ -9,12 +9,18 @@ class Mailer {
         return rtrim((string)Env::get('APP_URL', 'http://localhost:5173'), '/');
     }
 
-    // 성공/실패와 상관없이 호출한 쪽 응답은 같아야 한다 (계정 존재 여부가 새지 않게)
-    public static function send($to, $subject, $body) {
-        $from = (string)Env::get('MAIL_FROM', '');
+    // 실제로 메일을 보낼 수 있는 상태인지 (설정이 켜져 있고, 보내는 주소가 있고, mail() 을 쓸 수 있는지).
+    // 비밀번호 찾기가 이 값을 보고, 메일을 못 보내는 서버에서는 "보냈다"고 답하지 않는다
+    public static function enabled() {
         $enabled = filter_var(Env::get('MAIL_ENABLED', 'false'), FILTER_VALIDATE_BOOLEAN);
+        return $enabled && trim((string)Env::get('MAIL_FROM', '')) !== '' && function_exists('mail');
+    }
 
-        if ($enabled && $from !== '' && function_exists('mail')) {
+    // 보냈으면 true. 호출한 쪽은 성공·실패와 상관없이 같은 응답을 해야 한다 (계정 존재 여부가 새지 않게)
+    public static function send($to, $subject, $body) {
+        $from = trim((string)Env::get('MAIL_FROM', ''));
+
+        if (self::enabled()) {
             $headers = [
                 'From: ' . $from,
                 'Content-Type: text/plain; charset=UTF-8',
