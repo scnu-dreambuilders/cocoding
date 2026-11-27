@@ -54,7 +54,7 @@ if ($method !== 'PATCH') {
 if (!$id) Response::error("어떤 글인지 알려주세요.", 400);
 if (!$model->targetExists($target, $id)) Response::error("그런 글이 없어요.", 404);
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = Response::input();
 if (!is_array($data) || !array_key_exists('hidden', $data) || !is_bool($data['hidden'])) {
     Response::error("hidden 을 true 또는 false 로 보내주세요.", 400);
 }
@@ -68,6 +68,9 @@ Logger::admin('admin.moderation', [
 ]);
 
 Response::success([
-    'message' => $data['hidden'] ? '숨겼어요.' : '다시 보이게 했어요.',
+    // 작품은 신고로 숨겨질 때 비공개로도 바뀐다. 숨김을 풀어도 공개 여부는 주인이 정하게 그대로 둔다
+    // (아이의 작품을 운영자가 대신 공개하지 않는다). 그래서 작품은 '다시 보인다'고 답하지 않는다
+    'message' => $data['hidden'] ? '숨겼어요.'
+        : ($target === 'project' ? '숨김을 풀었어요. 작품 주인이 다시 공개하면 보여요.' : '다시 보이게 했어요.'),
     'hidden' => $data['hidden'],
 ]);

@@ -85,7 +85,7 @@ class SocialModel {
             FROM follows f
             JOIN follows back ON back.follower_id = f.following_id AND back.following_id = f.follower_id
             JOIN users u ON u.id = f.following_id
-            WHERE f.follower_id = ? ORDER BY u.username ASC");
+            WHERE f.follower_id = ? AND u.consent_status <> 'pending' ORDER BY u.username ASC");
         $stmt->execute([$user_id]);
         return $stmt->fetchAll();
     }
@@ -94,7 +94,7 @@ class SocialModel {
     public function followingOnly($user_id) {
         $stmt = $this->db->prepare("SELECT u.id, u.username, u.xp
             FROM follows f JOIN users u ON u.id = f.following_id
-            WHERE f.follower_id = ? AND NOT EXISTS (
+            WHERE f.follower_id = ? AND u.consent_status <> 'pending' AND u.profile_visibility <> 'private' AND NOT EXISTS (
                 SELECT 1 FROM follows b WHERE b.follower_id = f.following_id AND b.following_id = f.follower_id)
             ORDER BY u.username ASC");
         $stmt->execute([$user_id]);

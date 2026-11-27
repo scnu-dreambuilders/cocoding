@@ -17,7 +17,7 @@ Auth::requireSharing($payload);
 $userId = (int)$payload['id'];
 RateLimiter::limit("like:$userId", 120, 3600, "좋아요를 너무 빨리 눌렀어요. 잠시 후 다시 해주세요.");
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $id = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
 
 $projects = new ProjectModel();
@@ -37,6 +37,11 @@ if ($result['liked']) {
     $progress = new ProgressModel();
     $progress->addXp((int)$project['user_id'], ProgressModel::XP['like_received']);
     $progress->checkAll((int)$project['user_id']);
+} else {
+    // 좋아요를 취소하면 그때 준 경험치를 되돌린다. 그대로 두면 눌렀다 취소하기를
+    // 되풀이하는 것만으로 작품 주인의 경험치(레벨·랭킹)를 끝없이 올릴 수 있다
+    Database::getInstance()->prepare("UPDATE users SET xp = GREATEST(0, xp - ?), updated_at = updated_at WHERE id = ?")
+        ->execute([ProgressModel::XP['like_received'], (int)$project['user_id']]);
 }
 
 Response::success($result);

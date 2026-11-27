@@ -8,18 +8,18 @@ require_once __DIR__ . '/../../config/Logger.php';
 
 // 실패 제한 (15분 기준)
 //   계정+IP 5번  — 한 곳에서 한 계정 대입 방지. 남이 내 이메일로 일부러 틀려도 막히는 건 그 사람 IP뿐
-//   IP 20번      — 한 IP에서 여러 계정 대입 방지
+//   IP 100번     — 한 IP에서 여러 계정 대입 방지 (한 교실이 같은 IP를 쓴다)
 //   계정 50번    — 여러 IP를 돌려가며 한 계정을 노리는 경우 (5번으로 하면 아무나 남의 계정을 잠글 수 있음)
 const LOGIN_WINDOW = 900;
 const LOGIN_MAX_PER_ACCOUNT_IP = 5;
-const LOGIN_MAX_PER_IP = 20;
+const LOGIN_MAX_PER_IP = 100; // 한 교실이 같은 IP 를 쓴다. 20번이면 학생 몇 명이 비밀번호를 틀려도 반 전체가 15분 막힌다
 const LOGIN_MAX_PER_ACCOUNT = 50;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);
 }
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $email = is_string($data['email'] ?? null) ? strtolower(trim($data['email'])) : '';
 $password = is_string($data['password'] ?? null) ? $data['password'] : '';
 
@@ -27,6 +27,8 @@ $ip = RateLimiter::clientIp();
 $accountKey = 'login:account:' . $email;
 $accountIpKey = 'login:account-ip:' . $email . '|' . $ip;
 $ipKey = 'login:ip:' . $ip;
+// 같은 계정을 향한 시도는 한 번에 하나씩 처리한다 (한꺼번에 보내 실패 제한을 넘기는 것을 막는다)
+RateLimiter::hold($accountKey);
 if (RateLimiter::tooMany($accountIpKey, LOGIN_MAX_PER_ACCOUNT_IP, LOGIN_WINDOW)
     || RateLimiter::tooMany($ipKey, LOGIN_MAX_PER_IP, LOGIN_WINDOW)
     || RateLimiter::tooMany($accountKey, LOGIN_MAX_PER_ACCOUNT, LOGIN_WINDOW)) {
@@ -36,7 +38,10 @@ if (RateLimiter::tooMany($accountIpKey, LOGIN_MAX_PER_ACCOUNT_IP, LOGIN_WINDOW)
 }
 
 $userModel = new UserModel();
-$user = $email !== '' ? $userModel->findByEmail($email) : null;
+// 이메일 모양(영문·숫자·기호)이 아니면 계정을 찾지 않는다. DB는 악센트가 붙은 글자를 같은 글자로 보아서
+// 'víctim@x.com' 도 'victim@x.com' 계정을 찾아낸다. 그런데 실패 횟수는 입력한 글자 그대로 세므로,
+// 글자를 조금씩 바꿔 가며 계정별 제한(5번)을 피해 같은 계정을 계속 두드릴 수 있었다
+$user = filter_var($email, FILTER_VALIDATE_EMAIL) ? $userModel->findByEmail($email) : null;
 
 // 없는 계정이어도 같은 시간이 걸리게 가짜 해시로 한 번 검사 (계정 존재 여부를 응답 시간으로 알 수 없게)
 $hash = $user['password_hash'] ?? '$2y$10$DjplZbF2rfjdC8CHvu9C6.kbrXewxs/EHHWN2sEFCH9/BZEVm6WaO';

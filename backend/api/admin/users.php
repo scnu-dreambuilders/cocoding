@@ -38,6 +38,7 @@ require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/Logger.php';
 require_once __DIR__ . '/../../models/AdminModel.php';
 require_once __DIR__ . '/../../models/UserModel.php';
+require_once __DIR__ . '/../../models/GuardianModel.php';
 
 $admin = Auth::requireAdmin();
 $adminId = (int)$admin['id'];
@@ -71,13 +72,29 @@ if ($method === 'DELETE') {
     if ($target['is_admin']) {
         Response::error("운영자 권한을 먼저 빼고 지워주세요.", 400);
     }
-    (new UserModel())->delete($id);
+    // 보호자를 지우면 연결도 함께 사라진다. 동의해 준 보호자가 아무도 남지 않은 자녀는
+    // 본인이 탈퇴했을 때(api/auth/account.php)와 똑같이 동의 전 상태로 되돌린다
+    $guardians = new GuardianModel();
+    $users = new UserModel();
+    $children = $target['role'] === 'guardian' ? $guardians->studentIds($id) : [];
+    $db = Database::getInstance();
+    $db->beginTransaction();
+    try {
+        $users->delete($id);
+        foreach ($children as $childId) {
+            if ($guardians->guardianCount($childId) === 0) $users->revokeConsent($childId);
+        }
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollBack();
+        throw $e;
+    }
     Logger::admin('admin.user.delete', ['target' => $id, 'by' => $adminId]);
     Response::success(['message' => '회원을 지웠어요.']);
 }
 
 /* ── 상태 바꾸기 ────────────────────────────── */
-$data = json_decode(file_get_contents("php://input"), true);
+$data = Response::input();
 if (!is_array($data)) $data = [];
 
 $changes = [];   // DB 컬럼 => 값
@@ -135,6 +152,7 @@ if (array_key_exists('consent', $data)) {
         Response::error("보호자 동의를 기다리는 계정이 아니에요.", 400);
     }
     $changes['consent_status'] = 'granted';
+    $changes['consent_code'] = null; // 보호자가 코드로 동의했을 때와 똑같이, 쓴 코드는 비운다
     $changes['consent_at'] = date('Y-m-d H:i:s');
 }
 
@@ -172,17 +190,38 @@ if (!$changes && !$forceLogout && $coinDelta === 0 && $xpDelta === 0 && !$resetP
     Response::error("바꿀 내용이 없어요.", 400);
 }
 
+// 여러 표를 고친다. 중간에 실패하면 일부만 바뀐 채 남지 않도록 한 번에 묶는다
+$db = Database::getInstance();
+$db->beginTransaction();
+try {
+
 $changed = $model->updateUser($id, $changes);
+
+// 보호자가 아닌 유형으로 바꾸면 자녀 연결을 끊는다. 그대로 두면 연결은 남는데
+// 보호자 화면에 못 들어가서 끊을 수도 없고, 자녀의 동의 상태도 근거 없이 남는다
+if (isset($changes['role']) && $target['role'] === 'guardian' && $changes['role'] !== 'guardian') {
+    $guardians = new GuardianModel();
+    $users = new UserModel();
+    foreach ($guardians->studentIds($id) as $childId) {
+        $guardians->unlink($id, $childId);
+        if ($guardians->guardianCount($childId) === 0) $users->revokeConsent($childId);
+    }
+    $extras[] = 'unlink';
+}
+// 이메일이 바뀌면 옛 주소로 보낸 재설정 링크는 못 쓰게 한다
+if (isset($changes['email'])) {
+    (new UserModel())->invalidateResetLinks($id);
+}
 
 /* 임시 비밀번호. 사람이 받아 적을 수 있게 섞이기 쉬운 글자(0·O·1·l·I)를 뺀다 */
 $tempPassword = null;
 if ($resetPassword) {
     $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
     $tempPassword = '';
-    for ($i = 0; $i < 10; $i++) {
+    for ($i = 0; $i < 9; $i++) {
         $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
     }
-    $tempPassword .= '!'; // 비밀번호 규칙(특수문자)을 만족시키려고
+    $tempPassword .= '7!'; // 무작위 글자에 숫자가 하나도 없을 수 있다. 비밀번호 규칙(영문+숫자)을 확실히 맞춘다
     $model->setPassword($id, $tempPassword);
     $extras[] = 'password';
 }
@@ -207,6 +246,12 @@ $needLogout = $forceLogout
 if ($needLogout) {
     Auth::revoke($id);
     $extras[] = 'logout';
+}
+
+    $db->commit();
+} catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    throw $e;
 }
 
 Logger::admin('admin.user.update', [

@@ -443,14 +443,26 @@ class AdminModel {
         // coin_log 에는 (user_id, reason, ref) 유니크 키가 있다. 같은 초에 두 번 조정하면
         // 시각만으로는 ref 가 겹쳐서 중복 키 오류가 난다. 무작위 꼬리를 붙여 겹치지 않게 한다
         $ref = 'by:' . $adminId . ':' . date('YmdHis') . ':' . bin2hex(random_bytes(3));
-        $this->db->prepare("INSERT INTO coin_log (user_id, amount, reason, ref) VALUES (?, ?, 'admin', ?)")
-            ->execute([$userId, $delta, $ref]);
-        // 코인이 음수가 되지 않게 막는다
-        $this->db->prepare("UPDATE users SET coins = GREATEST(0, coins + ?) WHERE id = ?")
-            ->execute([$delta, $userId]);
-        $stmt = $this->db->prepare("SELECT coins FROM users WHERE id = ?");
-        $stmt->execute([$userId]);
-        return (int)$stmt->fetchColumn();
+        $own = !$this->db->inTransaction();
+        if ($own) $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare("SELECT coins FROM users WHERE id = ? FOR UPDATE");
+            $stmt->execute([$userId]);
+            $before = (int)$stmt->fetchColumn();
+            // 코인은 0 아래로 내려가지 않는다. 5코인 가진 회원에게 -100 을 보내면 실제로는 -5 다.
+            // 기록에도 실제로 바뀐 만큼만 남겨야 '받은 코인 - 쓴 코인 = 가진 코인' 이 맞는다
+            $applied = max(-$before, (int)$delta);
+            if ($applied !== 0) {
+                $this->db->prepare("INSERT INTO coin_log (user_id, amount, reason, ref) VALUES (?, ?, 'admin', ?)")
+                    ->execute([$userId, $applied, $ref]);
+                $this->db->prepare("UPDATE users SET coins = coins + ? WHERE id = ?")->execute([$applied, $userId]);
+            }
+            if ($own) $this->db->commit();
+        } catch (Throwable $e) {
+            if ($own) $this->db->rollBack();
+            throw $e;
+        }
+        return $before + $applied;
     }
 
     public function adjustXp($userId, $delta) {
@@ -469,6 +481,7 @@ class AdminModel {
     public function setPassword($userId, $plain) {
         $this->db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")
             ->execute([password_hash($plain, PASSWORD_DEFAULT), $userId]);
+        (new UserModel())->invalidateResetLinks($userId); // 전에 보낸 재설정 링크는 못 쓰게
     }
 
     /* ── 통계 ─────────────────────────────────── */

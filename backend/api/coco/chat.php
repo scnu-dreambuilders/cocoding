@@ -45,13 +45,15 @@ TXT;
 
 $payload = Auth::requireUser();
 $userId = (int)$payload['id'];
-// 하루 질문 횟수는 관리자 웹에서 고친다. .env 의 COCO_DAILY_LIMIT 는 기준값을
-// 한 번도 저장하지 않은 설치를 위해 config/Settings.php 의 기본값으로만 남아 있다
+// 하루 질문 횟수는 관리자 웹의 운영 기준값(coco.daily_limit)에서 고친다
 $dailyLimit = max(1, Settings::int('coco.daily_limit'));
-$dailyKey = "coco:chat:day:$userId";
+// 횟수는 날짜가 바뀌면 새로 센다. 전에는 '지난 24시간'을 셌는데, 화면과 안내는 "내일 또 물어봐"라고 해서
+// 저녁에 다 쓴 학생이 다음 날 아침에 와도 여전히 막혀 있었다
+$chatDay = AppTime::today();
+$dailyKey = "coco:chat:day:$userId:$chatDay";
 // 사이트 전체 하루 한도: 계정을 여러 개 만들어 API 할당량·요금을 다 써버리는 것을 막는다
 $globalLimit = max(1, (int)Env::get('COCO_GLOBAL_DAILY_LIMIT', 1000));
-$globalKey = 'coco:chat:day:all';
+$globalKey = "coco:chat:day:all:$chatDay";
 
 function remaining($key, $limit) {
     return max(0, $limit - RateLimiter::count($key, 86400));
@@ -74,14 +76,22 @@ if (!AiChat::isConfigured()) {
 }
 
 RateLimiter::limit("coco:chat:min:$userId", PER_MINUTE, 60, '너무 빨리 물어봤어! 잠깐 쉬었다가 다시 물어봐');
-if (RateLimiter::tooMany($dailyKey, $dailyLimit, 86400)) {
+// 하루 횟수는 물어보기 전에 먼저 한 번 쓴 것으로 잡는다. 답을 받은 뒤에 세면, 답을 기다리는 동안
+// 보낸 요청들이 모두 "아직 남았다"고 보고 통과해서 한도를 넘는다. AI가 답하지 못하면 아래에서 돌려준다
+if (!RateLimiter::take($dailyKey, $dailyLimit, 86400)) {
     Response::error("오늘은 코코랑 이야기를 많이 했어! 내일 또 물어봐", 429);
 }
-if (RateLimiter::tooMany($globalKey, $globalLimit, 86400)) {
+if (!RateLimiter::take($globalKey, $globalLimit, 86400)) {
+    RateLimiter::refund($dailyKey);
     Response::error("오늘은 친구들이 코코를 너무 많이 불러서 쉬는 중이야. 내일 또 물어봐", 429);
 }
+// 여기부터 답을 주지 못하고 끝나는 길에서는 잡아 둔 횟수를 돌려준다
+function giveBack($dailyKey, $globalKey) {
+    RateLimiter::refund($dailyKey);
+    RateLimiter::refund($globalKey);
+}
 
-$data = json_decode(file_get_contents('php://input'), true) ?? [];
+$data = Response::input();
 
 // 아이들이 무심코 적은 전화번호·이메일은 외부로 보내기 전에 가린다
 function scrub($text) {
@@ -96,6 +106,7 @@ function clip($text, $max) {
 
 $message = clip($data['message'] ?? '', MESSAGE_MAX);
 if ($message === '') {
+    giveBack($dailyKey, $globalKey);
     Response::error('코코에게 할 말을 적어줘!');
 }
 
@@ -113,8 +124,9 @@ while ($contents && $contents[0]['role'] !== 'user') array_shift($contents);
 // 지금 보고 있는 화면 정보는 질문 앞에 붙여서 보낸다
 $context = is_array($data['context'] ?? null) ? $data['context'] : [];
 $prefix = '';
-$chapter = clip($context['chapter'] ?? '', 100);
-$code = clip($context['code'] ?? '', CODE_MAX);
+// 말하기 블록에 적은 글도 코드에 들어 있다. 질문과 똑같이 전화번호·이메일을 가리고 보낸다
+$chapter = scrub(clip($context['chapter'] ?? '', 100));
+$code = scrub(clip($context['code'] ?? '', CODE_MAX));
 if ($chapter !== '') $prefix .= "[지금 하는 챕터: $chapter]\n";
 if ($code !== '') $prefix .= "[학생의 현재 블록 코드]\n$code\n[코드 끝]\n";
 $contents[] = ['role' => 'user', 'text' => $prefix . scrub($message)];
@@ -126,12 +138,9 @@ try {
     ]);
 } catch (AiUnavailableException $e) {
     error_log($e->getMessage());
+    giveBack($dailyKey, $globalKey); // 오류로 횟수가 줄지 않게
     Response::error('코코가 지금 대답하기 어려워. 잠시 후에 다시 물어봐!', 503);
 }
-
-// 답을 받았을 때만 하루 횟수를 센다 (오류로 횟수가 줄지 않게)
-RateLimiter::hit($dailyKey);
-RateLimiter::hit($globalKey);
 
 if ($reply === null) {
     $reply = FALLBACK_REPLY;

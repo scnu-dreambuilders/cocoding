@@ -58,7 +58,7 @@ class ProgressModel {
     public function addXp($user_id, $amount) {
         $amount = (int)$amount;
         if ($amount <= 0) return;
-        $this->db->prepare("UPDATE users SET xp = xp + ? WHERE id = ?")->execute([$amount, $user_id]);
+        $this->db->prepare("UPDATE users SET xp = xp + ?, updated_at = updated_at WHERE id = ?")->execute([$amount, $user_id]);
     }
 
     public function xp($user_id) {

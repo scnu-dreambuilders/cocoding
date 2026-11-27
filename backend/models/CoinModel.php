@@ -56,7 +56,7 @@ class CoinModel {
         $stmt = $this->db->prepare("INSERT IGNORE INTO coin_log (user_id, amount, reason, ref) VALUES (?, ?, ?, ?)");
         $stmt->execute([$user_id, $amount, $reason, $ref]);
         if ($stmt->rowCount() === 0) return 0; // 이미 지급됨
-        $this->db->prepare("UPDATE users SET coins = coins + ? WHERE id = ?")->execute([$amount, $user_id]);
+        $this->db->prepare("UPDATE users SET coins = coins + ?, updated_at = updated_at WHERE id = ?")->execute([$amount, $user_id]);
         return $amount;
     }
 
@@ -64,7 +64,7 @@ class CoinModel {
     public function spend($user_id, $amount, $reason, $ref = null) {
         $amount = (int)$amount;
         if ($amount <= 0) return false;
-        $stmt = $this->db->prepare("UPDATE users SET coins = coins - ? WHERE id = ? AND coins >= ?");
+        $stmt = $this->db->prepare("UPDATE users SET coins = coins - ?, updated_at = updated_at WHERE id = ? AND coins >= ?");
         $stmt->execute([$amount, $user_id, $amount]);
         if ($stmt->rowCount() === 0) return false;
         $this->db->prepare("INSERT INTO coin_log (user_id, amount, reason, ref) VALUES (?, ?, ?, ?)")

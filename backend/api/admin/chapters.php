@@ -9,12 +9,17 @@
 // (frontend/src/data/chapterLogic.js 의 CHAPTER_COUNT)와 맞춰져 있어서, DB 에서만
 // 늘리면 화면이 그 챕터를 그릴 수 없다. 글자(제목·개념·미션)와 보상만 고칠 수 있다.
 //
-// 블록 id 목록(new_blocks·required_blocks)도 고칠 수 있게 뒀지만, 아는 블록인지
-// 서버에서 확인한다. 모르는 블록을 넣으면 그 챕터의 채점이 영원히 통과하지 못한다.
+// 여기서 고친 것이 어디까지 반영되는지 (2026-11 기준)
+//   · 보상 아이템: 바로 반영된다. 챕터를 통과할 때 이 값으로 지급한다.
+//   · 제목·개념·미션: DB에는 저장되고 검색과 관리자 화면에 보인다. 학생 화면은 1~5챕터의 글을
+//     화면 코드(frontend/src/data/chapters.js)에서 읽으므로 학생에게는 바뀌어 보이지 않는다.
+//   · 블록 목록(new_blocks·required_blocks): 채점에는 쓰이지 않는다. 채점 기준은 채점기
+//     (frontend/src/data/chapterLogic.js 를 묶은 backend/grader/grade.mjs)에 들어 있고,
+//     서버는 채점기에 챕터 번호만 넘긴다. 채점 기준을 바꾸려면 화면 코드를 고쳐 다시 빌드해야 한다.
+// 블록 목록은 아는 블록인지만 서버에서 확인한다.
 //
 // 정한 규칙
-//   · 이미 그 챕터를 하고 있는 학생 수를 함께 돌려준다. 미션이나 필요한 블록을 바꾸면
-//     진행 중인 학생의 채점 결과가 달라지므로, 화면에서 경고를 띄울 수 있게 한다.
+//   · 이미 그 챕터를 하고 있는 학생 수를 함께 돌려준다.
 //   · 이미 끝낸 학생의 진행 기록은 건드리지 않는다. 다시 풀게 만들지 않는다.
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
@@ -49,7 +54,7 @@ if ($method !== 'PUT') {
 if (!$id) Response::error("어떤 챕터인지 알려주세요.", 400);
 if (!$model->chapter($id)) Response::error("그런 챕터가 없어요.", 404);
 
-$data = json_decode(file_get_contents("php://input"), true);
+$data = Response::input();
 if (!is_array($data)) $data = [];
 
 $changes = [];
@@ -83,7 +88,7 @@ foreach (['new_blocks', 'required_blocks'] as $field) {
         if (!in_array($b, $clean, true)) $clean[] = $b;
     }
     if ($field === 'required_blocks' && !$clean) {
-        // 필요한 블록이 하나도 없으면 무엇을 해도 통과한다
+        // 비어 있는 목록은 받지 않는다 (나중에 채점이 이 값을 쓰게 되면 무엇을 해도 통과하게 된다)
         Response::error("채점에 필요한 블록은 하나 이상 골라주세요.", 400);
     }
     $changes[$field] = json_encode($clean, JSON_UNESCAPED_UNICODE);
@@ -96,8 +101,8 @@ Logger::admin('admin.chapter.update', ['by' => $adminId, 'chapter' => $id, 'fiel
 
 $usage = $model->chapterUsage($id);
 $message = '챕터를 고쳤어요.';
-if ($usage['inProgress'] > 0 && (isset($changes['required_blocks']) || isset($changes['mission']))) {
-    $message .= " 지금 이 챕터를 하고 있는 학생이 {$usage['inProgress']}명 있어요.";
+if (isset($changes['required_blocks']) || isset($changes['new_blocks']) || isset($changes['mission']) || isset($changes['title']) || isset($changes['concept'])) {
+    $message .= ' 제목·미션·블록은 저장만 되고, 학생 화면의 글과 채점 기준은 화면 코드를 고쳐야 바뀌어요.';
 }
 
 Response::success(['chapter' => $model->chapter($id), 'usage' => $usage, 'message' => $message]);

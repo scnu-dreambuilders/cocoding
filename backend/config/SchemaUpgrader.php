@@ -2,11 +2,9 @@
 // backend/config/SchemaUpgrader.php
 // 기존 DB를 새 기능에 맞게 자동으로 업그레이드.
 // migrations/upgrade.sql과 같은 내용이며, 몇 번 실행해도 안전하다.
-// 한 번 끝나면 Storage::runtimePath('.schema_version')에 기록해서 다음 요청부터는 건너뛴다.
-require_once __DIR__ . '/Storage.php';
-
+// 한 번 끝나면 data/.schema_version에 기록해서 다음 요청부터는 건너뛴다.
 class SchemaUpgrader {
-    const VERSION = '2026-11-24';
+    const VERSION = '2026-11-26';
 
     // 보호자-자녀 연결, 선생님 반, 반 학생
     const ROLE_TABLES = [
@@ -40,7 +38,7 @@ class SchemaUpgrader {
     ];
 
     private static function markerPath() {
-        return Storage::runtimePath('.schema_version');
+        return __DIR__ . '/../data/.schema_version';
     }
 
     public static function ensure(PDO $db) {
@@ -48,8 +46,10 @@ class SchemaUpgrader {
         if (is_file($marker) && trim((string)file_get_contents($marker)) === self::VERSION) return;
         try {
             self::upgrade($db);
-            Storage::ensureRuntimeDir();
-            file_put_contents($marker, self::VERSION);
+            if (@file_put_contents($marker, self::VERSION) === false) {
+                // 표식을 못 남기면 요청마다 스키마 점검이 다시 돈다. 동작은 하지만 느려지므로 알린다
+                error_log('[SchemaUpgrader] data 폴더에 쓸 수 없어 표식을 남기지 못했습니다. 폴더 권한을 확인하세요.');
+            }
         } catch (Throwable $e) {
             // 권한 부족 등 — 요청 자체는 계속 처리하고, 다음 요청에서 다시 시도
             error_log('[SchemaUpgrader] ' . $e->getMessage());
@@ -167,7 +167,12 @@ class SchemaUpgrader {
             $db->exec($sql);
         }
 
-        // 예전 버전이 챕터를 다시 완료할 때마다 중복 지급한 아이템 정리 + 종류 바로잡기
+        // 예전 버전이 챕터를 다시 완료할 때마다 중복 지급한 아이템 정리 + 종류 바로잡기.
+        // 지우기 전에, 중복 가운데 하나라도 장착 중이면 남기는 행(번호가 가장 작은 것)에 장착 표시를 옮긴다.
+        // 그러지 않으면 나중에 받은 쪽을 장착하고 있던 학생의 꾸민 모습이 풀린다
+        $db->exec("UPDATE user_items a JOIN user_items b
+                   ON a.user_id = b.user_id AND a.item_name = b.item_name AND a.id < b.id AND b.equipped = 1
+                   SET a.equipped = 1");
         $db->exec("DELETE a FROM user_items a JOIN user_items b
                    ON a.user_id = b.user_id AND a.item_name = b.item_name AND a.id > b.id");
         $db->exec("UPDATE user_items SET item_type = 'hat' WHERE item_name = '빨간 모자'");
@@ -406,6 +411,20 @@ class SchemaUpgrader {
         /* ── 2026-11-24 자리 비움 자동 로그아웃 ── */
         if (self::column($db, 'users', 'last_active_at') === null) {
             $db->exec("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP NULL AFTER token_version");
+        }
+
+        /* ── 2026-11-25 같은 아이템은 한 사람에게 하나만 ──
+           지급이 '가졌는지 확인 → 넣기' 두 단계라서, 거의 동시에 온 요청 둘이 모두 넣을 수 있었다.
+           이미 중복된 행은 위의 '중복 지급한 아이템 정리'에서 지워졌으므로 여기서는 키만 건다 */
+        if (!self::hasIndex($db, 'user_items', 'uniq_user_item')) {
+            $db->exec("ALTER TABLE user_items ADD UNIQUE KEY uniq_user_item (user_id, item_name)");
+        }
+
+        /* ── 2026-11-26 아이템을 어떻게 얻었는지 ──
+           자유 창작 저장 보상은 하루 3개까지다. 그 횟수를 '오늘 얻은 아이템 가운데 보상 목록에 있는 것'으로 셌더니,
+           상점에서 산 아이템도 같은 목록에 있어서 함께 세어졌다. 아이템을 산 날은 저장 보상이 그만큼 줄었다 */
+        if (self::column($db, 'user_items', 'source') === null) {
+            $db->exec("ALTER TABLE user_items ADD COLUMN source VARCHAR(10) NULL AFTER equipped");
         }
 
         // 챕터가 예전 블록 id(move-x처럼 하이픈)로 되어 있으면 새 내용으로 교체

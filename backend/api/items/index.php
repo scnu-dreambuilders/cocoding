@@ -12,7 +12,7 @@ $itemModel = new ItemModel();
 
 if ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
     RateLimiter::limit("items:equip:{$payload['id']}", 120, 3600);
-    $data = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = Response::input();
     $itemId = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
     if (!$itemId) {
         Response::error("아이템 ID가 필요합니다.");

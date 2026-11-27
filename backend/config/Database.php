@@ -24,7 +24,9 @@ class Database {
         try {
             $conn->exec("SET time_zone = '" . AppTime::dbOffset() . "'");
         } catch (Throwable $e) {
-            // 시차 설정을 못 해도 서비스는 돌아가야 한다 (기록은 Bootstrap에서 남는다)
+            // 시차 설정을 못 해도 서비스는 돌아가야 한다. 다만 '오늘'의 기준이 PHP와 DB에서 어긋날 수 있으므로
+            // (출석·하루 한 번 보상) 알 수 있게 남긴다
+            error_log('[Database] DB 시차(time_zone)를 맞추지 못했습니다: ' . $e->getMessage());
         }
         return $conn;
     }

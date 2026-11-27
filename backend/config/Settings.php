@@ -11,6 +11,11 @@
 require_once __DIR__ . '/Database.php';
 
 class Settings {
+    // 신고가 자동 숨김 횟수로 세어지려면 신고한 계정이 만들어진 지 이만큼 지나야 한다.
+    // 계정은 누구나 바로 만들 수 있어서, 이 조건이 없으면 계정 몇 개를 만들어 남의 글·작품을 숨길 수 있다.
+    // 새 계정의 신고도 기록에는 남고 운영자 화면에 보인다. 자동으로 숨기는 데만 쓰지 않는다
+    const REPORTER_MIN_AGE_HOURS = 24;
+
     /* 기준값 기본값 — settings 표에 행이 없을 때 쓰는 값 */
     const DEFAULTS = [
         'coin.attendance'    => 10,
@@ -19,6 +24,9 @@ class Settings {
         'coin.project'       => 5,
         'coin.game.typing'   => 2,
         'coin.game.quiz'     => 10,
+        // 학생 한 명이 선생님 과제 보상으로 하루에 받을 수 있는 코인. 선생님 계정은 누구나 만들 수 있어서,
+        // 상한이 없으면 과제를 내고 끝내기를 되풀이해 코인을 얼마든지 만들 수 있다
+        'coin.assignment_daily' => 300,
         'coco.daily_limit'   => 30,
         'report.hide_count'  => 3,
         'board.post_cooldown' => 5,
@@ -46,7 +54,7 @@ class Settings {
         ],
         'coin.project' => [
             'group' => '코인', 'label' => '자유 창작 첫 저장 코인',
-            'help' => '자유 창작 작품을 처음 저장했을 때 주는 코인이에요.',
+            'help' => '자유 창작 작품을 새로 저장할 때 주는 코인이에요. 하루 3번까지 받아요.',
             'min' => 0, 'max' => 1000,
         ],
         'coin.game.typing' => [
@@ -58,6 +66,11 @@ class Settings {
             'group' => '코인', 'label' => '복습 퀴즈 정답 코인',
             'help' => '복습 퀴즈에서 한 문제 맞힐 때마다 주는 코인이에요. 오답 재도전도 같아요.',
             'min' => 0, 'max' => 100,
+        ],
+        'coin.assignment_daily' => [
+            'group' => '코인', 'label' => '과제 보상 하루 상한',
+            'help' => '학생 한 명이 선생님 과제 보상으로 하루에 받을 수 있는 코인이에요. 넘는 보상은 다음 날 과제 목록을 열 때 들어와요.',
+            'min' => 100, 'max' => 10000,
         ],
         'coco.daily_limit' => [
             'group' => '코코 대화', 'label' => '하루 질문 횟수',
@@ -76,7 +89,7 @@ class Settings {
         ],
         'auth.idle_minutes' => [
             'group' => '보안', 'label' => '자동 로그아웃(분)',
-            'help' => '이 시간 동안 서버에 아무 요청이 없으면 자동으로 로그아웃돼요. 0이면 꺼져 있어요. 권장값은 15분이에요.',
+            'help' => '이 시간 동안 서버에 아무 요청이 없으면 자동으로 로그아웃돼요. 0이면 꺼져 있어요. 블록을 조립하는 동안에는 요청이 가지 않아서, 화면에 사용 중 신호가 들어가기 전에 켜면 학생이 작품을 만들다 끊겨요. 그 전까지는 0으로 두세요.',
             'min' => 0, 'max' => 1440,
         ],
     ];

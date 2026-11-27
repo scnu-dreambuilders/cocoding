@@ -1,7 +1,6 @@
 <?php
 // backend/config/Logger.php
-// 운영 기록. Storage::runtimePath('logs') 아래에 하루 한 파일씩, 한 줄에 한 건(JSON)으로 쌓인다.
-// FTP 배포처럼 backend 가 public_html 안에 있으면 .env 옆(웹 루트 밖)의 data/logs/ 를 쓴다.
+// 운영 기록. backend/data/logs/에 하루 한 파일씩, 한 줄에 한 건(JSON)으로 쌓인다.
 //
 //   access-2026-11-09.log  어떤 요청이 들어와서 어떤 응답이 나갔는지
 //   audit-2026-11-09.log   로그인·가입·탈퇴·신고처럼 나중에 확인할 일이 생기는 일
@@ -19,7 +18,6 @@
 // 기록하다 실패해도 서비스는 그대로 돌아가야 하므로 모든 쓰기는 조용히 넘어간다.
 require_once __DIR__ . '/Env.php';
 require_once __DIR__ . '/AppTime.php';
-require_once __DIR__ . '/Storage.php';
 
 class Logger {
     const DEFAULT_RETENTION_DAYS = 30;
@@ -131,8 +129,8 @@ class Logger {
 
     private static function dir() {
         $dir = trim((string)Env::get('LOG_DIR', ''));
-        $dir = $dir === '' ? Storage::runtimePath('logs') : Storage::resolve($dir);
-        if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) return null;
+        if ($dir === '') $dir = __DIR__ . '/../data/logs';
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) return null;
         self::protect($dir);
         return $dir;
     }

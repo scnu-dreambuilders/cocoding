@@ -39,7 +39,7 @@ Auth::requireSharing($payload); // 보호자 동의 전에는 게시판을 쓸 �
 $userId = (int)$payload['id'];
 $board = new BoardModel();
 $method = $_SERVER['REQUEST_METHOD'];
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 
 /* ── 읽기 ───────────────────────────────── */
 if ($method === 'GET') {

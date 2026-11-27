@@ -15,9 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error("잘못된 요청 방식입니다.", 405);
 }
 
-RateLimiter::limit('register:ip:' . RateLimiter::clientIp(), 10, 3600, "가입 시도가 너무 많아요. 잠시 후 다시 시도해주세요.");
+// 학교·학원에서는 한 교실이 같은 IP 로 나간다. 한 시간에 10번이면 한 반이 함께 가입할 때
+// 11번째 학생부터 막히므로 두 반이 연달아 가입해도 되는 수로 둔다 (틀린 입력도 한 번으로 센다)
+RateLimiter::limit('register:ip:' . RateLimiter::clientIp(), 100, 3600, "가입 시도가 너무 많아요. 잠시 후 다시 시도해주세요.");
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $username = is_string($data['username'] ?? null) ? trim($data['username']) : '';
 $email = is_string($data['email'] ?? null) ? strtolower(trim($data['email'])) : '';
 $password = is_string($data['password'] ?? null) ? $data['password'] : '';

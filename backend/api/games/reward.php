@@ -15,6 +15,7 @@
 //   · 타자게임 정답 1개는 2코인, 복습 퀴즈 정답 1개는 10코인이 기본이다.
 //     관리자 웹의 운영 기준값(coin.game.typing, coin.game.quiz)으로 바꿀 수 있다.
 //     퀴즈는 첫 도전(first)이든 오답 재도전(retry)이든 똑같이 10코인이다.
+//     다만 재도전은 틀린 문제만 다시 푸는 것이라, 한 단계에서 첫 도전과 재도전을 합쳐 5문제치까지만 받는다.
 //   · 경험치(xp)는 올리지 않는다. 레벨과 랭킹은 챕터 진도로만 올라가야 한다.
 //   · 한 세트가 5문제라서 correct는 0부터 5까지만 받는다.
 //   · 같은 단계는 하루에 한 번만. ref 끝에 오늘 날짜를 붙여 두면 coin_log의
@@ -83,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 RateLimiter::limit("game:reward:$userId", 120, 3600, "게임을 너무 빠르게 보내고 있어요. 조금 쉬었다가 다시 해보자!");
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $game = gameWord($data['game'] ?? null);
 
 if (!isset($GAME_STAGES[$game])) {
@@ -116,11 +117,24 @@ if ($game === 'typing') {
 }
 
 $amount = $correct * CoinModel::gameAmount($game);
+// 퀴즈 재도전은 첫 도전에서 틀린 문제만 다시 푼다. 그러니 첫 도전과 재도전에서 받는 코인을 합쳐도
+// 한 세트(5문제)치를 넘을 수 없다. 화면을 거치지 않고 '첫 도전 5개, 재도전 5개'를 보내 두 배로 받는 것을 막는다.
+// 서버는 문제를 직접 채점하지 않으므로 맞힌 개수 자체는 확인할 수 없다. 대신 정직하게 다 맞힌 학생보다
+// 더 받을 수는 없게 한다
+// 어느 쪽을 먼저 보내든 같아야 하므로(재도전을 먼저 보내고 첫 도전을 보내는 경우) 양쪽 모두에서 본다
+$cappedOut = false; // 한 세트치를 이미 다 받아서 이번에 줄 것이 없는 경우
+if ($game === 'quiz' && $amount > 0) {
+    $other = $round === 'first' ? 'retry' : 'first';
+    $stmt = Database::getInstance()->prepare("SELECT COALESCE(SUM(amount), 0) FROM coin_log WHERE user_id = ? AND reason = 'game' AND ref = ?");
+    $stmt->execute([$userId, "quiz:$stage:$other:$today"]);
+    $amount = max(0, min($amount, $MAX_CORRECT * CoinModel::gameAmount($game) - (int)$stmt->fetchColumn()));
+    $cappedOut = $amount === 0;
+}
 // 지급액이 0이면 grant()는 아무것도 넣지 않고 0을 돌려준다 → 이미 받은 것과 섞이지 않게 따로 본다
 $awarded = $amount > 0 ? $coins->grant($userId, $amount, 'game', $ref) : 0;
-$already = $amount > 0 && $awarded === 0;
+$already = ($amount > 0 && $awarded === 0) || $cappedOut;
 
-if ($amount === 0) {
+if ($amount === 0 && !$cappedOut) {
     $message = "이번엔 맞힌 문제가 없어서 코인은 없어. 다시 해보자!";
 } elseif ($already) {
     $message = "이 단계는 오늘 이미 코인을 받았어! 내일 또 받을 수 있어";

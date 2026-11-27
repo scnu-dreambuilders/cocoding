@@ -8,7 +8,6 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 require_once __DIR__ . '/../config/SchemaUpgrader.php';
-require_once __DIR__ . '/../config/Storage.php';
 require_once __DIR__ . '/../config/Database.php';
 
 $envPath = __DIR__ . '/../.env';
@@ -74,7 +73,6 @@ if ($hasDb) {
     $t->execute([$dbname]);
     $hasTables = (int)$t->fetchColumn() === 3;
 }
-$upgraded = false;
 
 if (!$hasTables) {
     echo "[..] '$dbname' 데이터베이스가 비어 있어서 schema.sql로 새로 만들어요.\n";
@@ -88,7 +86,7 @@ if (!$hasTables) {
 } else {
     $pdo->exec("USE `$dbname`");
     SchemaUpgrader::upgrade($pdo);
-    $upgraded = true;
+    @file_put_contents(__DIR__ . '/../data/.schema_version', SchemaUpgrader::VERSION);
     echo "[OK] 기존 '$dbname' 데이터베이스를 새 기능에 맞게 업그레이드했어요.\n";
 }
 $pdo->exec("USE `$dbname`");
@@ -109,18 +107,20 @@ $values = array_merge($env, [
 if (empty($values['JWT_SECRET'])) $values['JWT_SECRET'] = bin2hex(random_bytes(32));
 // 개발 서버가 5173을 못 잡으면 5174·5175로 밀려나므로 셋 다 넣어둔다
 if (empty($values['ALLOWED_ORIGINS'])) $values['ALLOWED_ORIGINS'] = 'http://localhost:5173,http://localhost:5174,http://localhost:5175';
-$lines = [];
+// 이 도구가 정하는 항목만 바꾼다. 전에는 파일을 읽은 값으로 통째로 다시 썼는데, 그러면 주석이 모두 사라지고
+// 따옴표로 감싸 둔 값(예: MAIL_FROM="코코딩 <no-reply@...>")의 따옴표가 벗겨져 다음에 읽을 때 깨질 수 있었다
+$mine = [];
 foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS', 'JWT_SECRET', 'ALLOWED_ORIGINS'] as $key) {
     $v = (string)$values[$key];
-    $lines[] = $key === 'DB_PASS' ? "$key=\"$v\"" : "$key=$v";
-    unset($values[$key]);
+    $mine[$key] = $key === 'DB_PASS' ? "$key=\"$v\"" : "$key=$v";
 }
-foreach ($values as $key => $v) $lines[] = "$key=$v";
+$lines = is_file($envPath) ? preg_split('/\r\n|\n|\r/', rtrim((string)file_get_contents($envPath), "\r\n")) : [];
+foreach ($lines as $i => $line) {
+    if (preg_match('/^\s*([A-Z0-9_]+)\s*=/', $line, $m) && isset($mine[$m[1]])) {
+        $lines[$i] = $mine[$m[1]];
+        unset($mine[$m[1]]);
+    }
+}
+foreach ($mine as $line) $lines[] = $line; // 파일에 없던 항목은 끝에 붙인다
 file_put_contents($envPath, implode("\n", $lines) . "\n");
-
-// .env 를 저장한 뒤에야 Storage 가 기록 폴더를 알 수 있다.
-if ($upgraded) {
-    Storage::ensureRuntimeDir();
-    @file_put_contents(Storage::runtimePath('.schema_version'), SchemaUpgrader::VERSION);
-}
 echo "[OK] backend/.env에 저장했어요. 이제 start.bat으로 실행하면 돼요!\n\n";

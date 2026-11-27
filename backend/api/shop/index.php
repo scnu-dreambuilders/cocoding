@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 RateLimiter::limit("shop:buy:$userId", 60, 3600, "잠깐 쉬었다가 다시 사보자!");
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $name = is_string($data['item'] ?? null) ? $data['item'] : '';
 $price = ItemModel::price($name);
 
@@ -47,7 +47,7 @@ try {
         $db->rollBack();
         Response::error("코인이 모자라요. 출석하거나 챕터를 완료하면 모을 수 있어!", 409);
     }
-    $items->grant($userId, $name);
+    $items->grant($userId, $name, 'shop');
     $db->commit();
 } catch (Throwable $e) {
     $db->rollBack();

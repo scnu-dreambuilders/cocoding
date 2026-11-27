@@ -294,7 +294,9 @@ class BoardModel {
         $stmt->execute([$post_id, $user_id, $reason]);
         if ($stmt->rowCount() === 0) return false;
 
-        $count = $this->db->prepare("SELECT COUNT(*) FROM board_reports WHERE post_id = ?");
+        // 만든 지 얼마 안 된 계정의 신고는 세지 않는다 (Settings::REPORTER_MIN_AGE_HOURS)
+        $count = $this->db->prepare("SELECT COUNT(*) FROM board_reports r JOIN users u ON u.id = r.user_id
+            WHERE r.post_id = ? AND u.created_at <= NOW() - INTERVAL " . (int)Settings::REPORTER_MIN_AGE_HOURS . " HOUR");
         $count->execute([$post_id]);
         $hidden = (int)$count->fetchColumn() >= Settings::int('report.hide_count');
         if ($hidden) {

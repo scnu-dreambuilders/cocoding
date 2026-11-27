@@ -24,7 +24,7 @@ RateLimiter::limit("chapter:complete:{$payload['id']}", 120, 3600);
 // 제출마다 서버에서 채점기를 실행하므로 짧은 시간에 몰아서 보내는 것도 막는다
 RateLimiter::limit("chapter:grade:min:{$payload['id']}", 10, 60, "제출을 너무 빨리 했어요. 잠깐 쉬었다가 다시 제출해주세요.");
 
-$data = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = Response::input();
 $chapterId = filter_var($data['chapter_id'] ?? null, FILTER_VALIDATE_INT);
 $userId = $payload['id'];
 
@@ -60,10 +60,19 @@ $err = ProjectModel::validateInput($title, 'chapter', $blocksData) ?? ProjectMod
 if ($err) Response::error($err);
 
 try {
+    $gradeLocks = Grader::acquire($userId);
+} catch (GraderBusyException $e) {
+    Response::error($e->getCode() === 429
+        ? "앞에 낸 답을 아직 채점하고 있어요. 결과가 나온 뒤에 다시 제출해주세요."
+        : "지금 채점이 밀려 있어요. 잠시 후 다시 제출해주세요.", $e->getCode());
+}
+try {
     $graded = Grader::grade($chapter['order_num'], $blocksData);
 } catch (GraderUnavailableException $e) {
     error_log('[Grader] ' . $e->getMessage());
     Response::error("채점 서버에 문제가 생겼어요. 잠시 후 다시 제출해주세요.", 503);
+} finally {
+    Grader::release($gradeLocks);
 }
 $score = $graded['score'];
 
@@ -79,7 +88,7 @@ try {
     $record = $chapterModel->recordAttempt($userId, $chapterId, $score);
     $chapterModel->updateProgress($userId, $chapterId, 'completed');
 
-    $rewardGranted = $itemModel->grant($userId, $chapter['reward_item']);
+    $rewardGranted = $itemModel->grant($userId, $chapter['reward_item'], 'chapter');
     // 챕터를 처음 통과했을 때만 코인 지급 (coin_log의 ref로 중복 방지)
     $coinsEarned = (new CoinModel())->grant($userId, CoinModel::amount('chapter'), 'chapter', (string)$chapterId);
     $progressModel = new ProgressModel();
@@ -87,7 +96,7 @@ try {
 
     // 선생님이 이 챕터를 과제로 내고 보상을 걸어뒀다면 지금 준다 (과제 하나에 한 번).
     // 챕터 과제는 '끝냈어요'를 누르는 단계가 없어서, 통과하는 이 순간이 유일한 지급 시점이다
-    $assignmentCoins = (new ClassModel())->settleChapterRewardsForStudent($userId, $chapterId);
+    $assignmentCoins = (new ClassModel())->settleRewardsForStudent($userId, $chapterId);
 
     // 다음 챕터 잠금 해제 (이미 완료한 챕터를 되돌리지 않음)
     $nextChapter = $chapterModel->findByOrder($chapter['order_num'] + 1);
@@ -118,7 +127,7 @@ Response::success([
     "attempts" => $record['attempts'],
     "message" => "챕터 완료!",
     "rewardItem" => $chapter['reward_item'],
-    "rewardEmoji" => ItemModel::info($chapter['reward_item'])['emoji'],
+    "rewardEmoji" => (string)$chapter['reward_item'] !== '' ? ItemModel::info($chapter['reward_item'])['emoji'] : null,
     "rewardGranted" => (bool)$rewardGranted,
     "coinsEarned" => $coinsEarned,
     // 선생님 과제 보상으로 이번에 받은 코인 (없으면 0). coinsEarned 와는 따로 센다

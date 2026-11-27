@@ -33,11 +33,15 @@ if ($method === 'PUT') {
         Response::error("수정 권한이 없습니다.", 403);
     }
     RateLimiter::limit("project:update:{$payload['id']}", 240, 3600, "저장을 너무 자주 했어요. 잠시 후 다시 시도해주세요.");
-    $data = json_decode(file_get_contents("php://input"), true) ?? [];
+    $data = Response::input();
     $fields = [];
 
     if (array_key_exists('title', $data)) $fields['title'] = is_string($data['title']) ? trim($data['title']) : '';
-    if (array_key_exists('blocks_data', $data)) $fields['blocks_data'] = $data['blocks_data'];
+    if (array_key_exists('blocks_data', $data)) {
+        // null 은 '안 보냄'이 아니다. 그대로 두면 아래 검사가 옛 내용을 보고 통과시킨 뒤 null 로 덮어쓴다
+        if (!is_array($data['blocks_data'])) Response::error("작품 내용이 올바르지 않아요.");
+        $fields['blocks_data'] = $data['blocks_data'];
+    }
     if (array_key_exists('is_public', $data)) $fields['is_public'] = (bool)$data['is_public'];
     if (array_key_exists('allow_remake', $data)) $fields['allow_remake'] = (bool)$data['allow_remake'];
     if (array_key_exists('thumbnail', $data)) $fields['thumbnail_url'] = $data['thumbnail'];
@@ -46,7 +50,7 @@ if ($method === 'PUT') {
         Auth::requireSharing($payload);
     }
     if (!empty($fields['is_public']) && $project['report_hidden']) {
-        Response::error("신고가 여러 번 들어와서 공개할 수 없는 작품이에요. 선생님께 문의해주세요.", 403);
+        Response::error("신고가 여러 번 들어와서 공개할 수 없는 작품이에요. 운영자에게 문의해주세요.", 403);
     }
 
     $validationError = ProjectModel::validateInput(

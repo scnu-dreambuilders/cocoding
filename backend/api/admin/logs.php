@@ -7,7 +7,7 @@
 //        q        이 글자가 들어간 줄만 (쉬운 찾기)
 //        limit    최근 몇 줄까지 (기본 200, 최대 1000)
 //
-// 운영 기록은 Storage::runtimePath('logs') 아래에 하루 한 파일, 한 줄에 한 건(JSON)으로 쌓인다.
+// 운영 기록은 backend/data/logs/ 에 하루 한 파일, 한 줄에 한 건(JSON)으로 쌓인다.
 // 이 API 는 그 파일을 읽어서 최근 줄부터 돌려준다.
 //
 // 정한 규칙
@@ -20,7 +20,6 @@
 require_once __DIR__ . '/../../config/Bootstrap.php';
 require_once __DIR__ . '/../../config/Auth.php';
 require_once __DIR__ . '/../../config/Env.php';
-require_once __DIR__ . '/../../config/Storage.php';
 
 Auth::requireAdmin();
 
@@ -35,7 +34,7 @@ const LOG_READ_BYTES = 1048576; // 뒤에서부터 최대 1MB 만 읽는다
 
 function logDir() {
     $dir = trim((string)Env::get('LOG_DIR', ''));
-    $dir = $dir === '' ? Storage::runtimePath('logs') : Storage::resolve($dir);
+    if ($dir === '') $dir = __DIR__ . '/../../data/logs';
     return is_dir($dir) ? $dir : null;
 }
 
@@ -72,6 +71,7 @@ foreach (glob($dir . '/' . $channel . '-*.log') ?: [] as $file) {
 rsort($dates);
 
 $date = $_GET['date'] ?? '';
+if (!is_string($date)) Response::error("날짜는 2026-11-20 처럼 보내주세요.", 400);
 if ($date === '') {
     $date = $dates ? $dates[0] : date('Y-m-d');
 } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$date)) {

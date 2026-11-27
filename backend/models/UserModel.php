@@ -87,7 +87,16 @@ class UserModel {
 
     public function updatePassword($id, $password) {
         $stmt = $this->db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
-        return $stmt->execute([password_hash($password, PASSWORD_BCRYPT), $id]);
+        $ok = $stmt->execute([password_hash($password, PASSWORD_BCRYPT), $id]);
+        $this->invalidateResetLinks($id);
+        return $ok;
+    }
+
+    // 아직 쓰지 않은 비밀번호 재설정 링크를 못 쓰게 한다.
+    // 비밀번호나 이메일이 바뀐 뒤에도 전에 보낸 링크가 30분 동안 살아 있으면,
+    // 옛 메일함을 볼 수 있는 사람이 비밀번호를 다시 바꿀 수 있다
+    public function invalidateResetLinks($id) {
+        $this->db->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL")->execute([$id]);
     }
 
     // 탈퇴: 작품·진도·아이템·반 참여·보호자 연결은 외래키 ON DELETE CASCADE로 함께 삭제
@@ -123,5 +132,8 @@ class UserModel {
             }
         }
         $this->db->prepare("UPDATE projects SET is_public = 0 WHERE user_id = ?")->execute([$studentId]);
+        // 팔로우도 끊는다. 남겨 두면 다시 동의를 받는 순간 예전 관계가 그대로 되살아나고,
+        // 그동안에도 상대의 목록에 이 학생이 남는다
+        $this->db->prepare("DELETE FROM follows WHERE follower_id = ? OR following_id = ?")->execute([$studentId, $studentId]);
     }
 }
