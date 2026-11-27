@@ -23,6 +23,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 function verifyCurrentPassword(UserModel $userModel, $userId, $password) {
     $key = "account:password:$userId";
+    RateLimiter::hold($key); // 비밀번호 확인 시도는 한 번에 하나씩 (한꺼번에 보내 제한을 넘기지 못하게)
     if (RateLimiter::tooMany($key, PASSWORD_CHECK_MAX, PASSWORD_CHECK_WINDOW)) {
         header('Retry-After: ' . PASSWORD_CHECK_WINDOW);
         Response::error("비밀번호를 여러 번 틀렸어요. 15분 후에 다시 시도해주세요.", 429);

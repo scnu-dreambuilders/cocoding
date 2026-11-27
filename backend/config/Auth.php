@@ -72,6 +72,19 @@ class Auth {
     }
 
     public static function issueToken($userId, $username) {
+        // 자리 비움 기준을 이미 넘긴 계정이면 예전 토큰을 먼저 끊는다. 그러지 않으면 아래에서 시각을
+        // 지금으로 고치는 순간, 공용 컴퓨터에 남겨 둔 예전 토큰이 다시 쓸 수 있게 된다
+        $limit = self::idleLimitSeconds();
+        if ($limit > 0) {
+            try {
+                $stmt = Database::getInstance()->prepare("SELECT TIMESTAMPDIFF(SECOND, last_active_at, NOW()) FROM users WHERE id = ?");
+                $stmt->execute([$userId]);
+                $idle = $stmt->fetchColumn();
+                if ($idle !== false && $idle !== null && (int)$idle > $limit) self::revoke($userId);
+            } catch (PDOException $e) {
+                // last_active_at 컬럼이 없는 서버: 자동 로그아웃 자체가 동작하지 않으므로 할 일이 없다
+            }
+        }
         self::touch($userId); // 자리 비움 시간을 지금부터 다시 센다
         $stmt = Database::getInstance()->prepare("SELECT token_version FROM users WHERE id = ?");
         $stmt->execute([$userId]);
@@ -181,8 +194,8 @@ class Auth {
         if (!empty($payload['suspended'])) {
             $reason = trim((string)($payload['suspended_reason'] ?? ''));
             Response::error($reason !== ''
-                ? "이 계정은 지금 쓸 수 없어요. ($reason) 선생님이나 보호자에게 물어봐 주세요."
-                : "이 계정은 지금 쓸 수 없어요. 선생님이나 보호자에게 물어봐 주세요.", 403);
+                ? "이 계정은 지금 쓸 수 없어요. ($reason) 코코딩 운영자에게 문의해 주세요."
+                : "이 계정은 지금 쓸 수 없어요. 코코딩 운영자에게 문의해 주세요.", 403);
         }
         return $payload;
     }

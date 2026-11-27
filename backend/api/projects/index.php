@@ -46,6 +46,10 @@ if (isset($data['remake_of'])) {
         Response::error("원본 작품을 찾을 수 없습니다.", 404);
     }
     $isOwn = (int)$original['user_id'] === (int)$userId;
+    // 신고로 숨겨진 작품을 복사하면 새 작품은 숨김이 풀린 채 만들어져서 다시 공개할 수 있었다
+    if (!empty($original['report_hidden'])) {
+        Response::error("신고로 숨겨진 작품은 복사할 수 없어요. 운영자에게 문의해주세요.", 403);
+    }
     if (!$isOwn) {
         Auth::requireSharing($payload);
         if (!ProjectModel::isVisibleToOthers($original)) {

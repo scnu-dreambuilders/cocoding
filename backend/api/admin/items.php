@@ -27,6 +27,8 @@ $admin = Auth::requireAdmin();
 $adminId = (int)$admin['id'];
 $method = $_SERVER['REQUEST_METHOD'];
 
+// 아이템 이름은 상점에서 살 때 코인 기록의 ref(60자)에 그대로 들어간다. 더 길면 그 아이템은 살 수 없다
+const ITEM_NAME_MAX = 60;
 const ITEM_FILE = __DIR__ . '/../../data/items.json';
 const ITEM_TYPES = ['hat', 'glasses', 'background', 'accessory'];
 const ITEM_MAX_PRICE = 100000;
@@ -45,7 +47,7 @@ function readCatalog() {
 function writeCatalog(array $data) {
     $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if ($json === false) Response::error("아이템 내용을 저장할 수 없어요.", 500);
-    $tmp = ITEM_FILE . '.tmp';
+    $tmp = ITEM_FILE . '.' . bin2hex(random_bytes(4)) . '.tmp'; // 요청마다 다른 이름 (같은 임시 파일을 두 요청이 쓰지 않게)
     if (@file_put_contents($tmp, $json . "\n") === false) {
         Response::error("아이템 파일에 쓸 수 없어요. 폴더 권한을 확인해주세요.", 500);
     }
@@ -55,6 +57,12 @@ function writeCatalog(array $data) {
     }
 }
 
+// 고치는 요청은 한 번에 하나씩만. 읽고 → 고치고 → 쓰는 사이에 다른 운영자의 저장이 끼어들면
+// 한쪽 변경이 사라지거나 파일이 깨진다. 잠금 파일은 요청이 끝나면 저절로 풀린다
+if ($method !== 'GET') {
+    $itemLock = @fopen(ITEM_FILE . '.lock', 'c');
+    if ($itemLock) flock($itemLock, LOCK_EX);
+}
 $catalog = readCatalog();
 
 if ($method === 'GET') {
@@ -128,8 +136,8 @@ if (isset($data['items'])) {
     if (!is_array($data['items'])) Response::error("items 는 { 이름: 정보 } 모양으로 보내주세요.", 400);
     foreach ($data['items'] as $name => $info) {
         $name = trim((string)$name);
-        if ($name === '' || mb_strlen($name) > 100) {
-            Response::error("아이템 이름은 1~100자로 써주세요.", 400);
+        if ($name === '' || mb_strlen($name) > ITEM_NAME_MAX) {
+            Response::error("아이템 이름은 1~" . ITEM_NAME_MAX . "자로 써주세요.", 400);
         }
         if (!is_array($info)) Response::error("'$name' 의 정보를 다시 보내주세요.", 400);
 

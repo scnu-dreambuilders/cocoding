@@ -152,6 +152,7 @@ if (array_key_exists('consent', $data)) {
         Response::error("보호자 동의를 기다리는 계정이 아니에요.", 400);
     }
     $changes['consent_status'] = 'granted';
+    $changes['consent_code'] = null; // 보호자가 코드로 동의했을 때와 똑같이, 쓴 코드는 비운다
     $changes['consent_at'] = date('Y-m-d H:i:s');
 }
 
@@ -217,10 +218,10 @@ $tempPassword = null;
 if ($resetPassword) {
     $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
     $tempPassword = '';
-    for ($i = 0; $i < 10; $i++) {
+    for ($i = 0; $i < 9; $i++) {
         $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
     }
-    $tempPassword .= '!'; // 비밀번호 규칙(특수문자)을 만족시키려고
+    $tempPassword .= '7!'; // 무작위 글자에 숫자가 하나도 없을 수 있다. 비밀번호 규칙(영문+숫자)을 확실히 맞춘다
     $model->setPassword($id, $tempPassword);
     $extras[] = 'password';
 }

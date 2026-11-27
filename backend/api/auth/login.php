@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../config/Logger.php';
 
 // 실패 제한 (15분 기준)
 //   계정+IP 5번  — 한 곳에서 한 계정 대입 방지. 남이 내 이메일로 일부러 틀려도 막히는 건 그 사람 IP뿐
-//   IP 20번      — 한 IP에서 여러 계정 대입 방지
+//   IP 100번     — 한 IP에서 여러 계정 대입 방지 (한 교실이 같은 IP를 쓴다)
 //   계정 50번    — 여러 IP를 돌려가며 한 계정을 노리는 경우 (5번으로 하면 아무나 남의 계정을 잠글 수 있음)
 const LOGIN_WINDOW = 900;
 const LOGIN_MAX_PER_ACCOUNT_IP = 5;
@@ -27,6 +27,8 @@ $ip = RateLimiter::clientIp();
 $accountKey = 'login:account:' . $email;
 $accountIpKey = 'login:account-ip:' . $email . '|' . $ip;
 $ipKey = 'login:ip:' . $ip;
+// 같은 계정을 향한 시도는 한 번에 하나씩 처리한다 (한꺼번에 보내 실패 제한을 넘기는 것을 막는다)
+RateLimiter::hold($accountKey);
 if (RateLimiter::tooMany($accountIpKey, LOGIN_MAX_PER_ACCOUNT_IP, LOGIN_WINDOW)
     || RateLimiter::tooMany($ipKey, LOGIN_MAX_PER_IP, LOGIN_WINDOW)
     || RateLimiter::tooMany($accountKey, LOGIN_MAX_PER_ACCOUNT, LOGIN_WINDOW)) {

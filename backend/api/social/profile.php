@@ -62,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $profile = publicProfile($row, $social, $progress, $userId);
-    $profile['projects'] = $targetId === $userId ? [] : (new ProjectModel())->findPublicByUser($targetId);
+    // 다른 사람의 공개 작품은 나도 공유할 수 있는 상태일 때만 본다 (작품 목록·검색·작품 보기와 같은 기준)
+    $profile['projects'] = $targetId === $userId || !Auth::canShare($payload) ? [] : (new ProjectModel())->findPublicByUser($targetId);
     if ($targetId === $userId) {
         $profile['friends'] = $social->friends($userId);
         $profile['followingOnly'] = $social->followingOnly($userId);
@@ -115,13 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$followId || $followId === $userId) {
         Response::error("팔로우할 친구를 찾을 수 없어요.", 404);
     }
-    $stmt = $db->prepare("SELECT id, role, profile_visibility FROM users WHERE id = ?");
+    $stmt = $db->prepare("SELECT id, role, profile_visibility, consent_status FROM users WHERE id = ?");
     $stmt->execute([$followId]);
     $target = $stmt->fetch();
     if (!$target || $target['role'] !== 'student') {
         Response::error("학생 계정만 팔로우할 수 있어요.", 404);
     }
-    if ($target['profile_visibility'] === 'private') {
+    // 보호자 동의 전인 학생은 프로필을 볼 수 없는 것과 같은 이유로 팔로우도 할 수 없다.
+    // 팔로우가 되면 내 팔로잉 목록에 그 학생의 닉네임과 경험치가 나온다
+    if ($target['profile_visibility'] === 'private' || $target['consent_status'] === 'pending') {
         Response::error("이 친구는 프로필을 비공개로 해두었어요.", 403);
     }
     if (!$social->follow($userId, $followId)) {

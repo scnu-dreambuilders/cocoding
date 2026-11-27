@@ -132,5 +132,8 @@ class UserModel {
             }
         }
         $this->db->prepare("UPDATE projects SET is_public = 0 WHERE user_id = ?")->execute([$studentId]);
+        // 팔로우도 끊는다. 남겨 두면 다시 동의를 받는 순간 예전 관계가 그대로 되살아나고,
+        // 그동안에도 상대의 목록에 이 학생이 남는다
+        $this->db->prepare("DELETE FROM follows WHERE follower_id = ? OR following_id = ?")->execute([$studentId, $studentId]);
     }
 }

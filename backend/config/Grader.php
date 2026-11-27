@@ -4,8 +4,11 @@
 // 브라우저가 보낸 점수는 믿지 않는다 → 제출한 코드로 서버가 직접 점수를 낸다.
 // 채점기는 블록을 직접 해석할 뿐 학생 코드를 eval하지 않고, 가상 시계로 정해진 시간만 돌린다.
 require_once __DIR__ . '/Env.php';
+require_once __DIR__ . '/Database.php';
 
 class GraderUnavailableException extends RuntimeException {}
+// 채점 자리가 없을 때. getCode() 가 429 면 같은 학생의 앞 제출이 아직 채점 중, 503 이면 사이트 전체가 밀린 것
+class GraderBusyException extends RuntimeException {}
 
 class Grader {
     const TIMEOUT_SECONDS = 20;
@@ -13,6 +16,52 @@ class Grader {
 
     private static function script() {
         return __DIR__ . '/../grader/grade.mjs';
+    }
+
+    /* 채점 자리 잡기
+       채점 한 번은 Node 프로세스 하나(메모리 최대 256MB, 길게는 20초)를 띄운다. 제출을 한꺼번에
+       수십 개 보내면 그만큼 프로세스가 떠서 서버가 멈춘다. 그래서
+         · 한 학생은 한 번에 하나만 채점한다 (앞 제출이 끝나야 다음 것을 받는다)
+         · 사이트 전체로도 동시에 도는 채점기를 MAX_PARALLEL 개로 묶는다. 자리가 없으면 잠깐 기다린다
+       잠금은 DB 접속에 묶여 있어서, 요청이 중간에 죽어도 접속이 끊기면 저절로 풀린다 */
+    const MAX_PARALLEL = 6;
+    const SLOT_WAIT_SECONDS = 10;
+
+    private static function lock($name, $timeout) {
+        $stmt = Database::getInstance()->prepare("SELECT GET_LOCK(?, ?)");
+        $stmt->execute([$name, $timeout]);
+        $got = (int)$stmt->fetchColumn() === 1;
+        $stmt->closeCursor();
+        return $got;
+    }
+
+    private static function unlock($name) {
+        $stmt = Database::getInstance()->prepare("SELECT RELEASE_LOCK(?)");
+        $stmt->execute([$name]);
+        $stmt->closeCursor();
+    }
+
+    // 잡은 잠금 이름들을 돌려준다. 못 잡으면 GraderBusyException
+    public static function acquire($userId) {
+        $mine = 'grade:user:' . (int)$userId;
+        if (!self::lock($mine, 0)) {
+            throw new GraderBusyException('앞 제출 채점 중', 429);
+        }
+        $deadline = microtime(true) + self::SLOT_WAIT_SECONDS;
+        do {
+            for ($i = 0; $i < self::MAX_PARALLEL; $i++) {
+                if (self::lock("grade:slot:$i", 0)) return [$mine, "grade:slot:$i"];
+            }
+            usleep(200000);
+        } while (microtime(true) < $deadline);
+        self::unlock($mine);
+        throw new GraderBusyException('채점 자리 없음', 503);
+    }
+
+    public static function release($locks) {
+        foreach ((array)$locks as $name) {
+            try { self::unlock($name); } catch (Throwable $e) { }
+        }
     }
 
     // 성공하면 ['score' => 0~100, 'passed' => bool]

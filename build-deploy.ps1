@@ -99,7 +99,7 @@ Copy-Item 'backend/.htaccess' "$web/backend/.htaccess" -Force
 # 올리면 안 되는 것 빼기: 관리용 스크립트, 로그, 개발 PC에서 생긴 파일
 foreach ($x in @("$web/backend/tools", "$web/backend/data/logs",
                  "$web/backend/data/.schema_version", "$web/backend/data/mail.log",
-                 "$web/backend/data/.rate_limit.json")) {
+                 "$web/backend/data/.rate_limit.json", "$web/backend/data/items.json.lock", "$web/backend/data/.rate_purge")) {
     if (Test-Path $x) { Remove-Item $x -Recurse -Force }
 }
 

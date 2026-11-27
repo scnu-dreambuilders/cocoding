@@ -60,10 +60,19 @@ $err = ProjectModel::validateInput($title, 'chapter', $blocksData) ?? ProjectMod
 if ($err) Response::error($err);
 
 try {
+    $gradeLocks = Grader::acquire($userId);
+} catch (GraderBusyException $e) {
+    Response::error($e->getCode() === 429
+        ? "앞에 낸 답을 아직 채점하고 있어요. 결과가 나온 뒤에 다시 제출해주세요."
+        : "지금 채점이 밀려 있어요. 잠시 후 다시 제출해주세요.", $e->getCode());
+}
+try {
     $graded = Grader::grade($chapter['order_num'], $blocksData);
 } catch (GraderUnavailableException $e) {
     error_log('[Grader] ' . $e->getMessage());
     Response::error("채점 서버에 문제가 생겼어요. 잠시 후 다시 제출해주세요.", 503);
+} finally {
+    Grader::release($gradeLocks);
 }
 $score = $graded['score'];
 

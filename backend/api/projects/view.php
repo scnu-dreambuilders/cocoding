@@ -50,7 +50,7 @@ if ($method === 'PUT') {
         Auth::requireSharing($payload);
     }
     if (!empty($fields['is_public']) && $project['report_hidden']) {
-        Response::error("신고가 여러 번 들어와서 공개할 수 없는 작품이에요. 선생님께 문의해주세요.", 403);
+        Response::error("신고가 여러 번 들어와서 공개할 수 없는 작품이에요. 운영자에게 문의해주세요.", 403);
     }
 
     $validationError = ProjectModel::validateInput(

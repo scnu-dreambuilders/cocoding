@@ -67,7 +67,7 @@ if ($method === 'PATCH') {
             Response::error("이미 해당 반에 등록된 학생이에요.", 409);
         }
         if (count($classes->memberIds($moveToClassId)) >= ClassModel::MAX_MEMBERS) {
-            Response::error("반 인원이 가득 찼어요. 선생님께 말씀드려주세요.", 409);
+            Response::error("옮기려는 반의 인원이 가득 찼어요.", 409);
         }
         $classes->moveMember($class['id'], $moveToClassId, $moveStudentId);
         Response::success(["message" => "학생을 반으로 옮겼어요."]);

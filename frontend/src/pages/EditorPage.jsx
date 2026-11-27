@@ -363,7 +363,7 @@ export default function EditorPage({ user, launch, onBack, onUserUpdate, onOpenC
       setResult({ ...saved, score: saved.score, stars: starsOf(saved.score) })
       setMaxStep(4)
       setStep(4)
-      say(saved.nextChapterId ? `${saved.score}점으로 챕터 ${chapterNo} 완료! 다음 챕터가 열렸어\n보상: ${saved.rewardItem}`
+      say(saved.nextChapterId ? `${saved.score}점으로 챕터 ${chapterNo} 완료! 다음 챕터가 열렸어${saved.rewardItem ? `\n보상: ${saved.rewardItem}` : ''}`
         : `${saved.score}점! 모든 챕터를 끝냈어! 이제 '나만의 게임 만들기'가 열렸어!`, 'success', 'celebrate', { duration: 0 })
       onUserUpdate?.()
       if (user) api.items().then((list) => setItems(list.filter((i) => Number(i.equipped)))).catch(() => {})

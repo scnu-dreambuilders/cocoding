@@ -10,6 +10,9 @@ backend/.env
 backend/data/.rate_limit.json
 backend/data/.schema_version
 backend/data/logs/
+backend/data/items.json.lock
+backend/data/.rate_purge
+backend/data/*.tmp
 *.log
 
 # 로컬 도구 / 에디터 설정

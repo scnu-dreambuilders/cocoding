@@ -68,6 +68,9 @@ Logger::admin('admin.moderation', [
 ]);
 
 Response::success([
-    'message' => $data['hidden'] ? '숨겼어요.' : '다시 보이게 했어요.',
+    // 작품은 신고로 숨겨질 때 비공개로도 바뀐다. 숨김을 풀어도 공개 여부는 주인이 정하게 그대로 둔다
+    // (아이의 작품을 운영자가 대신 공개하지 않는다). 그래서 작품은 '다시 보인다'고 답하지 않는다
+    'message' => $data['hidden'] ? '숨겼어요.'
+        : ($target === 'project' ? '숨김을 풀었어요. 작품 주인이 다시 공개하면 보여요.' : '다시 보이게 했어요.'),
     'hidden' => $data['hidden'],
 ]);

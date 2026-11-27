@@ -114,6 +114,10 @@ try {
         $ids[$key] = (int)$db->lastInsertId();
     }
 
+    // 가입한 지 이틀 된 것으로 둔다. 갓 만든 계정의 신고는 자동 숨김 횟수에 세지 않기 때문이다
+    // (Settings::REPORTER_MIN_AGE_HOURS). 그대로 두면 연습용 계정으로 신고를 눌러도 숨김이 되지 않는다
+    $db->exec("UPDATE users SET created_at = NOW() - INTERVAL 2 DAY, updated_at = updated_at WHERE id IN (" . implode(',', $ids) . ")");
+
     // 신고된 글: 하나는 신고 2건(아직 보임), 하나는 신고 3건(자동 숨김 상태)
     $post = $db->prepare("INSERT INTO board_posts (user_id, kind, title, body, hidden) VALUES (?, 'discussion', ?, ?, ?)");
     $comment = $db->prepare("INSERT INTO board_comments (post_id, user_id, body) VALUES (?, ?, ?)");
